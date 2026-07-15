@@ -116,66 +116,64 @@ class AgentSession:
         messages = self.context_mgr.trim(messages)
 
         for _iteration in range(MAX_ITERATIONS):
-            # 流式调用 LLM
-            full_content = ""
-            full_response = None
-            tool_calls_accumulated: dict[int, dict] = {}
+            response, tool_calls = self._stream_llm(
+                llm_with_tools, messages, on_stream,
+            )
 
-            for chunk in llm_with_tools.stream(messages):
-                if full_response is None:
-                    full_response = chunk
-                else:
-                    full_response += chunk
+            messages.append(response)
 
-                # 收集文本内容
-                chunk_content = getattr(chunk, "content", "")
-                if chunk_content:
-                    full_content += chunk_content
-                    if on_stream:
-                        on_stream(chunk_content)
-
-                # 收集 tool_call 分块
-                chunk_tool_calls = getattr(chunk, "tool_calls", None) or []
-                for tc_chunk in chunk_tool_calls:
-                    idx = tc_chunk.get("index", 0)
-                    if idx not in tool_calls_accumulated:
-                        tool_calls_accumulated[idx] = {
-                            "name": "", "args": "", "id": "",
-                        }
-                    acc = tool_calls_accumulated[idx]
-                    if tc_chunk.get("id"):
-                        acc["id"] = tc_chunk["id"]
-                    if tc_chunk.get("name"):
-                        acc["name"] += tc_chunk["name"]
-                    if tc_chunk.get("args"):
-                        acc["args"] += tc_chunk["args"]
-
-            messages.append(full_response)
-
-            # 检查 tool_calls
-            if not tool_calls_accumulated:
-                answer = full_content or ""
+            if not tool_calls:
+                answer = response.content or ""
                 if answer:
                     save_turn(self.working_dir, user_input, answer)
                 return answer
 
-            # 解析并执行工具调用
-            for idx in sorted(tool_calls_accumulated.keys()):
-                tc = tool_calls_accumulated[idx]
-                tool_name = tc["name"]
-                try:
-                    tool_args = json.loads(tc["args"]) if tc["args"] else {}
-                except json.JSONDecodeError:
-                    tool_args = {}
+            for tc in tool_calls:
+                tool_name = tc.get("name", "")
+                tool_args = tc.get("args", {})
+                tc_id = tc.get("id", "")
 
                 result = self._execute_tool(tool_name, tool_args)
 
                 if on_tool_call:
                     on_tool_call(tool_name, tool_args, result)
 
-                messages.append(ToolMessage(content=result, tool_call_id=tc["id"] or str(idx)))
+                messages.append(ToolMessage(content=result, tool_call_id=tc_id))
 
         return "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。"
+
+    def _stream_llm(self, llm_with_tools, messages, on_stream):
+        """流式调用 LLM，返回 (完整 AIMessage, 解析好的 tool_calls 列表)。
+
+        优先使用 LangChain 内置的 AIMessageChunk 累加后的 tool_calls；
+        若失败则回退到 invoke() 非流式调用。
+        """
+        try:
+            full_response = None
+            for chunk in llm_with_tools.stream(messages):
+                if full_response is None:
+                    full_response = chunk
+                else:
+                    full_response += chunk
+                chunk_content = getattr(chunk, "content", "")
+                if chunk_content and on_stream:
+                    on_stream(chunk_content)
+
+            if full_response is None:
+                return AIMessage(content=""), []
+
+            # 优先用 LangChain 累加后的 tool_calls（最可靠）
+            tool_calls = getattr(full_response, "tool_calls", None) or []
+            if tool_calls:
+                return full_response, tool_calls
+
+            return full_response, []
+
+        except Exception:
+            # 流式失败时回退到非流式
+            response = llm_with_tools.invoke(messages)
+            tool_calls = getattr(response, "tool_calls", None) or []
+            return response, tool_calls
 
 
 def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None, on_stream=None) -> str:
