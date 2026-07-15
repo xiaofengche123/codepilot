@@ -64,16 +64,19 @@ def _run_once(user_input: str, working_dir: str):
         arg_str = ", ".join(f"{k}={v}" for k, v in list(args.items())[:2])
         console.print(f"  [dim]🔧 {tool_name}({arg_str})[/dim]")
 
-    with console.status("[cyan]思考中...[/cyan]", spinner="dots"):
-        try:
-            answer = agent_run(user_input, working_dir, on_tool_call=on_tool)
-        except RuntimeError as e:
-            console.print(f"\n  [red]启动失败:[/red] {e}")
-            console.print("  [dim]请检查 .env 文件中的 API Key 配置[/dim]")
-            return
+    console.print("  [bold cyan]码搭:[/bold cyan] ", end="")
 
-    console.print()
-    console.print(Panel(Markdown(answer), title="码搭", border_style="cyan"))
+    def on_stream(chunk):
+        console.print(chunk, end="")
+
+    try:
+        answer = agent_run(user_input, working_dir, on_tool_call=on_tool, on_stream=on_stream)
+    except RuntimeError as e:
+        console.print(f"\n  [red]启动失败:[/red] {e}")
+        console.print("  [dim]请检查 .env 文件中的 API Key 配置[/dim]")
+        return
+
+    console.print("\n")
 
 
 def _run_interactive(working_dir: str):
@@ -109,17 +112,19 @@ def _run_interactive(working_dir: str):
             arg_str = ", ".join(f"{k}={v}" for k, v in list(args.items())[:2])
             console.print(f"  [dim]🔧 {tool_name}({arg_str})[/dim]")
 
-        with console.status("[cyan]思考中...[/cyan]", spinner="dots"):
-            try:
-                answer = session.run(user_input, on_tool_call=on_tool)
-            except RuntimeError as e:
-                console.print(f"\n  [red]启动失败:[/red] {e}")
-                console.print("  [dim]请检查 .env 文件中的 API Key 配置[/dim]")
-                return
+        console.print("  [bold cyan]码搭:[/bold cyan] ", end="")
 
-        console.print()
-        console.print(Panel(Markdown(answer), title="码搭", border_style="cyan"))
-        console.print()
+        def on_stream(chunk):
+            console.print(chunk, end="")
+
+        try:
+            answer = session.run(user_input, on_tool_call=on_tool, on_stream=on_stream)
+        except RuntimeError as e:
+            console.print(f"\n  [red]启动失败:[/red] {e}")
+            console.print("  [dim]请检查 .env 文件中的 API Key 配置[/dim]")
+            return
+
+        console.print("\n")
 
 
 def _handle_slash(user_input: str, session, working_dir: str):

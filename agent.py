@@ -7,6 +7,7 @@ ReAct 模式（推理-行动-观察循环）：
 """
 
 import os
+import json
 from typing import Optional
 
 from langchain_core.messages import (
@@ -64,58 +65,124 @@ class AgentSession:
             max_context_tokens = config.get("agent.max_context_tokens", 8000)
         self.working_dir = os.path.abspath(working_dir)
         self.context_mgr = ContextManager(max_tokens=max_context_tokens)
+        self.mcp_client = None
+        self._init_mcp()
 
-    def run(self, user_input: str, on_tool_call=None) -> str:
+    def _init_mcp(self):
+        """加载 MCP 服务器配置并连接。"""
+        import sys
+        config_path = os.path.join(os.path.dirname(__file__), "mcp_servers.json")
+        if not os.path.exists(config_path):
+            return
+        try:
+            from mcp.client import MCPClientManager
+            self.mcp_client = MCPClientManager(config_path)
+            self.mcp_client.connect_all()
+        except Exception as e:
+            print(f"  [MCP] 初始化失败: {e}", file=sys.stderr)
+
+    def _get_all_tools(self) -> list:
+        """合并内置工具和 MCP 工具定义。"""
+        all_tools = list(TOOL_DEFINITIONS)
+        if self.mcp_client and self.mcp_client.tool_definitions:
+            all_tools = all_tools + self.mcp_client.tool_definitions
+        return all_tools
+
+    def _execute_tool(self, tool_name: str, tool_args: dict) -> str:
+        """执行工具：优先 MCP，其次内置。"""
+        if self.mcp_client and tool_name in self.mcp_client.tools:
+            return self.mcp_client.call_tool(tool_name, tool_args)
+        if tool_name in DANGEROUS_TOOLS:
+            confirmed = _confirm_dangerous(tool_name, tool_args)
+            if not confirmed:
+                return f"[用户取消] 已拒绝执行 {tool_name}"
+        return execute_tool(tool_name, tool_args)
+
+    def run(self, user_input: str, on_tool_call=None, on_stream=None) -> str:
+        """执行一次对话。
+
+        on_tool_call(tool_name, args, result) — 工具调用时回调
+        on_stream(chunk_text) — 流式输出每段文本时回调
+        """
         os.chdir(self.working_dir)
 
         llm = router_get_llm()
-        llm_with_tools = llm.bind_tools(TOOL_DEFINITIONS)
+        llm_with_tools = llm.bind_tools(self._get_all_tools())
 
-        # 构建消息：System + 历史 + 当前输入
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
         messages.extend(load_history(self.working_dir))
         messages.append(HumanMessage(content=user_input))
 
-        # Token 预算控制
         messages = self.context_mgr.trim(messages)
 
         for _iteration in range(MAX_ITERATIONS):
-            response = llm_with_tools.invoke(messages)
-            messages.append(response)
+            # 流式调用 LLM
+            full_content = ""
+            full_response = None
+            tool_calls_accumulated: dict[int, dict] = {}
 
-            tool_calls = getattr(response, "tool_calls", None) or []
+            for chunk in llm_with_tools.stream(messages):
+                if full_response is None:
+                    full_response = chunk
+                else:
+                    full_response += chunk
 
-            if not tool_calls:
-                answer = response.content or ""
-                save_turn(self.working_dir, user_input, answer)
+                # 收集文本内容
+                chunk_content = getattr(chunk, "content", "")
+                if chunk_content:
+                    full_content += chunk_content
+                    if on_stream:
+                        on_stream(chunk_content)
+
+                # 收集 tool_call 分块
+                chunk_tool_calls = getattr(chunk, "tool_calls", None) or []
+                for tc_chunk in chunk_tool_calls:
+                    idx = tc_chunk.get("index", 0)
+                    if idx not in tool_calls_accumulated:
+                        tool_calls_accumulated[idx] = {
+                            "name": "", "args": "", "id": "",
+                        }
+                    acc = tool_calls_accumulated[idx]
+                    if tc_chunk.get("id"):
+                        acc["id"] = tc_chunk["id"]
+                    if tc_chunk.get("name"):
+                        acc["name"] += tc_chunk["name"]
+                    if tc_chunk.get("args"):
+                        acc["args"] += tc_chunk["args"]
+
+            messages.append(full_response)
+
+            # 检查 tool_calls
+            if not tool_calls_accumulated:
+                answer = full_content or ""
+                if answer:
+                    save_turn(self.working_dir, user_input, answer)
                 return answer
 
-            for tc in tool_calls:
+            # 解析并执行工具调用
+            for idx in sorted(tool_calls_accumulated.keys()):
+                tc = tool_calls_accumulated[idx]
                 tool_name = tc["name"]
-                tool_args = tc.get("args", {})
+                try:
+                    tool_args = json.loads(tc["args"]) if tc["args"] else {}
+                except json.JSONDecodeError:
+                    tool_args = {}
 
-                if tool_name in DANGEROUS_TOOLS:
-                    confirmed = _confirm_dangerous(tool_name, tool_args)
-                    if not confirmed:
-                        result = f"[用户取消] 已拒绝执行 {tool_name}"
-                    else:
-                        result = execute_tool(tool_name, tool_args)
-                else:
-                    result = execute_tool(tool_name, tool_args)
+                result = self._execute_tool(tool_name, tool_args)
 
                 if on_tool_call:
                     on_tool_call(tool_name, tool_args, result)
 
-                messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
+                messages.append(ToolMessage(content=result, tool_call_id=tc["id"] or str(idx)))
 
         return "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。"
 
 
-def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None) -> str:
+def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None, on_stream=None) -> str:
     """无状态单次调用（兼容旧接口）。"""
     wd = working_dir or os.getcwd()
     session = AgentSession(working_dir=wd)
-    return session.run(user_input, on_tool_call)
+    return session.run(user_input, on_tool_call=on_tool_call, on_stream=on_stream)
 
 
 def _confirm_dangerous(tool_name: str, args: dict) -> bool:
