@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
+from config import config
+
 load_dotenv()
 
 
@@ -88,18 +90,17 @@ class ModelRouter:
                 model=info.model_id,
                 api_key=key,
                 base_url=base_url or "https://api.anthropic.com",
-                temperature=0.3,
-                max_tokens=4096,
+                temperature=config.get("model.temperature", 0.3),
+                max_tokens=config.get("model.max_tokens", 4096),
             )
 
-        # DeepSeek 和 OpenAI 都用 ChatOpenAI（兼容 OpenAI 接口）
         default_base = "https://api.deepseek.com" if info.provider == "deepseek" else "https://api.openai.com"
         return ChatOpenAI(
             model=info.model_id,
             api_key=key,
             base_url=base_url or default_base,
-            temperature=0.3,
-            max_tokens=4096,
+            temperature=config.get("model.temperature", 0.3),
+            max_tokens=config.get("model.max_tokens", 4096),
         )
 
     def _auto_select(self):

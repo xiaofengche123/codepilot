@@ -38,7 +38,10 @@ def web_search(query: str, max_results: int = 5) -> str:
     return "\n".join(lines)
 
 
-def web_fetch(url: str, max_length: int = 4000) -> str:
+def web_fetch(url: str, max_length: int = None) -> str:
+    if max_length is None:
+        from config import config
+        max_length = config.get("tools.fetch_max_chars", 4000)
     """
     抓取网页内容并提取纯文本。参数 url: 网页地址、max_length: 返回文本最大长度（默认 4000 字符）。返回纯文本内容。
     """

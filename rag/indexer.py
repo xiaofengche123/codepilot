@@ -19,7 +19,15 @@ import chromadb
 CHROMA_DIR = ".codepilot/chroma"
 STATE_FILE = ".codepilot/index_state.json"
 COLLECTION_NAME = "code_snippets"
-CHUNK_LINES = 30  # 非 Python 文件的固定切分行数
+_chunk_lines = None
+
+
+def _get_chunk_lines() -> int:
+    global _chunk_lines
+    if _chunk_lines is None:
+        from config import config
+        _chunk_lines = config.get("rag.chunk_lines", 30)
+    return _chunk_lines
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".idea", ".vscode", ".codepilot"}
 
 CODE_EXTENSIONS = {
@@ -34,7 +42,9 @@ _embedding_model = None
 def _get_model() -> SentenceTransformer:
     global _embedding_model
     if _embedding_model is None:
-        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        from config import config
+        model_name = config.get("rag.model_name", "all-MiniLM-L6-v2")
+        _embedding_model = SentenceTransformer(model_name)
     return _embedding_model
 
 
@@ -53,7 +63,7 @@ def _split_python(filepath: Path, content: str, rel_path: str) -> list[dict]:
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             start = node.lineno - 1
-            end = node.end_lineno if hasattr(node, "end_lineno") else start + CHUNK_LINES
+            end = node.end_lineno if hasattr(node, "end_lineno") else start + _get_chunk_lines()
             text = "\n".join(lines[start:end])
             if len(text.strip()) < 10:
                 continue
@@ -75,14 +85,14 @@ def _split_fixed(filepath: Path, content: str, rel_path: str) -> list[dict]:
     """按固定行数切分文件。"""
     chunks = []
     lines = content.split("\n")
-    for i in range(0, len(lines), CHUNK_LINES):
-        text = "\n".join(lines[i:i + CHUNK_LINES])
+    for i in range(0, len(lines), _get_chunk_lines()):
+        text = "\n".join(lines[i:i + _get_chunk_lines()])
         if not text.strip():
             continue
         chunks.append({
             "file": rel_path,
             "start_line": i + 1,
-            "end_line": min(i + CHUNK_LINES, len(lines)),
+            "end_line": min(i + _get_chunk_lines(), len(lines)),
             "content": text,
         })
     return chunks

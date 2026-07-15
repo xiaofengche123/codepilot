@@ -29,7 +29,9 @@ def _run_git(args: list, cwd: str) -> str:
         output = result.stdout + result.stderr
         if not output.strip():
             return f"[完成] git {' '.join(args)} 执行成功（无输出）"
-        return output[:3000]
+        from config import config
+        _max_chars = config.get("tools.diff_max_chars", 3000)
+        return output[:_max_chars]
     except subprocess.TimeoutExpired:
         return "[超时] 命令执行超时"
     except FileNotFoundError:

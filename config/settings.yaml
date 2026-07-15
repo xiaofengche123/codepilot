@@ -1,0 +1,25 @@
+# 码搭 CodePilot · 配置文件
+# 此文件为可选，不存在时使用内置默认值。
+# 只写需要覆盖的项即可，未写的项保持默认。
+
+# Agent 循环配置
+agent:
+  max_iterations: 10
+  max_context_tokens: 8000
+
+# 模型参数
+model:
+  temperature: 0.3
+  max_tokens: 4096
+
+# 工具参数
+tools:
+  shell_timeout: 30
+  output_max_chars: 4000
+  diff_max_chars: 3000
+  fetch_max_chars: 4000
+
+# RAG 参数
+rag:
+  model_name: "all-MiniLM-L6-v2"
+  chunk_lines: 30

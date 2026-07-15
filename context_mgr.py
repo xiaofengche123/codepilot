@@ -22,7 +22,10 @@ def estimate_tokens(messages: list) -> int:
 
 
 class ContextManager:
-    def __init__(self, max_tokens: int = 8000):
+    def __init__(self, max_tokens: int = None):
+        if max_tokens is None:
+            from config import config
+            max_tokens = config.get("agent.max_context_tokens", 8000)
         self.max_tokens = max_tokens
 
     def trim(self, messages: list) -> list:

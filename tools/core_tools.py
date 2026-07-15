@@ -129,16 +129,19 @@ def run_shell(command: str) -> str:
             return f"[拦截] 命令 '{command}' 包含危险操作，已阻止执行"
 
     try:
+        from config import config
+        _timeout = config.get("tools.shell_timeout", 30)
         result = subprocess.run(
             command, shell=True, capture_output=True, text=True,
-            timeout=30, cwd=os.getcwd(),
+            timeout=_timeout, cwd=os.getcwd(),
         )
         output = result.stdout
         if result.stderr:
             output += "\n[stderr]\n" + result.stderr
         if not output.strip():
             output = f"[完成] 命令执行成功（无输出），返回码: {result.returncode}"
-        return output[:4000]
+        _max_chars = config.get("tools.output_max_chars", 4000)
+        return output[:_max_chars]
     except subprocess.TimeoutExpired:
         return f"[超时] 命令 '{command}' 执行超过 30 秒，已终止"
     except Exception as e:

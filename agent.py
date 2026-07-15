@@ -17,6 +17,7 @@ from langchain_core.messages import (
 )
 from rich.console import Console
 
+from config import config
 from tools import TOOL_DEFINITIONS, execute_tool, DANGEROUS_TOOLS
 from model_router import get_llm as router_get_llm
 from memory import load_history, save_turn
@@ -52,13 +53,15 @@ SYSTEM_PROMPT = """你是「码搭」，一个智能编程助手 Agent。
 # Agent 主循环
 # ============================================================
 
-MAX_ITERATIONS = 10
+MAX_ITERATIONS = config.get("agent.max_iterations", 10)
 
 
 class AgentSession:
     """有状态的 Agent 会话，维护跨轮对话连续性。"""
 
-    def __init__(self, working_dir: str, max_context_tokens: int = 8000):
+    def __init__(self, working_dir: str, max_context_tokens: int = None):
+        if max_context_tokens is None:
+            max_context_tokens = config.get("agent.max_context_tokens", 8000)
         self.working_dir = os.path.abspath(working_dir)
         self.context_mgr = ContextManager(max_tokens=max_context_tokens)
 
