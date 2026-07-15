@@ -1,6 +1,6 @@
 """
-码搭 CodePilot · 工具注册与定义
-每个工具都是一个可被 Agent 调用的原子能力。
+码搭 CodePilot · 核心工具
+read_file / write_file / list_files / search_code / run_shell
 """
 
 import os
@@ -9,10 +9,12 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-# ============================================================
-# 工具定义（函数 + docstring = Agent 的工具说明书）
-# LLM 通过 docstring 理解工具用途和参数
-# ============================================================
+
+def _resolve(path: str) -> Path:
+    p = Path(path)
+    if p.is_absolute():
+        return p
+    return Path(os.getcwd()) / p
 
 
 def read_file(path: str, start_line: int = 0, end_line: Optional[int] = None) -> str:
@@ -35,7 +37,6 @@ def read_file(path: str, start_line: int = 0, end_line: Optional[int] = None) ->
     end_line = min(end_line, len(lines))
     selected = lines[start_line:end_line]
 
-    # 给每行加行号
     result = []
     for i, line in enumerate(selected, start=start_line + 1):
         result.append(f"{i:4d} | {line}")
@@ -87,7 +88,6 @@ def search_code(pattern: str, path: str = ".") -> str:
     except re.error as e:
         return f"[错误] 正则表达式无效: {e}"
 
-    # 只搜索常见代码文件，跳过 .git / node_modules 等
     skip_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", ".idea", ".vscode"}
     for filepath in dirpath.rglob("*"):
         if set(filepath.parts) & skip_dirs:
@@ -138,18 +138,14 @@ def run_shell(command: str) -> str:
             output += "\n[stderr]\n" + result.stderr
         if not output.strip():
             output = f"[完成] 命令执行成功（无输出），返回码: {result.returncode}"
-        return output[:4000]  # 限制输出长度，防止 token 爆炸
+        return output[:4000]
     except subprocess.TimeoutExpired:
         return f"[超时] 命令 '{command}' 执行超过 30 秒，已终止"
     except Exception as e:
         return f"[错误] 执行失败: {e}"
 
 
-# ============================================================
-# 工具注册表
-# ============================================================
-
-TOOLS_REGISTRY = {
+CORE_TOOLS = {
     "read_file": read_file,
     "write_file": write_file,
     "list_files": list_files,
@@ -157,8 +153,7 @@ TOOLS_REGISTRY = {
     "run_shell": run_shell,
 }
 
-# 工具的 JSON Schema 描述，给 LLM 做 Function Calling
-TOOL_DEFINITIONS = [
+CORE_TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
@@ -235,26 +230,4 @@ TOOL_DEFINITIONS = [
     },
 ]
 
-
-def _resolve(path: str) -> Path:
-    """把相对路径转成绝对路径"""
-    p = Path(path)
-    if p.is_absolute():
-        return p
-    return Path(os.getcwd()) / p
-
-
-def execute_tool(name: str, args: dict) -> str:
-    """执行指定工具并返回结果"""
-    if name not in TOOLS_REGISTRY:
-        return f"[错误] 未知工具: {name}，可用工具: {', '.join(TOOLS_REGISTRY.keys())}"
-
-    func = TOOLS_REGISTRY[name]
-    try:
-        # 过滤掉值为 None 的参数
-        clean_args = {k: v for k, v in args.items() if v is not None}
-        return func(**clean_args)
-    except TypeError as e:
-        return f"[错误] 参数错误: {e}"
-    except Exception as e:
-        return f"[错误] 工具执行异常: {e}"
+CORE_DANGEROUS_TOOLS = {"run_shell"}

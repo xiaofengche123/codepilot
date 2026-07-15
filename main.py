@@ -81,7 +81,7 @@ def _run_interactive(working_dir: str):
     from agent import AgentSession
 
     session = AgentSession(working_dir=working_dir)
-    console.print("  [dim]输入 exit 退出, /model 切换模型, /clear 清除历史, /history 查看历史, /dir 切换目录[/dim]\n")
+    console.print("  [dim]输入 exit 退出, /model 切换模型, /git 仓库状态, /clear 清除历史, /history 查看历史, /mcp MCP状态, /dir 切换目录[/dim]\n")
 
     while True:
         try:
@@ -181,6 +181,47 @@ def _handle_slash(user_input: str, session, working_dir: str):
             for i, q in enumerate(questions, 1):
                 console.print(f"  [dim]{i}.[/dim] {q}")
 
+    elif cmd == "/git":
+        from tools.git_tools import git_status, git_branch
+        import os
+        wd = session.working_dir
+        try:
+            status_out = git_status(wd)
+            branch_out = git_branch(wd)
+            console.print(f"  [bold]分支:[/bold]")
+            for line in branch_out.split("\n"):
+                console.print(f"  [dim]{line}[/dim]")
+            console.print(f"  [bold]状态:[/bold]")
+            for line in status_out.split("\n"):
+                console.print(f"  [dim]{line}[/dim]")
+        except Exception as e:
+            console.print(f"  [red]{e}[/red]")
+
+    elif cmd == "/mcp":
+        from mcp.client import MCPClientManager
+        from rich.table import Table
+        try:
+            mgr = MCPClientManager("mcp_servers.json")
+            table = Table(title="MCP 服务器", border_style="cyan")
+            table.add_column("服务器")
+            table.add_column("工具名")
+            table.add_column("前缀")
+            table.add_column("状态")
+            for conn in mgr.connections:
+                status = "connected" if conn._process and conn._process.poll() is None else "disconnected"
+                for pname, info in conn.tools.items():
+                    table.add_row(conn.name, info["original_name"], pname, status)
+                if not conn.tools:
+                    table.add_row(conn.name, "-", "-", status)
+            if not mgr.connections:
+                console.print("  [dim]未配置 MCP 服务器。在 mcp_servers.json 中添加服务器配置。[/dim]")
+            else:
+                console.print(table)
+        except FileNotFoundError:
+            console.print("  [dim]mcp_servers.json 不存在，未连接任何 MCP 服务器[/dim]")
+        except Exception as e:
+            console.print(f"  [red]MCP 错误: {e}[/red]")
+
     elif cmd == "/dir" and arg:
         new_dir = arg.strip()
         if Path(new_dir).exists():
@@ -191,7 +232,7 @@ def _handle_slash(user_input: str, session, working_dir: str):
 
     else:
         console.print(f"  [yellow]未知命令: {cmd}[/yellow]")
-        console.print("  [dim]可用: /model, /clear, /history, /dir[/dim]")
+        console.print("  [dim]可用: /model, /git, /clear, /history, /mcp, /dir[/dim]")
 
 
 if __name__ == "__main__":

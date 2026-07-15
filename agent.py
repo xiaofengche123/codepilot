@@ -17,7 +17,7 @@ from langchain_core.messages import (
 )
 from rich.console import Console
 
-from tools import TOOL_DEFINITIONS, execute_tool
+from tools import TOOL_DEFINITIONS, execute_tool, DANGEROUS_TOOLS
 from model_router import get_llm as router_get_llm
 from memory import load_history, save_turn
 from context_mgr import ContextManager
@@ -33,14 +33,18 @@ SYSTEM_PROMPT = """你是「码搭」，一个智能编程助手 Agent。
 你有以下能力：
 - 读写文件、列出目录、搜索代码
 - 执行终端命令（危险命令会被自动拦截）
+- Git 操作：查看状态(git_status)、差异(git_diff)、日志(git_log)、分支(git_branch)、暂存(git_add)、提交(git_commit)
+- 网页搜索(web_search)：在互联网上搜索最新信息
+- 抓取网页(web_fetch)：获取指定 URL 的内容并转为纯文本
 - 回答编程问题、解释代码、调试错误
 
 工作原则：
 1. 做任何操作前，先观察（list_files、search_code、read_file）
 2. 代码修改要精准，用 search_code 找到目标位置再改
 3. 执行 shell 命令前，先读一下当前环境确认安全
-4. 回答要简洁、直接、给代码示例
-5. 如果用户的问题和你的工具无关，直接文字回答即可"""
+4. git commit 和 git add 需要用户确认，不要自动执行
+5. 回答要简洁、直接、给代码示例
+6. 如果用户的问题和你的工具无关，直接文字回答即可"""
 
 # ============================================================
 # Agent 主循环
@@ -85,10 +89,10 @@ class AgentSession:
                 tool_name = tc["name"]
                 tool_args = tc.get("args", {})
 
-                if tool_name == "run_shell":
-                    confirmed = _confirm_dangerous(tool_args.get("command", ""))
+                if tool_name in DANGEROUS_TOOLS:
+                    confirmed = _confirm_dangerous(tool_name, tool_args)
                     if not confirmed:
-                        result = "[用户取消] 已拒绝执行此命令"
+                        result = f"[用户取消] 已拒绝执行 {tool_name}"
                     else:
                         result = execute_tool(tool_name, tool_args)
                 else:
@@ -109,8 +113,16 @@ def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None) -
     return session.run(user_input, on_tool_call)
 
 
-def _confirm_dangerous(command: str) -> bool:
-    """在 CLI 中请求用户确认 shell 命令"""
-    console.print(f"\n  ⚠ Agent 想执行命令: [yellow]{command}[/yellow]")
+def _confirm_dangerous(tool_name: str, args: dict) -> bool:
+    """在 CLI 中请求用户确认危险操作"""
+    if tool_name == "run_shell":
+        desc = f"执行命令: {args.get('command', '')}"
+    elif tool_name == "git_commit":
+        desc = f"git commit，消息: {args.get('message', '')}"
+    elif tool_name == "git_add":
+        desc = f"git add 文件: {args.get('files', '')}"
+    else:
+        desc = str(args)
+    console.print(f"\n  [yellow]⚠ Agent 想 {desc}[/yellow]")
     answer = console.input("  允许执行吗？[y/N] ").strip().lower()
     return answer in ("y", "yes")
