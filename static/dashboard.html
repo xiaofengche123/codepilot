@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>码搭 CodePilot · Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --sidebar-bg: #161b22;
+    --card-bg: #1c2128;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d2991d;
+    --purple: #a371f7;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 10;
+  }
+  .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+  .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 16px; }
+  .logo-text { font-size: 18px; font-weight: 600; }
+  .nav-menu { list-style: none; padding: 12px 0; flex: 1; }
+  .nav-menu li { }
+  .nav-menu li a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text-dim);
+    text-decoration: none; font-size: 14px; transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .nav-menu li a:hover, .nav-menu li a.active { color: var(--text); background: rgba(88,166,255,0.06); border-left-color: var(--accent); }
+  .nav-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+  .status-dot.online { background: var(--green); }
+
+  /* Main */
+  .main { margin-left: 240px; flex: 1; padding: 32px 40px; max-width: 1200px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h1 { font-size: 26px; font-weight: 600; margin-bottom: 8px; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
+
+  /* Cards */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 600; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.red { color: var(--red); }
+
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+
+  /* Form */
+  .input-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .input-row input, .input-row select { flex: 1; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; }
+  .input-row input:focus { outline: none; border-color: var(--accent); }
+  textarea { width: 100%; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; resize: vertical; min-height: 80px; font-family: inherit; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: #238636; color: #fff; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* Task list */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+  .task-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+  .task-item:hover { border-color: var(--accent); }
+  .task-info { flex: 1; }
+  .task-id { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+  .task-input { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
+  .task-status { display: flex; align-items: center; gap: 12px; }
+  .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .badge.pending { background: rgba(210,153,29,0.15); color: var(--yellow); }
+  .badge.running { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge.completed { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge.failed { background: rgba(248,81,73,0.15); color: var(--red); }
+
+  /* Events */
+  .event-list { display: flex; flex-direction: column; gap: 4px; max-height: 400px; overflow-y: auto; }
+  .event-item { display: flex; gap: 12px; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+  .event-item:hover { background: rgba(255,255,255,0.03); }
+  .event-time { color: var(--text-dim); white-space: nowrap; min-width: 80px; font-family: monospace; }
+  .event-type { min-width: 90px; font-weight: 500; }
+  .event-type.created { color: var(--accent); }
+  .event-type.started { color: var(--purple); }
+  .event-type.completed { color: var(--green); }
+  .event-type.failed { color: var(--red); }
+  .event-type.tool_call { color: var(--yellow); }
+  .event-data { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+  /* Response */
+  .result-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; max-height: 300px; overflow-y: auto; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .empty-state { text-align: center; padding: 40px; color: var(--text-dim); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .logo-text, .nav-menu li a span, .sidebar-footer { display: none; }
+    .sidebar-header { padding: 12px; }
+    .nav-menu li a { padding: 10px 14px; justify-content: center; }
+    .main { margin-left: 60px; padding: 20px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <a href="#" class="logo" onclick="switchPage('dashboard')">
+      <div class="logo-icon">CP</div>
+      <span class="logo-text">CodePilot</span>
+    </a>
+  </div>
+  <ul class="nav-menu">
+    <li><a href="#" class="active" data-page="dashboard" onclick="switchPage('dashboard')"><span class="nav-icon">&#9632;</span> <span>Dashboard</span></a></li>
+    <li><a href="#" data-page="tasks" onclick="switchPage('tasks')"><span class="nav-icon">&#9776;</span> <span>任务列表</span></a></li>
+    <li><a href="#" data-page="events" onclick="switchPage('events')"><span class="nav-icon">&#9673;</span> <span>事件监控</span></a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <span class="status-dot online"></span> API v2.0
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- Dashboard -->
+  <section class="page active" id="page-dashboard">
+    <h1>码搭 CodePilot</h1>
+    <p class="subtitle">AI 编码任务执行平台 · 提交自然语言指令，Agent 在隔离环境中执行并返回结果</p>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">总任务数</div><div class="stat-value blue" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">已完成</div><div class="stat-value green" id="stat-completed">0</div></div>
+      <div class="stat-card"><div class="stat-label">失败</div><div class="stat-value red" id="stat-failed">0</div></div>
+      <div class="stat-card"><div class="stat-label">工具数量</div><div class="stat-value" id="stat-tools">15</div></div>
+    </div>
+
+    <div class="card">
+      <h2>提交新任务</h2>
+      <textarea id="task-input" placeholder="描述你想让 AI 做的事情，例如：帮我分析这个项目的架构"></textarea>
+      <div class="input-row" style="margin-top:12px">
+        <input id="project-dir" placeholder="项目目录 (默认当前)" value=".">
+        <select id="model-select">
+          <option value="">自动选择模型</option>
+          <option value="deepseek-chat">DeepSeek Chat</option>
+          <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+        </select>
+        <button class="btn btn-primary" onclick="submitTask()">提交任务</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>最近任务</h2>
+      <div class="task-list" id="recent-tasks"></div>
+      <div class="empty-state" id="empty-recent">暂无任务，提交第一个吧</div>
+    </div>
+  </section>
+
+  <!-- Tasks -->
+  <section class="page" id="page-tasks">
+    <h1>任务列表</h1>
+    <p class="subtitle">所有提交的任务及其当前状态</p>
+    <div class="task-list" id="all-tasks"></div>
+    <div class="empty-state" id="empty-tasks">暂无任务</div>
+  </section>
+
+  <!-- Events -->
+  <section class="page" id="page-events">
+    <h1>事件监控</h1>
+    <p class="subtitle">实时任务生命周期事件流</p>
+    <div class="card">
+      <div class="event-list" id="event-list"></div>
+      <div class="empty-state" id="empty-events">暂无事件，提交一个任务看看</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const API = '';
+
+function _(id) { return document.getElementById(id); }
+
+// Stats
+async function refreshStats() {
+  try {
+    const r = await fetch(API + '/metrics');
+    const text = await r.text();
+    const m = {};
+    text.split('\n').filter(l => l && !l.startsWith('#')).forEach(l => {
+      const [k, v] = l.split(' ');
+      if (k) m[k] = parseInt(v) || 0;
+    });
+    _('stat-total').textContent = m.codepilot_tasks_total || 0;
+    _('stat-completed').textContent = m.codepilot_tasks_completed || 0;
+    _('stat-failed').textContent = m.codepilot_tasks_failed || 0;
+    // Tools count from health
+    try {
+      const hr = await fetch(API + '/health');
+      const hd = await hr.json();
+      _('stat-tools').textContent = hd.tools_count || 15;
+    } catch(e) {}
+  } catch(e) {}
+}
+
+// Tasks
+let taskIds = JSON.parse(localStorage.getItem('cp_tasks') || '[]');
+
+async function submitTask() {
+  const input = _('task-input').value.trim();
+  if (!input) return alert('请输入任务描述');
+  const project = _('project-dir').value.trim() || '.';
+  const model = _('model-select').value || null;
+
+  _('task-input').value = '';
+
+  try {
+    const r = await fetch(API + '/tasks/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, project_dir: project, model }),
+    });
+    const data = await r.json();
+    if (!taskIds.includes(data.task_id)) {
+      taskIds.unshift(data.task_id);
+      if (taskIds.length > 50) taskIds.pop();
+      localStorage.setItem('cp_tasks', JSON.stringify(taskIds));
+    }
+    refreshAll();
+  } catch(e) {
+    alert('提交失败: ' + e.message);
+  }
+}
+
+async function cancelTask(taskId) {
+  try {
+    await fetch(API + '/tasks/' + taskId, { method: 'DELETE' });
+    refreshAll();
+  } catch(e) {}
+}
+
+async function loadTaskList(containerId, taskIdList, emptyId) {
+  const el = _(containerId);
+  const empty = _(emptyId);
+  if (taskIdList.length === 0) {
+    el.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const items = [];
+  for (const tid of taskIdList) {
+    try {
+      const r = await fetch(API + '/tasks/' + tid);
+      const t = await r.json();
+      items.push(t);
+    } catch(e) {}
+  }
+  items.sort((a, b) => b.task_id.localeCompare(a.task_id));
+
+  el.innerHTML = items.map(t => {
+    let badgeClass = t.status;
+    let badgeText = t.status;
+    const badges = { pending: '等待中', running: '执行中', completed: '已完成', failed: '失败', cancelled: '已取消' };
+    if (badges[t.status]) badgeText = badges[t.status];
+
+    let resultSnippet = '';
+    if (t.result) resultSnippet = `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">结果: ${escapeHtml(t.result.substring(0, 100))}</div>`;
+    if (t.error) resultSnippet = `<div style="font-size:12px;color:var(--red);margin-top:4px;">错误: ${escapeHtml(t.error.substring(0, 100))}</div>`;
+
+    const cancelBtn = (t.status === 'pending')
+      ? `<button class="btn btn-danger btn-sm" onclick="cancelTask('${t.task_id}')">取消</button>` : '';
+
+    return `<div class="task-item">
+      <div class="task-info">
+        <div class="task-id">${t.task_id}</div>
+        <div class="task-input">${escapeHtml(t.input)}</div>
+        ${resultSnippet}
+      </div>
+      <div class="task-status">
+        <span class="badge ${badgeClass}">${badgeText}</span>
+        ${cancelBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadEvents() {
+  const el = _('event-list');
+  const empty = _('empty-events');
+  let allEvents = [];
+
+  for (const tid of taskIds.slice(0, 10)) {
+    try {
+      const r = await fetch(API + '/tasks/' + tid + '/events');
+      const data = await r.json();
+      for (const e of data.events || []) {
+        allEvents.push(e);
+      }
+    } catch(e) {}
+  }
+  allEvents.sort((a, b) => b.timestamp - a.timestamp);
+  allEvents = allEvents.slice(0, 50);
+
+  if (allEvents.length === 0) {
+    el.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+
+  el.innerHTML = allEvents.map(e => {
+    const d = new Date(e.timestamp * 1000);
+    const time = d.toLocaleTimeString();
+    let dataStr = '';
+    if (e.data && e.data.user_input) dataStr = escapeHtml(e.data.user_input.substring(0, 80));
+    else if (e.data && e.data.tool) dataStr = `🔧 ${e.data.tool}`;
+    else if (e.data && e.data.error) dataStr = escapeHtml(e.data.error.substring(0, 80));
+    else if (e.data && e.data.answer) dataStr = escapeHtml(e.data.answer.substring(0, 80));
+
+    return `<div class="event-item">
+      <span class="event-time">${time}</span>
+      <span class="event-type ${e.type}">${e.type}</span>
+      <span class="event-data">${dataStr}</span>
+      <span style="color:var(--text-dim);font-size:11px;">${e.task_id}</span>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function refreshAll() {
+  await refreshStats();
+  await loadTaskList('recent-tasks', taskIds.slice(0, 5), 'empty-recent');
+  await loadTaskList('all-tasks', taskIds, 'empty-tasks');
+  await loadEvents();
+}
+
+// Page switching
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  const link = document.querySelector('[data-page="' + name + '"]');
+  if (link) link.classList.add('active');
+  if (name === 'events') loadEvents();
+}
+
+// Init
+refreshAll();
+setInterval(refreshAll, 5000);
+</script>
+
+</body>
+</html>
