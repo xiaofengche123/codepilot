@@ -31,6 +31,11 @@ DEFAULTS = {
         "model_name": "all-MiniLM-L6-v2",
         "chunk_lines": 30,
     },
+    "server": {
+        "max_concurrent": 5,
+        "host": "0.0.0.0",
+        "port": 8000,
+    },
 }
 
 

@@ -44,6 +44,10 @@ jobs:
           from mcp.client import MCPClientManager
           from rag.indexer import _get_chunk_lines
           from rag.retriever import semantic_search
+          from events import TaskEvent, EventBuffer, get_event_buffer
+          from task_queue import Task, TaskQueue, TaskStatus
+          from worktree_manager import WorktreeManager
+          from server import app
           assert len(TOOL_DEFINITIONS) == 15, f'Expected 15 tools, got {len(TOOL_DEFINITIONS)}'
           assert len(TOOLS_REGISTRY) == 15
           print(f'All imports OK, {len(TOOL_DEFINITIONS)} tools registered')
