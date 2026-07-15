@@ -6,270 +6,269 @@
 <title>CodePilot</title>
 <style>
   :root {
-    --bg: #f8f9fb;
-    --card: #ffffff;
-    --border: #e5e7eb;
-    --text: #1a1a2e;
-    --muted: #6b7280;
-    --faint: #9ca3af;
-    --accent: #e87d22;
-    --accent2: #f59e0b;
-    --green: #059669;
-    --red: #dc2626;
-    --blue: #2563eb;
-    --purple: #7c3aed;
-    --radius: 14px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.06);
+    --bg: #0a0e17;
+    --surface: #111620;
+    --surface2: #171c28;
+    --border: #1e2636;
+    --text: #e6ecf3;
+    --muted: #8896a9;
+    --faint: #556270;
+    --cyan: #06d6a0;
+    --cyan2: #0ab88a;
+    --amber: #f5a623;
+    --rose: #f0656a;
+    --blue: #4b9fff;
+    --purple: #9b7cfc;
+    --radius: 10px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(6,214,160,0.04), transparent),
+                      radial-gradient(ellipse 50% 40% at 100% 100%, rgba(155,124,252,0.03), transparent);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
-
-  /* -- top bar -- */
   .topbar {
-    background: var(--card); border-bottom: 1px solid var(--border);
-    padding: 0 32px; height: 56px; display: flex; align-items: center;
-    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    background: rgba(17,22,32,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    padding: 0 28px; height: 54px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
   }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-mark {
-    width: 30px; height: 30px; border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  .brand-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--cyan), #0d9488);
     display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 800; font-size: 13px;
+    color: #fff; font-weight: 800; font-size: 12px;
   }
-  .brand-name { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
-  .topbar-nav { display: flex; gap: 4px; }
+  .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+  .brand-ver { font-size: 10px; color: var(--faint); font-weight: 500; margin-left: 2px; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-nav { display: flex; gap: 2px; }
   .topbar-nav a {
-    padding: 6px 16px; border-radius: 6px; font-size: 13.5px;
-    font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s;
+    padding: 6px 14px; border-radius: 6px; font-size: 13px;
+    font-weight: 500; color: var(--muted); text-decoration: none; transition: .15s;
   }
-  .topbar-nav a:hover { background: #f3f4f6; color: var(--text); }
-  .topbar-nav a.active { background: #fef3c7; color: var(--accent); }
-  .status-row { display: flex; align-items: center; gap: 16px; }
-  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .live-text { font-size: 12px; color: var(--green); font-weight: 500; }
+  .topbar-nav a:hover { background: var(--surface2); color: var(--text); }
+  .topbar-nav a.active { background: rgba(6,214,160,0.1); color: var(--cyan); }
+  .live { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--cyan); font-weight: 500; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-  /* -- layout -- */
-  .container { max-width: 1160px; margin: 0 auto; padding: 36px 32px; }
+  .layout { max-width: 1280px; margin: 0 auto; padding: 28px 28px 60px; }
   .page { display: none; }
-  .page.active { display: block; animation: fadeIn .25s ease; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .page.on { display: block; animation: in .2s ease; }
+  @keyframes in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 
-  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
-  .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  /* ---- dashboard ---- */
+  .dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+  .main-col { display: flex; flex-direction: column; gap: 16px; }
+  .side-col { display: flex; flex-direction: column; gap: 16px; }
 
-  /* -- stat pills -- */
-  .pills { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
-  .pill {
-    background: var(--card); border: 1px solid var(--border); border-radius: 40px;
-    padding: 8px 20px; display: flex; align-items: center; gap: 8px;
-    font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow);
-  }
-  .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .pill-dot.blue { background: var(--blue); }
-  .pill-dot.green { background: var(--green); }
-  .pill-dot.red { background: var(--red); }
-  .pill-dot.purple { background: var(--purple); }
-  .pill strong { font-size: 18px; font-weight: 700; margin-right: 2px; }
-
-  /* -- cards -- */
   .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
-    box-shadow: var(--shadow);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px;
   }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .card-title { font-size: 15px; font-weight: 600; }
-
-  /* -- two column -- */
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 800px) { .cols { grid-template-columns: 1fr; } }
-
-  /* -- input area -- */
-  .prompt-box {
-    width: 100%; min-height: 100px; padding: 16px;
-    border: 2px solid var(--border); border-radius: var(--radius);
-    font-size: 15px; font-family: inherit; line-height: 1.7;
-    color: var(--text); background: #fafbfc; resize: vertical;
-    transition: border-color .2s, box-shadow .2s;
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted);
   }
-  .prompt-box:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(232,125,34,0.08); }
-  .prompt-box::placeholder { color: var(--faint); }
-  .input-row { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
-  .input-row input, .input-row select {
-    padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
-    font-size: 13.5px; font-family: inherit; background: #fafbfc; color: var(--text);
+  .card-head .badge-count {
+    background: var(--surface2); padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; color: var(--text);
   }
-  .input-row input:focus, .input-row select:focus { outline: none; border-color: var(--accent); }
-  .input-row input { flex: 1; }
-  .input-row select { width: 180px; cursor: pointer; }
 
+  /* stat bar */
+  .stat-bar { display: flex; gap: 12px; margin-bottom: 0; }
+  .stat-item {
+    flex: 1; background: var(--surface2); border-radius: var(--radius);
+    padding: 16px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-item .val { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .stat-item .val.c { color: var(--cyan); }
+  .stat-item .val.a { color: var(--amber); }
+  .stat-item .val.r { color: var(--rose); }
+  .stat-item .val.b { color: var(--blue); }
+  .stat-item .lbl { font-size: 11px; color: var(--faint); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* input */
+  .prompt-area { width: 100%; min-height: 88px; padding: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; line-height: 1.7; color: var(--text); resize: vertical; }
+  .prompt-area:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(6,214,160,0.08); }
+  .prompt-area::placeholder { color: var(--faint); }
+  .inp-row { display: flex; gap: 10px; margin-top: 10px; }
+  .inp-row input, .inp-row select { padding: 9px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; font-size: 13px; font-family: inherit; color: var(--text); }
+  .inp-row input:focus, .inp-row select:focus { outline: none; border-color: var(--cyan); }
+  .inp-row input { flex: 1; }
+  .inp-row select { width: 170px; cursor: pointer; }
   .btn {
-    padding: 10px 22px; border: none; border-radius: 8px;
-    font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s;
-    letter-spacing: -0.1px;
+    padding: 9px 20px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: .15s; letter-spacing: -0.1px;
   }
-  .btn-go {
-    background: linear-gradient(135deg, var(--accent), #d97706); color: #fff;
-    box-shadow: 0 2px 8px rgba(232,125,34,0.25);
-  }
-  .btn-go:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(232,125,34,0.3); }
-  .btn-soft { background: #f3f4f6; color: var(--muted); }
-  .btn-soft:hover { background: #e5e7eb; color: var(--text); }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-  .btn-xs { padding: 2px 8px; font-size: 11px; border-radius: 5px; }
+  .btn-go { background: linear-gradient(135deg, var(--cyan), var(--cyan2)); color: #000; }
+  .btn-go:hover { filter: brightness(1.1); }
+  .btn-muted { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .btn-muted:hover { color: var(--text); border-color: var(--faint); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
 
-  /* -- task list -- */
-  .task-row {
-    display: flex; align-items: center; gap: 14px;
-    padding: 14px 18px; border-radius: 10px; margin-bottom: 6px;
-    transition: background .15s;
+  /* task item */
+  .t-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 8px; margin-bottom: 4px; transition: background .15s;
   }
-  .task-row:hover { background: #f9fafb; }
-  .task-avatar {
-    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-    font-weight: 600;
+  .t-item:hover { background: var(--surface2); }
+  .t-dot {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
   }
-  .task-avatar.wait { background: #fef3c7; color: var(--accent); }
-  .task-avatar.run { background: #dbeafe; color: var(--blue); animation: pulse 1.5s infinite; }
-  .task-avatar.ok { background: #d1fae5; color: var(--green); }
-  .task-avatar.bad { background: #fee2e2; color: var(--red); }
-  .task-info { flex: 1; min-width: 0; }
-  .task-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-  .task-id { font-size: 12px; color: var(--faint); font-family: 'SF Mono', 'Fira Code', monospace; }
+  .t-dot.w { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .t-dot.r { background: rgba(75,159,255,0.15); color: var(--blue); }
+  .t-dot.o { background: rgba(6,214,160,0.15); color: var(--cyan); }
+  .t-dot.b { background: rgba(240,101,106,0.15); color: var(--rose); }
+  .t-body { flex: 1; min-width: 0; }
+  .t-head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .t-id { font-size: 11px; color: var(--faint); font-family: 'SF Mono','Fira Code',monospace; }
   .tag {
-    font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 12px;
-    letter-spacing: 0.3px; text-transform: uppercase;
+    font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 9px;
+    letter-spacing: 0.3px;
   }
-  .tag.wait { background: #fef3c7; color: #92400e; }
-  .tag.run { background: #dbeafe; color: #1e40af; }
-  .tag.ok { background: #d1fae5; color: #065f46; }
-  .tag.bad { background: #fee2e2; color: #991b1b; }
-  .task-prompt { font-size: 13.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
-  .task-snippet { font-size: 12px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+  .tag.w { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .tag.r { background: rgba(75,159,255,0.15); color: var(--blue); }
+  .tag.o { background: rgba(6,214,160,0.15); color: var(--cyan); }
+  .tag.b { background: rgba(240,101,106,0.15); color: var(--rose); }
+  .t-prompt { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+  .t-result { font-size: 11.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
 
-  /* -- event feed -- */
-  .feed { max-height: 440px; overflow-y: auto; }
-  .feed-item {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 10px 14px; border-radius: 8px; font-size: 13px;
-  }
-  .feed-item:hover { background: #f9fafb; }
-  .feed-marker {
-    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 12px;
-  }
-  .feed-marker.created { background: #dbeafe; }
-  .feed-marker.started { background: #ede9fe; }
-  .feed-marker.completed { background: #d1fae5; }
-  .feed-marker.failed { background: #fee2e2; }
-  .feed-marker.tool_call { background: #fef3c7; }
-  .feed-body { flex: 1; min-width: 0; }
-  .feed-head { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
-  .feed-type { font-weight: 600; font-size: 12px; }
-  .feed-type.created { color: var(--blue); }
-  .feed-type.started { color: var(--purple); }
-  .feed-type.completed { color: var(--green); }
-  .feed-type.failed { color: var(--red); }
-  .feed-type.tool_call { color: #b45309; }
-  .feed-time { font-size: 11px; color: var(--faint); font-family: monospace; }
-  .feed-detail { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* event */
+  .ev-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; font-size: 12px; }
+  .ev-item:hover { background: var(--surface2); }
+  .ev-mark { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .ev-mark.cr { background: rgba(75,159,255,0.15); }
+  .ev-mark.st { background: rgba(155,124,252,0.15); }
+  .ev-mark.ok { background: rgba(6,214,160,0.15); }
+  .ev-mark.fl { background: rgba(240,101,106,0.15); }
+  .ev-mark.tc { background: rgba(245,166,35,0.15); }
+  .ev-body { flex: 1; min-width: 0; }
+  .ev-head { display: flex; gap: 6px; align-items: center; margin-bottom: 1px; }
+  .ev-type { font-weight: 600; font-size: 11px; }
+  .ev-type.cr { color: var(--blue); } .ev-type.st { color: var(--purple); }
+  .ev-type.ok { color: var(--cyan); } .ev-type.fl { color: var(--rose); }
+  .ev-type.tc { color: var(--amber); }
+  .ev-time { font-size: 10px; color: var(--faint); font-family: monospace; }
+  .ev-detail { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .empty { text-align: center; padding: 48px 20px; color: var(--faint); }
-  .empty-icon { font-size: 36px; margin-bottom: 8px; }
+  /* progress bar */
+  .pbar { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .pbar-fill { height: 100%; border-radius: 2px; background: var(--cyan); transition: width .5s ease; }
+
+  .empty { text-align: center; padding: 40px 16px; color: var(--faint); font-size: 13px; }
 
   /* toast */
-  .toasts { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 6px; }
+  .toasts { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 6px; }
   .toast {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 12px 18px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    animation: slideUp .3s ease; display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: up .25s ease; display: flex; align-items: center; gap: 8px;
   }
-  .toast.ok { border-left: 3px solid var(--green); }
-  .toast.err { border-left: 3px solid var(--red); }
-  @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .toast.g { border-left: 2px solid var(--cyan); }
+  .toast.e { border-left: 2px solid var(--rose); }
+  @keyframes up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } .stat-bar { flex-wrap: wrap; } }
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <div class="brand-mark">CP</div>
-    <div class="brand-name">CodePilot</div>
+    <div class="brand-icon">CP</div>
+    <span class="brand-name">CodePilot</span>
+    <span class="brand-ver">v2.0</span>
   </div>
-  <nav class="topbar-nav">
-    <a href="#" class="active" data-p="dash" onclick="go('dash')">控制台</a>
-    <a href="#" data-p="tasks" onclick="go('tasks')">任务</a>
-    <a href="#" data-p="events" onclick="go('events')">事件</a>
-  </nav>
-  <div class="status-row">
-    <span class="live-dot"></span>
-    <span class="live-text">在线</span>
+  <div class="topbar-right">
+    <nav class="topbar-nav">
+      <a href="#" class="active" data-p="dash" onclick="go('dash')">控制台</a>
+      <a href="#" data-p="tasks" onclick="go('tasks')">任务列表</a>
+      <a href="#" data-p="events" onclick="go('events')">事件流</a>
+    </nav>
+    <div class="live"><span class="live-dot"></span>系统正常</div>
   </div>
 </div>
 
-<div class="container">
+<div class="layout">
 
-  <!-- DASHBOARD -->
-  <div class="page active" id="page-dash">
-    <h1>控制台</h1>
-    <p class="sub">AI 编码任务执行平台 &middot; 提交自然语言指令，Agent 在隔离环境中执行</p>
+<!-- ====== DASHBOARD ====== -->
+<div class="page on" id="page-dash">
 
-    <div class="pills">
-      <div class="pill"><span class="pill-dot blue"></span> 总任务 <strong id="s-total">0</strong></div>
-      <div class="pill"><span class="pill-dot green"></span> 已完成 <strong id="s-done">0</strong></div>
-      <div class="pill"><span class="pill-dot red"></span> 失败 <strong id="s-fail">0</strong></div>
-      <div class="pill"><span class="pill-dot purple"></span> 工具 <strong id="s-tools">15</strong></div>
-    </div>
+  <div class="stat-bar" style="margin-bottom:20px">
+    <div class="stat-item"><span class="val c" id="s-total">0</span><span class="lbl">总任务</span></div>
+    <div class="stat-item"><span class="val a" id="s-running">0</span><span class="lbl">执行中</span></div>
+    <div class="stat-item"><span class="val c" id="s-done">0</span><span class="lbl">已完成</span></div>
+    <div class="stat-item"><span class="val r" id="s-fail">0</span><span class="lbl">失败</span></div>
+    <div class="stat-item"><span class="val b" id="s-tools">15</span><span class="lbl">工具</span></div>
+  </div>
 
-    <div class="cols">
+  <div class="dash-grid">
+    <div class="main-col">
       <div class="card">
-        <div class="card-header"><span class="card-title">&#9998; 新建任务</span></div>
-        <textarea class="prompt-box" id="input" placeholder="描述你想让 AI 做什么 &mdash; 例如： 帮我分析这个项目的架构设计&#10;&#10;按 Enter 提交" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit();}"></textarea>
-        <div class="input-row">
-          <input id="dir" placeholder="项目目录" value=".">
-          <select id="model">
-            <option value="">自动选择</option>
-            <option value="deepseek-chat">DeepSeek Chat</option>
-            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-          </select>
-          <button class="btn btn-go" onclick="submit()">提交任务</button>
+        <div class="card-head">&#9654; 提交新任务</div>
+        <textarea class="prompt-area" id="input" placeholder="描述想让 AI 做什么 &mdash; 例如：分析项目架构、修复 bug、添加功能..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit();}"></textarea>
+        <div class="inp-row">
+          <input id="dir" placeholder="项目路径" value=".">
+          <select id="model"><option value="">自动选模型</option><option value="deepseek-chat">DeepSeek Chat</option><option value="deepseek-reasoner">DeepSeek Reasoner</option></select>
+          <button class="btn btn-go" onclick="submit()">&#9654; 执行</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-header"><span class="card-title">&#9202; 最近任务</span></div>
+        <div class="card-head">&#9202; 最近任务 <span class="badge-count" id="recent-count">0</span></div>
         <div id="recent-list"></div>
-        <div class="empty" id="recent-empty"><div class="empty-icon">&#9997;</div>提交第一个任务</div>
+        <div class="empty" id="recent-empty">提交第一个任务开始</div>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <div class="card">
+        <div class="card-head">&#9881; 系统状态</div>
+        <div style="font-size:13px;color:var(--muted);line-height:2">
+          <div style="display:flex;justify-content:space-between"><span>API 版本</span><span style="color:var(--text)">2.0.0</span></div>
+          <div style="display:flex;justify-content:space-between"><span>并发上限</span><span style="color:var(--text)">5</span></div>
+          <div style="display:flex;justify-content:space-between"><span>工具注册</span><span style="color:var(--cyan)">15 个</span></div>
+          <div style="display:flex;justify-content:space-between"><span>MCP 协议</span><span style="color:var(--purple)">Server + Client</span></div>
+          <div style="display:flex;justify-content:space-between"><span>RAG 模型</span><span style="color:var(--text)">all-MiniLM-L6-v2</span></div>
+          <div style="display:flex;justify-content:space-between"><span>数据目录</span><span style="color:var(--text)">.codepilot/</span></div>
+        </div>
+        <div class="pbar"><div class="pbar-fill" id="usage-bar" style="width:0%"></div></div>
+        <div style="font-size:10px;color:var(--faint);margin-top:6px;text-align:right">任务槽使用率 <span id="usage-pct">0</span>%</div>
+      </div>
+
+      <div class="card" style="flex:1">
+        <div class="card-head">&#9889; 最新事件</div>
+        <div id="mini-feed" style="max-height:280px;overflow-y:auto"></div>
+        <div class="empty" id="mini-empty">暂无事件</div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- TASKS -->
-  <div class="page" id="page-tasks">
-    <h1>任务列表</h1>
-    <p class="sub">所有提交的任务及当前状态</p>
-    <div class="card">
-      <div id="all-list"></div>
-      <div class="empty" id="all-empty"><div class="empty-icon">&#128203;</div>暂无任务</div>
-    </div>
+<!-- ====== TASKS ====== -->
+<div class="page" id="page-tasks">
+  <div class="card">
+    <div class="card-head">全部任务 <span class="badge-count" id="all-count">0</span></div>
+    <div id="all-list"></div>
+    <div class="empty" id="all-empty">暂无任务记录</div>
   </div>
+</div>
 
-  <!-- EVENTS -->
-  <div class="page" id="page-events">
-    <h1>事件监控</h1>
-    <p class="sub">实时任务生命周期事件流</p>
-    <div class="card">
-      <div class="feed" id="feed"></div>
-      <div class="empty" id="feed-empty"><div class="empty-icon">&#128269;</div>暂无事件</div>
-    </div>
+<!-- ====== EVENTS ====== -->
+<div class="page" id="page-events">
+  <div class="card">
+    <div class="card-head">事件流 &mdash; 最近 60 条</div>
+    <div id="feed" style="max-height:600px;overflow-y:auto"></div>
+    <div class="empty" id="feed-empty">暂无事件，提交任务后此处将显示生命周期事件</div>
   </div>
+</div>
 
 </div>
 
@@ -279,91 +278,88 @@
 const A='';
 let ids=JSON.parse(localStorage.getItem('cp_ids')||'[]');
 
-function toast(m,t){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),2800);}
+function toast(m,t){const e=document.createElement('div');e.className='toast '+t;e.innerHTML=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),2500);}
 
 async function submit(){
-  const i=document.getElementById('input').value.trim();
-  if(!i)return toast('请输入任务描述','err');
-  const d=document.getElementById('dir').value.trim()||'.';
-  const m=document.getElementById('model').value||null;
+  const i=document.getElementById('input').value.trim();if(!i)return toast('请输入任务描述','e');
+  const d=document.getElementById('dir').value.trim()||'.';const m=document.getElementById('model').value||null;
   document.getElementById('input').value='';
   try{
     const r=await fetch(A+'/tasks/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:i,project_dir:d,model:m})});
-    if(!r.ok)throw new Error(await r.text());
-    const j=await r.json();
-    if(!ids.includes(j.task_id)){ids.unshift(j.task_id);if(ids.length>100)ids.pop();}
-    localStorage.setItem('cp_ids',JSON.stringify(ids));
-    toast('已提交 '+j.task_id,'ok');
-    refresh();
-  }catch(e){toast('提交失败: '+e.message,'err');}
+    if(!r.ok)throw new Error(await r.text());const j=await r.json();
+    ids.unshift(j.task_id);if(ids.length>100)ids.pop();localStorage.setItem('cp_ids',JSON.stringify(ids));
+    toast('&#10003; 任务已提交 <b>'+j.task_id+'</b>','g');refresh();
+  }catch(e){toast('&#10007; '+e.message,'e');}
 }
-
-async function cancel(id){try{await fetch(A+'/tasks/'+id,{method:'DELETE'});toast('已取消','ok');refresh();}catch(e){}}
-
+async function cancel(id){await fetch(A+'/tasks/'+id,{method:'DELETE'});toast('已取消 '+id,'g');refresh();}
 function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
 
 function taskHTML(t,showCancel){
-  const sm={pending:'wait',running:'run',completed:'ok',failed:'bad',cancelled:'bad'};
-  const sl={pending:'等待',running:'执行中',completed:'完成',failed:'失败',cancelled:'取消'};
-  const em={wait:'&#8987;',run:'&#9889;',ok:'&#10003;',bad:'&#10007;'};
-  let prev='';
-  if(t.result)prev='<div class="task-snippet">'+esc(t.result.substring(0,120))+'</div>';
-  else if(t.error)prev='<div class="task-snippet" style="color:var(--red)">'+esc(t.error.substring(0,120))+'</div>';
-  const cancelBtn=(showCancel&&t.status==='pending')?'<button class="btn btn-soft btn-sm" onclick="cancel(\''+t.task_id+'\')">取消</button>':'';
-  return '<div class="task-row">'
-    +'<div class="task-avatar '+sm[t.status]+'">'+em[sm[t.status]]+'</div>'
-    +'<div class="task-info">'
-    +'<div class="task-head"><span class="task-id">'+t.task_id+'</span><span class="tag '+sm[t.status]+'">'+sl[t.status]+'</span></div>'
-    +'<div class="task-prompt">'+esc(t.input)+'</div>'+prev+'</div>'
-    +cancelBtn+'</div>';
+  const dc={pending:'w',running:'r',completed:'o',failed:'b',cancelled:'b'};
+  const dl={pending:'等待',running:'执行中',completed:'完成',failed:'失败',cancelled:'取消'};
+  const em={w:'&#8987;',r:'&#9889;',o:'&#10003;',b:'&#10007;'};
+  let p='';if(t.result)p='<div class="t-result">'+esc(t.result.substring(0,120))+'</div>';
+  else if(t.error)p='<div class="t-result" style="color:var(--rose)">'+esc(t.error.substring(0,120))+'</div>';
+  const cb=(showCancel&&t.status==='pending')?'<button class="btn btn-muted btn-sm" onclick="cancel(\''+t.task_id+'\')">取消</button>':'';
+  return '<div class="t-item"><div class="t-dot '+dc[t.status]+'">'+em[dc[t.status]]+'</div>'
+    +'<div class="t-body"><div class="t-head"><span class="t-id">'+t.task_id+'</span><span class="tag '+dc[t.status]+'">'+dl[t.status]+'</span></div>'
+    +'<div class="t-prompt">'+esc(t.input)+'</div>'+p+'</div>'+cb+'</div>';
+}
+
+function evHTML(e){
+  const dt=new Date(e.timestamp*1000);let detail='';
+  if(e.data){if(e.data.user_input)detail=esc(e.data.user_input.substring(0,100));
+  else if(e.data.tool)detail='&#128295; '+e.data.tool;
+  else if(e.data.answer)detail=esc(e.data.answer.substring(0,100));
+  else if(e.data.error)detail=esc(e.data.error.substring(0,100));}
+  const types={created:'cr',started:'st',completed:'ok',failed:'fl',tool_call:'tc',cancelled:'fl'};
+  return '<div class="ev-item"><div class="ev-mark '+types[e.type]+'">'+(e.type[0]||'').toUpperCase()+'</div>'
+    +'<div class="ev-body"><div class="ev-head"><span class="ev-type '+types[e.type]+'">'+e.type+'</span><span class="ev-time">'+dt.toLocaleTimeString()+'</span></div>'
+    +'<div class="ev-detail">'+detail+'</div></div><span style="font-size:10px;color:var(--faint);font-family:monospace">'+e.task_id+'</span></div>';
 }
 
 async function refresh(){
+  let running=0;
   try{
-    const r=await fetch(A+'/metrics');const t=await r.text();
-    const m={};t.split('\n').filter(l=>l&&!l.startsWith('#')).forEach(l=>{const[k,v]=l.split(' ');if(k)m[k]=parseInt(v)||0;});
+    const r=await fetch(A+'/metrics');const t=await r.text();const m={};t.split('\n').filter(l=>l&&!l.startsWith('#')).forEach(l=>{const[k,v]=l.split(' ');if(k)m[k]=parseInt(v)||0;});
     document.getElementById('s-total').textContent=m.codepilot_tasks_total||0;
     document.getElementById('s-done').textContent=m.codepilot_tasks_completed||0;
     document.getElementById('s-fail').textContent=m.codepilot_tasks_failed||0;
+    document.getElementById('s-running').textContent=(m.codepilot_tasks_total||0)-(m.codepilot_tasks_completed||0)-(m.codepilot_tasks_failed||0);
+    const usage=Math.min(100,Math.round(((m.codepilot_tasks_total||0)-(m.codepilot_tasks_completed||0)-(m.codepilot_tasks_failed||0))/5*100));
+    document.getElementById('usage-bar').style.width=usage+'%';document.getElementById('usage-pct').textContent=usage;
     try{const hr=await fetch(A+'/health');const hd=await hr.json();document.getElementById('s-tools').textContent=hd.tools_count||15;}catch(e){}
   }catch(e){}
 
-  const recent=ids.slice(0,6);
-  if(recent.length){document.getElementById('recent-empty').style.display='none';const items=[];
-    for(const id of recent){try{const r=await fetch(A+'/tasks/'+id);if(r.ok)items.push(await r.json());}catch(e){}}
+  const recent=ids.slice(0,8);
+  if(recent.length){document.getElementById('recent-empty').style.display='none';document.getElementById('recent-count').textContent=recent.length;
+    const items=[];for(const id of recent){try{const r=await fetch(A+'/tasks/'+id);if(r.ok){const t=await r.json();items.push(t);if(t.status==='running')running++;}}catch(e){}}
     items.sort((a,b)=>b.task_id.localeCompare(a.task_id));
-    document.getElementById('recent-list').innerHTML=items.map(t=>taskHTML(t,true)).join('');}
+    if(items.length)document.getElementById('recent-list').innerHTML=items.map(t=>taskHTML(t,true)).join('');}
+  document.getElementById('s-running').textContent=running;
+  document.getElementById('usage-bar').style.width=Math.min(100,Math.round(running/5*100))+'%';
+  document.getElementById('usage-pct').textContent=Math.round(running/5*100);
 
-  if(ids.length){document.getElementById('all-empty').style.display='none';const items=[];
-    for(const id of ids){try{const r=await fetch(A+'/tasks/'+id);if(r.ok)items.push(await r.json());}catch(e){}}
+  if(ids.length){document.getElementById('all-empty').style.display='none';document.getElementById('all-count').textContent=ids.length;
+    const items=[];for(const id of ids){try{const r=await fetch(A+'/tasks/'+id);if(r.ok)items.push(await r.json());}catch(e){}}
     items.sort((a,b)=>b.task_id.localeCompare(a.task_id));
-    document.getElementById('all-list').innerHTML=items.map(t=>taskHTML(t,true)).join('');}
+    document.getElementById('all-list').innerHTML=items.map(t=>taskHTML(t,false)).join('');}
 
+  // events
+  let all=[];for(const id of ids.slice(0,15)){try{const r=await fetch(A+'/tasks/'+id+'/events');if(r.ok){const d=await r.json();all.push(...(d.events||[]));}}catch(e){}}
+  all.sort((a,b)=>b.timestamp-a.timestamp);all=all.slice(0,60);
   const feed=document.getElementById('feed');const fe=document.getElementById('feed-empty');
-  let all=[];
-  for(const id of ids.slice(0,10)){try{const r=await fetch(A+'/tasks/'+id+'/events');if(r.ok){const d=await r.json();all.push(...(d.events||[]));}}catch(e){}}
-  all.sort((a,b)=>b.timestamp-a.timestamp);all=all.slice(0,50);
-  if(all.length){fe.style.display='none';
-    feed.innerHTML=all.map(e=>{
-      const dt=new Date(e.timestamp*1000);let detail='';
-      if(e.data){if(e.data.user_input)detail=esc(e.data.user_input.substring(0,100));
-      else if(e.data.tool)detail='&#128295; '+e.data.tool;
-      else if(e.data.answer)detail=esc(e.data.answer.substring(0,100));
-      else if(e.data.error)detail=esc(e.data.error.substring(0,100));}
-      const emoji={created:'&#10133;',started:'&#9654;',completed:'&#10003;',failed:'&#10007;',tool_call:'&#128295;',cancelled:'&#9209;'};
-      return '<div class="feed-item">'
-        +'<div class="feed-marker '+e.type+'">'+(emoji[e.type]||'&#9679;')+'</div>'
-        +'<div class="feed-body"><div class="feed-head"><span class="feed-type '+e.type+'">'+e.type+'</span><span class="feed-time">'+dt.toLocaleTimeString()+'</span></div>'
-        +'<div class="feed-detail">'+detail+'</div></div>'
-        +'<span style="font-size:10px;color:var(--faint);font-family:monospace">'+e.task_id+'</span>'
-        +'</div>';
-    }).join('');
-  }else{feed.innerHTML='';fe.style.display='block';}
+  const mini=document.getElementById('mini-feed');const me=document.getElementById('mini-empty');
+  const miniEvents=all.slice(0,12);
+  if(all.length){fe.style.display='none';feed.innerHTML=all.map(evHTML).join('');}
+  else{feed.innerHTML='';fe.style.display='block';}
+  if(miniEvents.length){me.style.display='none';mini.innerHTML=miniEvents.map(evHTML).join('');}
+  else{mini.innerHTML='';me.style.display='block';}
 }
 
 function go(n){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const pg=document.getElementById('page-'+n);if(pg)pg.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById('page-'+n);if(pg)pg.classList.add('on');
   document.querySelectorAll('.topbar-nav a').forEach(a=>a.classList.toggle('active',a.dataset.p===n));
   refresh();
 }
