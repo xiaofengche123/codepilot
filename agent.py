@@ -36,6 +36,8 @@ SYSTEM_PROMPT = """你是「码搭」，一个智能编程助手 Agent。
 - Git 操作：查看状态(git_status)、差异(git_diff)、日志(git_log)、分支(git_branch)、暂存(git_add)、提交(git_commit)
 - 网页搜索(web_search)：在互联网上搜索最新信息
 - 抓取网页(web_fetch)：获取指定 URL 的内容并转为纯文本
+- 语义搜索(search_semantic)：用自然语言查找代码功能，需要先 index_project 索引项目
+- 项目索引(index_project)：对当前项目代码建立向量索引，支持增量更新
 - 回答编程问题、解释代码、调试错误
 
 工作原则：

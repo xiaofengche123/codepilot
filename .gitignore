@@ -8,6 +8,9 @@ __pycache__/
 venv/
 .venv/
 
+# CodePilot 本地数据
+.codepilot/
+
 # IDE
 .idea/
 .vscode/

@@ -81,7 +81,7 @@ def _run_interactive(working_dir: str):
     from agent import AgentSession
 
     session = AgentSession(working_dir=working_dir)
-    console.print("  [dim]输入 exit 退出, /model 切换模型, /git 仓库状态, /clear 清除历史, /history 查看历史, /mcp MCP状态, /dir 切换目录[/dim]\n")
+    console.print("  [dim]输入 exit 退出, /model /git /index /clear /history /mcp /dir[/dim]\n")
 
     while True:
         try:
@@ -181,6 +181,17 @@ def _handle_slash(user_input: str, session, working_dir: str):
             for i, q in enumerate(questions, 1):
                 console.print(f"  [dim]{i}.[/dim] {q}")
 
+    elif cmd == "/index":
+        force = arg.strip() == "--force"
+        from rag.indexer import index_project as do_index
+        wd = session.working_dir
+        console.print("  [dim]正在索引项目...[/dim]")
+        try:
+            result = do_index(wd, force=force)
+            console.print(f"  [green]{result}[/green]")
+        except Exception as e:
+            console.print(f"  [red]索引失败: {e}[/red]")
+
     elif cmd == "/git":
         from tools.git_tools import git_status, git_branch
         import os
@@ -232,7 +243,7 @@ def _handle_slash(user_input: str, session, working_dir: str):
 
     else:
         console.print(f"  [yellow]未知命令: {cmd}[/yellow]")
-        console.print("  [dim]可用: /model, /git, /clear, /history, /mcp, /dir[/dim]")
+        console.print("  [dim]可用: /model, /git, /index, /clear, /history, /mcp, /dir[/dim]")
 
 
 if __name__ == "__main__":
