@@ -1,5 +1,7 @@
 # 码搭 CodePilot
 
+[![tests](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml/badge.svg)](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml)
+
 智能编程助手 Agent CLI —— 仿 Claude Code 的本地 AI 编程助手。基于 ReAct 模式，支持自然语言驱动的代码浏览、搜索、修改、Git 操作和命令执行。
 
 ## 特性
@@ -169,6 +171,15 @@ codepilot/
 - **Web**: DuckDuckGo Search + httpx + BeautifulSoup
 - **CLI**: Rich
 - **配置**: YAML + dotenv
+
+## 测试
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+共 31 个测试用例，覆盖工具系统、记忆模块、配置管理和上下文裁剪。
 
 ## 许可证
 
