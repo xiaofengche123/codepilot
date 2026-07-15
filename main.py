@@ -78,9 +78,10 @@ def _run_once(user_input: str, working_dir: str):
 
 def _run_interactive(working_dir: str):
     """交互模式：持续对话，直到用户输入 exit"""
-    from agent import run as agent_run
+    from agent import AgentSession
 
-    console.print("  [dim]输入 exit 退出, /dir <路径> 切换工作目录[/dim]\n")
+    session = AgentSession(working_dir=working_dir)
+    console.print("  [dim]输入 exit 退出, /model 切换模型, /clear 清除历史, /history 查看历史, /dir 切换目录[/dim]\n")
 
     while True:
         try:
@@ -96,13 +97,9 @@ def _run_interactive(working_dir: str):
             console.print("  再见！")
             break
 
-        if user_input.startswith("/dir "):
-            new_dir = user_input[5:].strip()
-            if Path(new_dir).exists():
-                working_dir = new_dir
-                console.print(f"  [dim]工作目录已切换为: {working_dir}[/dim]")
-            else:
-                console.print(f"  [red]目录不存在: {new_dir}[/red]")
+        # 斜杠命令分发
+        if user_input.startswith("/"):
+            _handle_slash(user_input, session, working_dir)
             continue
 
         tool_log = []
@@ -114,7 +111,7 @@ def _run_interactive(working_dir: str):
 
         with console.status("[cyan]思考中...[/cyan]", spinner="dots"):
             try:
-                answer = agent_run(user_input, working_dir, on_tool_call=on_tool)
+                answer = session.run(user_input, on_tool_call=on_tool)
             except RuntimeError as e:
                 console.print(f"\n  [red]启动失败:[/red] {e}")
                 console.print("  [dim]请检查 .env 文件中的 API Key 配置[/dim]")
@@ -123,6 +120,78 @@ def _run_interactive(working_dir: str):
         console.print()
         console.print(Panel(Markdown(answer), title="码搭", border_style="cyan"))
         console.print()
+
+
+def _handle_slash(user_input: str, session, working_dir: str):
+    """处理 / 开头的斜杠命令。返回 True 表示已处理。"""
+    from model_router import switch_model, get_current, list_models
+    from memory import clear_history, get_summary
+    from rich.table import Table
+
+    parts = user_input.split(maxsplit=1)
+    cmd = parts[0].lower()
+    arg = parts[1] if len(parts) > 1 else ""
+
+    if cmd == "/model":
+        if not arg:
+            current = get_current()
+            models = list_models()
+            table = Table(title="可用模型", border_style="cyan")
+            table.add_column("状态", style="bold")
+            table.add_column("模型名")
+            table.add_column("供应商")
+            table.add_column("成本档位")
+            for m in models:
+                marker = "  *" if m["current"] else ""
+                status = "[green]可用[/green]" if m["available"] else "[yellow]需 Key[/yellow]"
+                table.add_row(f"{status}{marker}", m["name"], m["provider"], m["cost_tier"])
+            console.print(table)
+            console.print("  [dim]使用 /model <名称> 切换模型[/dim]")
+        elif arg.lower() == "list":
+            models = list_models()
+            table = Table(title="可用模型", border_style="cyan")
+            table.add_column("状态", style="bold")
+            table.add_column("模型名")
+            table.add_column("供应商")
+            table.add_column("成本档位")
+            for m in models:
+                marker = "  *" if m["current"] else ""
+                status = "[green]可用[/green]" if m["available"] else "[yellow]需 Key[/yellow]"
+                table.add_row(f"{status}{marker}", m["name"], m["provider"], m["cost_tier"])
+            console.print(table)
+            console.print("  [dim]使用 /model <名称> 切换模型[/dim]")
+        else:
+            model_name = arg.strip()
+            if switch_model(model_name):
+                console.print(f"  [green]已切换到: {model_name}[/green]")
+            else:
+                console.print(f"  [red]切换失败: {model_name} 不可用或不存在[/red]")
+                console.print("  [dim]输入 /model list 查看可用模型[/dim]")
+
+    elif cmd == "/clear":
+        clear_history(working_dir)
+        console.print("  [green]对话历史已清除[/green]")
+
+    elif cmd == "/history":
+        questions = get_summary(working_dir)
+        if not questions:
+            console.print("  [dim]暂无对话历史[/dim]")
+        else:
+            console.print(f"  [bold]历史提问（最近 {len(questions)} 条）:[/bold]")
+            for i, q in enumerate(questions, 1):
+                console.print(f"  [dim]{i}.[/dim] {q}")
+
+    elif cmd == "/dir" and arg:
+        new_dir = arg.strip()
+        if Path(new_dir).exists():
+            session.working_dir = new_dir
+            console.print(f"  [dim]工作目录已切换为: {new_dir}[/dim]")
+        else:
+            console.print(f"  [red]目录不存在: {new_dir}[/red]")
+
+    else:
+        console.print(f"  [yellow]未知命令: {cmd}[/yellow]")
+        console.print("  [dim]可用: /model, /clear, /history, /dir[/dim]")
 
 
 if __name__ == "__main__":
