@@ -12,12 +12,12 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from config import config
-from task_queue import Task, TaskQueue, TaskStatus
+from task_queue import Task, TaskQueue
 from worktree_manager import WorktreeManager
 from events import get_event_buffer, TaskEvent
 
@@ -31,22 +31,13 @@ _event_buffer = get_event_buffer()
 async def _executor(task: Task):
     """后台执行一个 Agent 任务（在独立 worktree 中）。"""
     from agent import AgentSession
-    from model_router import switch_model
 
     # 事件：开始
     _event_buffer.append(TaskEvent(task.id, "started", data={
         "user_input": task.user_input, "project": task.project_dir,
     }))
 
-    # 模型切换
-    if task.model:
-        ok = switch_model(task.model)
-        if not ok:
-            _event_buffer.append(TaskEvent(task.id, "warning", data={
-                "msg": f"Model '{task.model}' not available, using default",
-            }))
-
-    # 创建隔离工作区
+    # 创建隔离工作区（失败时返回 None，降级为在项目目录直接执行）
     worktree_path = _worktree_mgr.create(task.id)
 
     # 工具回调 → 事件
@@ -55,12 +46,29 @@ async def _executor(task: Task):
             "tool": tool_name, "args": args, "result": result[:500],
         }))
 
+    # server 是无交互场景：危险工具（run_shell/git_add/git_commit）自动拒绝
+    def confirm_dangerous(tool_name, args) -> bool:
+        _event_buffer.append(TaskEvent(task.id, "warning", data={
+            "msg": f"Dangerous tool '{tool_name}' auto-rejected in server mode",
+        }))
+        return False
+
     try:
         wd = worktree_path or task.project_dir
-        session = AgentSession(working_dir=wd)
-        answer = session.run(task.user_input, on_tool_call=on_tool)
+        # 每个任务独立的 LLM 实例（model 不可用时回退全局默认），互不影响
+        session = AgentSession(
+            working_dir=wd, model_name=task.model, confirm=confirm_dangerous,
+        )
+        if task.model and session.model_unavailable:
+            _event_buffer.append(TaskEvent(task.id, "warning", data={
+                "msg": f"Model '{task.model}' not available, using default",
+            }))
 
-        diff = _worktree_mgr.collect_diff(worktree_path)
+        # session.run 是同步阻塞调用，放到线程池执行，
+        # 否则会卡住事件循环，所有并发任务和 HTTP 请求都被阻塞
+        answer = await asyncio.to_thread(session.run, task.user_input, on_tool)
+
+        diff = _worktree_mgr.collect_diff(worktree_path) if worktree_path else ""
 
         _event_buffer.append(TaskEvent(task.id, "completed", data={
             "answer": answer[:200], "diff": diff,
@@ -205,23 +213,23 @@ async def health():
 async def metrics():
     """Prometheus 格式指标端点。"""
     if _task_queue is None:
-        return "codepilot_tasks_total 0\ncodepilot_tasks_completed 0\ncodepilot_tasks_failed 0\n"
+        return PlainTextResponse(
+            "codepilot_tasks_total 0\ncodepilot_tasks_completed 0\ncodepilot_tasks_failed 0\n",
+            media_type="text/plain",
+        )
+    stats = _task_queue.stats()
     lines = [
         "# HELP codepilot_tasks_total Total tasks submitted",
         "# TYPE codepilot_tasks_total counter",
+        f"codepilot_tasks_total {stats['total']}",
+        "# HELP codepilot_tasks_completed Total tasks completed",
+        "# TYPE codepilot_tasks_completed counter",
+        f"codepilot_tasks_completed {stats['completed']}",
+        "# HELP codepilot_tasks_failed Total tasks failed",
+        "# TYPE codepilot_tasks_failed counter",
+        f"codepilot_tasks_failed {stats['failed']}",
     ]
-    total = completed = failed = 0
-    for tid, t in _task_queue._tasks.items():
-        total += 1
-        if t.status == TaskStatus.COMPLETED:
-            completed += 1
-        elif t.status == TaskStatus.FAILED:
-            failed += 1
-
-    lines.append(f"codepilot_tasks_total {total}")
-    lines.append(f"codepilot_tasks_completed {completed}")
-    lines.append(f"codepilot_tasks_failed {failed}")
-    return "\n".join(lines) + "\n"
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain")
 
 
 # ── 启动入口 ──────────────────────────────────────────────────

@@ -5,6 +5,7 @@ asyncio.Queue + asyncio.Semaphore 并发控制。
 """
 
 import asyncio
+import time
 from enum import Enum
 from typing import Optional
 
@@ -30,7 +31,7 @@ class Task:
         self.result: Optional[str] = None
         self.error: Optional[str] = None
         self.diff: Optional[str] = None
-        self.created_at = asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0
+        self.created_at = time.time()
 
 
 class TaskQueue:
@@ -88,3 +89,14 @@ class TaskQueue:
                 except Exception as e:
                     task.status = TaskStatus.FAILED
                     task.error = str(e)
+
+    def stats(self) -> dict:
+        """返回任务计数快照（供 /metrics 使用）。"""
+        total = completed = failed = 0
+        for t in self._tasks.values():
+            total += 1
+            if t.status == TaskStatus.COMPLETED:
+                completed += 1
+            elif t.status == TaskStatus.FAILED:
+                failed += 1
+        return {"total": total, "completed": completed, "failed": failed}

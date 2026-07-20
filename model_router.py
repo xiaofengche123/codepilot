@@ -136,6 +136,18 @@ class ModelRouter:
         self._active_name = name
         return True
 
+    def create(self, name: str):
+        """创建一个独立的 LLM 实例，不改变全局活跃模型。
+
+        供 server 按任务指定模型使用，避免多任务并发时互相覆盖全局路由。
+        模型不存在或 Key 未配置时返回 None。
+        """
+        if name not in self._models:
+            return None
+        if not self._check_available(self._models[name]):
+            return None
+        return self._create_llm(name)
+
     def list_models(self) -> list[dict]:
         result = []
         for info in DEFAULT_MODELS:

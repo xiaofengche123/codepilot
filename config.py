@@ -36,6 +36,9 @@ DEFAULTS = {
         "host": "0.0.0.0",
         "port": 8000,
     },
+    "mcp": {
+        "allow_dangerous": False,
+    },
 }
 
 

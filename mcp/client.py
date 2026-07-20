@@ -15,6 +15,7 @@ from mcp.protocol import (
     JSONRPCRequest,
     JSONRPCResponse,
     JSONRPCError,
+    JSONRPCNotification,
     format_message,
     parse_message,
     METHOD_NOT_FOUND,
@@ -54,6 +55,7 @@ class MCPClientConnection:
                 stderr=subprocess.PIPE,
                 text=True,
                 env=full_env,
+                cwd=self.config.get("cwd") or None,
             )
         except Exception as e:
             print(f"  [MCP] 无法启动 {self.name}: {e}", file=sys.stderr)
@@ -93,7 +95,7 @@ class MCPClientConnection:
         return True
 
     def _reader_loop(self):
-        """后台线程持续读取子进程 stdout。"""
+        """后台线程持续读取子进程 stdout，把响应分发到 pending 队列。"""
         try:
             for line in self._process.stdout:
                 line = line.strip()
@@ -103,9 +105,10 @@ class MCPClientConnection:
                     msg = parse_message(line)
                 except Exception:
                     continue
-                rid = getattr(msg, "id", None)
-                if rid is not None and rid in self._pending:
-                    self._pending[rid].put(msg)
+                if isinstance(msg, (JSONRPCResponse, JSONRPCError)):
+                    rid = msg.id
+                    if rid is not None and rid in self._pending:
+                        self._pending[rid].put(msg)
         except Exception:
             pass
 
@@ -139,10 +142,9 @@ class MCPClientConnection:
 
     def _send_notification(self, method: str, params: dict):
         """发送 JSON-RPC 通知（无回复）。"""
-        notif = JSONRPCRequest(method=method, params=params)
-        notif.id = None
+        notif = JSONRPCNotification(method=method, params=params)
         try:
-            self._process.stdin.write(format_message(notif).replace(',"id":null', '') + "\n")
+            self._process.stdin.write(format_message(notif) + "\n")
             self._process.stdin.flush()
         except Exception:
             pass

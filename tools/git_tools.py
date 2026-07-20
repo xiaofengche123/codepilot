@@ -6,13 +6,14 @@ git_status / git_diff / git_log / git_branch / git_add / git_commit
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 
-def _resolve_git(path: str = ".") -> str:
+def _resolve_git(path: str = ".", workdir: Optional[str] = None) -> str:
     """返回绝对路径并验证是否为 git 仓库"""
     p = Path(path)
     if not p.is_absolute():
-        p = Path(os.getcwd()) / p
+        p = Path(workdir or os.getcwd()) / p
     p = p.resolve()
     if not (p / ".git").exists():
         raise ValueError(f"目录不是 git 仓库: {p}")
@@ -23,7 +24,7 @@ def _run_git(args: list, cwd: str) -> str:
     """执行 git 命令并返回规范化输出"""
     try:
         result = subprocess.run(
-            ["git"] + args, capture_output=True, text=True,
+            ["git", "-c", "core.quotepath=false"] + args, capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=30, cwd=cwd,
         )
         output = result.stdout + result.stderr
@@ -38,23 +39,23 @@ def _run_git(args: list, cwd: str) -> str:
         return "[错误] 未找到 git，请确认 git 已安装"
 
 
-def git_status(path: str = ".") -> str:
+def git_status(path: str = ".", workdir: Optional[str] = None) -> str:
     """
     查看 git 仓库工作区状态。参数 path: 仓库路径（默认当前目录）。返回 git status --short 的简略输出。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     return _run_git(["status", "--short"], repo)
 
 
-def git_diff(staged: bool = False, path: str = ".") -> str:
+def git_diff(staged: bool = False, path: str = ".", workdir: Optional[str] = None) -> str:
     """
     查看 git 差异。参数 staged: 是否查看暂存区差异（默认 false 查看未暂存的部分）、path: 仓库路径。返回 diff 内容。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     args = ["diff"]
@@ -63,34 +64,34 @@ def git_diff(staged: bool = False, path: str = ".") -> str:
     return _run_git(args, repo)
 
 
-def git_log(n: int = 10, path: str = ".") -> str:
+def git_log(n: int = 10, path: str = ".", workdir: Optional[str] = None) -> str:
     """
     查看 git 提交日志。参数 n: 显示最近 N 条记录（默认 10）、path: 仓库路径。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     return _run_git(["log", "--oneline", f"-n{n}"], repo)
 
 
-def git_branch(path: str = ".") -> str:
+def git_branch(path: str = ".", workdir: Optional[str] = None) -> str:
     """
     列出所有分支。参数 path: 仓库路径。当前分支会以 * 标记。返回分支列表。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     return _run_git(["branch", "-a"], repo)
 
 
-def git_add(files: str, path: str = ".") -> str:
+def git_add(files: str, path: str = ".", workdir: Optional[str] = None) -> str:
     """
     暂存文件到 git 暂存区（需用户确认）。参数 files: 要暂存的文件，多个文件空格分隔，"." 暂存全部、path: 仓库路径。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     if not files.strip():
@@ -100,12 +101,12 @@ def git_add(files: str, path: str = ".") -> str:
     return _run_git(["add"] + files.split(), repo)
 
 
-def git_commit(message: str, path: str = ".") -> str:
+def git_commit(message: str, path: str = ".", workdir: Optional[str] = None) -> str:
     """
     创建 git commit（需用户确认，禁止 --no-verify 和 --amend）。参数 message: commit 消息、path: 仓库路径。
     """
     try:
-        repo = _resolve_git(path)
+        repo = _resolve_git(path, workdir)
     except ValueError as e:
         return f"[错误] {e}"
     if not message.strip():

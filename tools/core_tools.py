@@ -10,18 +10,18 @@ from pathlib import Path
 from typing import Optional
 
 
-def _resolve(path: str) -> Path:
+def _resolve(path: str, workdir: Optional[str] = None) -> Path:
     p = Path(path)
     if p.is_absolute():
         return p
-    return Path(os.getcwd()) / p
+    return Path(workdir or os.getcwd()) / p
 
 
-def read_file(path: str, start_line: int = 0, end_line: Optional[int] = None) -> str:
+def read_file(path: str, start_line: int = 0, end_line: Optional[int] = None, workdir: Optional[str] = None) -> str:
     """
     读取文件内容。参数 path: 文件路径（相对于工作目录）、start_line: 起始行号(0表示从开头)、end_line: 结束行号(省略表示读到末尾)。返回文件内容字符串。
     """
-    filepath = _resolve(path)
+    filepath = _resolve(path, workdir)
     if not filepath.exists():
         return f"[错误] 文件不存在: {path}"
     if filepath.is_dir():
@@ -43,11 +43,11 @@ def read_file(path: str, start_line: int = 0, end_line: Optional[int] = None) ->
     return "\n".join(result)
 
 
-def write_file(path: str, content: str) -> str:
+def write_file(path: str, content: str, workdir: Optional[str] = None) -> str:
     """
     写入或覆盖文件。参数 path: 文件路径、content: 要写入的完整内容。返回操作结果。
     """
-    filepath = _resolve(path)
+    filepath = _resolve(path, workdir)
     filepath.parent.mkdir(parents=True, exist_ok=True)
     try:
         filepath.write_text(content, encoding="utf-8")
@@ -56,11 +56,11 @@ def write_file(path: str, content: str) -> str:
         return f"[错误] 写入失败: {e}"
 
 
-def list_files(path: str = ".") -> str:
+def list_files(path: str = ".", workdir: Optional[str] = None) -> str:
     """
     列出目录下的文件和子目录。参数 path: 目录路径，默认当前目录。返回文件列表。
     """
-    dirpath = _resolve(path)
+    dirpath = _resolve(path, workdir)
     if not dirpath.exists():
         return f"[错误] 目录不存在: {path}"
 
@@ -74,11 +74,11 @@ def list_files(path: str = ".") -> str:
     return "\n".join(items)
 
 
-def search_code(pattern: str, path: str = ".") -> str:
+def search_code(pattern: str, path: str = ".", workdir: Optional[str] = None) -> str:
     """
     在代码中搜索关键词或正则表达式。参数 pattern: 搜索模式(支持正则)、path: 搜索目录。返回匹配行。
     """
-    dirpath = _resolve(path)
+    dirpath = _resolve(path, workdir)
     if not dirpath.exists():
         return f"[错误] 目录不存在: {path}"
 
@@ -117,12 +117,17 @@ def search_code(pattern: str, path: str = ".") -> str:
     return f"找到 {len(results)} 条结果:\n" + "\n".join(results)
 
 
-def run_shell(command: str) -> str:
+def run_shell(command: str, workdir: Optional[str] = None) -> str:
     """
     执行终端命令（执行前会显示命令并请求确认）。参数 command: 要执行的 shell 命令。返回命令输出。
     危险命令（rm -rf、format、mkfs 等）会被拦截。
     """
-    dangerous = ["rm -rf", "mkfs", "format", "dd if=", ":(){", "chmod 777 /"]
+    dangerous = [
+        "rm -rf", "rm -fr", "rm -r -f", "rm -f -r",
+        "mkfs", "format", "dd if=", ":(){", "chmod 777 /",
+        "rd /s", "rmdir /s", "del /f", "remove-item",
+        "shutdown", "reboot",
+    ]
     cmd_lower = command.lower().replace(" ", "")
     for d in dangerous:
         if d.replace(" ", "") in cmd_lower:
@@ -132,8 +137,8 @@ def run_shell(command: str) -> str:
         from config import config
         _timeout = config.get("tools.shell_timeout", 30)
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True,
-            timeout=_timeout, cwd=os.getcwd(),
+            command, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=_timeout, cwd=workdir or os.getcwd(),
         )
         output = result.stdout
         if result.stderr:
@@ -143,7 +148,7 @@ def run_shell(command: str) -> str:
         _max_chars = config.get("tools.output_max_chars", 4000)
         return output[:_max_chars]
     except subprocess.TimeoutExpired:
-        return f"[超时] 命令 '{command}' 执行超过 30 秒，已终止"
+        return f"[超时] 命令 '{command}' 执行超过 {_timeout} 秒，已终止"
     except Exception as e:
         return f"[错误] 执行失败: {e}"
 

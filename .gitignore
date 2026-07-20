@@ -11,6 +11,9 @@ venv/
 # CodePilot 本地数据
 .codepilot/
 
+# 面试文档（不上传）
+docs/
+
 # IDE
 .idea/
 .vscode/

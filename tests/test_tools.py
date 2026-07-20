@@ -100,3 +100,40 @@ class TestGitTools:
         from tools.git_tools import git_commit
         result = git_commit("", path=str(Path(__file__).parent.parent))
         assert "不能为空" in result or "不是 git" in result
+
+
+class TestWorkdirInjection:
+    """execute_tool 的 workdir 注入：相对路径基于 workdir 解析，且不改变进程 cwd。"""
+
+    def test_execute_tool_injects_workdir(self, tmp_path):
+        cwd_before = os.getcwd()
+        result = execute_tool(
+            "write_file", {"path": "sub/a.txt", "content": "hi"},
+            workdir=str(tmp_path),
+        )
+        assert "成功" in result
+        assert (tmp_path / "sub" / "a.txt").read_text(encoding="utf-8") == "hi"
+        assert os.getcwd() == cwd_before  # 无 chdir 副作用
+
+    def test_llm_cannot_override_workdir(self, tmp_path):
+        # LLM 侧传入的 workdir 参数会被剥离，以注入值为准
+        execute_tool(
+            "write_file",
+            {"path": "b.txt", "content": "x", "workdir": "/nonexistent-xyz"},
+            workdir=str(tmp_path),
+        )
+        assert (tmp_path / "b.txt").exists()
+
+    def test_workdir_none_falls_back_to_cwd(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        result = execute_tool("write_file", {"path": "c.txt", "content": "y"})
+        assert "成功" in result
+        assert (tmp_path / "c.txt").exists()
+
+    def test_run_shell_uses_workdir(self, tmp_path):
+        result = execute_tool(
+            "run_shell",
+            {"command": "python -c \"import os; print(os.getcwd())\""},
+            workdir=str(tmp_path),
+        )
+        assert str(tmp_path).replace("\\", "/").lower() in result.replace("\\", "/").lower()

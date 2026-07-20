@@ -51,7 +51,11 @@ def _get_model() -> SentenceTransformer:
 # ── Python 函数/类切分（AST） ─────────────────────────────────
 
 def _split_python(filepath: Path, content: str, rel_path: str) -> list[dict]:
-    """用 AST 按函数和类边界切分 Python 文件。"""
+    """用 AST 按函数和类边界切分 Python 文件。
+
+    只取顶层定义（tree.body）：ast.walk 会把类的方法和类本身各切一份，
+    导致同一段代码被重复索引。
+    """
     chunks = []
     try:
         tree = ast.parse(content)
@@ -60,7 +64,7 @@ def _split_python(filepath: Path, content: str, rel_path: str) -> list[dict]:
 
     lines = content.split("\n")
 
-    for node in ast.walk(tree):
+    for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             start = node.lineno - 1
             end = node.end_lineno if hasattr(node, "end_lineno") else start + _get_chunk_lines()
@@ -124,8 +128,9 @@ def index_project(project_dir: str, force: bool = False) -> str:
         except (json.JSONDecodeError, OSError):
             pass
 
-    # 收集文件
+    # 收集文件（seen_files 记录全量代码文件，用于识别已删除的文件）
     files_to_index = []
+    seen_files = set()
     for filepath in root.rglob("*"):
         parts = set(filepath.relative_to(root).parts)
         if parts & SKIP_DIRS:
@@ -136,6 +141,7 @@ def index_project(project_dir: str, force: bool = False) -> str:
             continue
 
         rel = str(filepath.relative_to(root))
+        seen_files.add(rel)
         mtime = filepath.stat().st_mtime
 
         if not force and index_state.get(rel) == mtime:
@@ -144,7 +150,10 @@ def index_project(project_dir: str, force: bool = False) -> str:
         files_to_index.append((filepath, rel))
         index_state[rel] = mtime
 
-    if not files_to_index:
+    # 已从磁盘删除的文件：清理其在向量库中的残留片段，避免搜出幽灵代码
+    removed_files = [rel for rel in index_state if rel not in seen_files]
+
+    if not files_to_index and not removed_files:
         return "[完成] 索引已是最新，没有需要更新的文件"
 
     # 初始化 ChromaDB
@@ -159,9 +168,15 @@ def index_project(project_dir: str, force: bool = False) -> str:
     except Exception:
         collection = client.create_collection(COLLECTION_NAME)
 
-    model = _get_model()
+    for rel in removed_files:
+        try:
+            collection.delete(where={"file": rel})
+        except Exception:
+            pass
+        del index_state[rel]
 
-    # 按文件切分、向量化、批量写入
+    # 按文件切分、向量化、批量写入（有文件要索引时才加载 embedding 模型）
+    model = _get_model() if files_to_index else None
     batch_size = 50
     ids_batch, docs_batch, metas_batch = [], [], []
     total_chunks = 0
@@ -205,7 +220,10 @@ def index_project(project_dir: str, force: bool = False) -> str:
     state_path.write_text(json.dumps(index_state, indent=2), encoding="utf-8")
 
     elapsed = time.time() - start_time
-    return f"[完成] 索引 {len(files_to_index)} 个文件，{total_chunks} 个片段，耗时 {elapsed:.1f}s"
+    summary = f"[完成] 索引 {len(files_to_index)} 个文件，{total_chunks} 个片段，耗时 {elapsed:.1f}s"
+    if removed_files:
+        summary += f"，清理 {len(removed_files)} 个已删除文件的残留片段"
+    return summary
 
 
 def _upsert_batch(collection, ids, docs, metas, embeddings):

@@ -11,11 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 代码
+# 代码（.dockerignore 已排除 .env / venv / .git 等）
 COPY . .
-
-# 默认配置
-RUN cp -n .env.example .env 2>/dev/null || true
 
 EXPOSE 8000
 

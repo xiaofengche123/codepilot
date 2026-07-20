@@ -54,17 +54,31 @@ SYSTEM_PROMPT = """你是「码搭」，一个智能编程助手 Agent。
 # Agent 主循环
 # ============================================================
 
-MAX_ITERATIONS = config.get("agent.max_iterations", 10)
+DEFAULT_MAX_ITERATIONS = config.get("agent.max_iterations", 10)
 
 
 class AgentSession:
-    """有状态的 Agent 会话，维护跨轮对话连续性。"""
+    """有状态的 Agent 会话，维护跨轮对话连续性。
 
-    def __init__(self, working_dir: str, max_context_tokens: int = None):
+    confirm(tool_name, args) -> bool: 危险工具确认回调。
+        默认 None 使用 CLI 交互确认；server 等无交互场景应注入策略函数。
+    model_name: 指定本会话使用的模型（创建独立 LLM 实例，不影响全局路由）。
+    """
+
+    def __init__(self, working_dir: str, max_context_tokens: int = None,
+                 model_name: str = None, confirm=None, max_iterations: int = None):
         if max_context_tokens is None:
             max_context_tokens = config.get("agent.max_context_tokens", 8000)
         self.working_dir = os.path.abspath(working_dir)
         self.context_mgr = ContextManager(max_tokens=max_context_tokens)
+        self.max_iterations = max_iterations or DEFAULT_MAX_ITERATIONS
+        self._confirm = confirm or _confirm_dangerous
+        self._llm = None
+        self.model_unavailable = False
+        if model_name:
+            from model_router import get_router
+            self._llm = get_router().create(model_name)
+            self.model_unavailable = self._llm is None
         self.mcp_client = None
         self._init_mcp()
 
@@ -89,14 +103,14 @@ class AgentSession:
         return all_tools
 
     def _execute_tool(self, tool_name: str, tool_args: dict) -> str:
-        """执行工具：优先 MCP，其次内置。"""
+        """执行工具：优先 MCP，其次内置。内置工具注入会话工作目录。"""
         if self.mcp_client and tool_name in self.mcp_client.tools:
             return self.mcp_client.call_tool(tool_name, tool_args)
         if tool_name in DANGEROUS_TOOLS:
-            confirmed = _confirm_dangerous(tool_name, tool_args)
+            confirmed = self._confirm(tool_name, tool_args)
             if not confirmed:
                 return f"[用户取消] 已拒绝执行 {tool_name}"
-        return execute_tool(tool_name, tool_args)
+        return execute_tool(tool_name, tool_args, workdir=self.working_dir)
 
     def run(self, user_input: str, on_tool_call=None, on_stream=None) -> str:
         """执行一次对话。
@@ -104,18 +118,16 @@ class AgentSession:
         on_tool_call(tool_name, args, result) — 工具调用时回调
         on_stream(chunk_text) — 流式输出每段文本时回调
         """
-        os.chdir(self.working_dir)
-
-        llm = router_get_llm()
+        llm = self._llm or router_get_llm()
         llm_with_tools = llm.bind_tools(self._get_all_tools())
 
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
         messages.extend(load_history(self.working_dir))
         messages.append(HumanMessage(content=user_input))
 
-        messages = self.context_mgr.trim(messages)
-
-        for _iteration in range(MAX_ITERATIONS):
+        for _iteration in range(self.max_iterations):
+            # 每轮迭代前裁剪：循环中累积的工具结果会持续占用上下文
+            messages = self.context_mgr.trim(messages)
             response, tool_calls = self._stream_llm(
                 llm_with_tools, messages, on_stream,
             )
@@ -140,7 +152,7 @@ class AgentSession:
 
                 messages.append(ToolMessage(content=result, tool_call_id=tc_id))
 
-        return "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。"
+        return f"已达到最大执行步数（{self.max_iterations}步），任务可能未完成。请拆分任务后重试。"
 
     def _stream_llm(self, llm_with_tools, messages, on_stream):
         """流式调用 LLM，返回 (完整 AIMessage, 解析好的 tool_calls 列表)。
@@ -170,8 +182,11 @@ class AgentSession:
             return full_response, []
 
         except Exception:
-            # 流式失败时回退到非流式
+            # 流式失败时回退到非流式；已流出的 chunk 不重复，
+            # 但 invoke 的完整内容需要补发给调用方，否则用户看不到任何输出
             response = llm_with_tools.invoke(messages)
+            if on_stream and getattr(response, "content", ""):
+                on_stream(response.content)
             tool_calls = getattr(response, "tool_calls", None) or []
             return response, tool_calls
 

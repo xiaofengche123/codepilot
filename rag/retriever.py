@@ -65,7 +65,7 @@ def hybrid_search(query: str, project_dir: str, n: int = 10) -> str:
     """
     from tools.core_tools import search_code
 
-    # 并行获取两路结果
+    # 获取两路结果后合并（语义检索为主，关键词匹配兜底）
     semantic_result = semantic_search(query, project_dir, n)
     keyword_result = search_code(query, project_dir)
 

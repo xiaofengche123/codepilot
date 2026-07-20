@@ -23,7 +23,8 @@ from mcp.protocol import (
     INTERNAL_ERROR,
     PROTOCOL_VERSION,
 )
-from tools import TOOLS_REGISTRY, TOOL_DEFINITIONS, execute_tool
+from tools import TOOL_DEFINITIONS, DANGEROUS_TOOLS, execute_tool
+from config import config
 
 # stderr 用于日志，stdout 用于 JSON-RPC 消息
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -111,6 +112,18 @@ class MCPServer:
             return self._make_error(msg.id, INVALID_PARAMS, "Missing tool name")
 
         logger.info(f"调用工具: {tool_name}({arguments})")
+
+        # 危险工具（run_shell / git_add / git_commit）需要交互确认，
+        # MCP 是无交互通道，默认拒绝；配置 mcp.allow_dangerous: true 可放开。
+        if tool_name in DANGEROUS_TOOLS and not config.get("mcp.allow_dangerous", False):
+            return JSONRPCResponse(id=msg.id, result={
+                "content": [{"type": "text", "text": (
+                    f"[拒绝] 危险工具 {tool_name} 在 MCP 模式下默认禁用"
+                    "（无法交互确认）。在 config/settings.yaml 中设置"
+                    " mcp.allow_dangerous: true 可放开。"
+                )}],
+            })
+
         try:
             result_text = execute_tool(tool_name, arguments)
         except Exception as e:

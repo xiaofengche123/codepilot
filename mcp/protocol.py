@@ -60,10 +60,19 @@ class ToolSchema(BaseModel):
 
 # ── 序列化/反序列化 ────────────────────────────────────────────
 
-def parse_message(data: str) -> JSONRPCRequest | JSONRPCNotification:
-    """从 JSON 字符串解析为 JSON-RPC 消息。无 id 视为通知。"""
+def parse_message(data: str) -> JSONRPCRequest | JSONRPCResponse | JSONRPCError | JSONRPCNotification:
+    """从 JSON 字符串解析为 JSON-RPC 消息。
+
+    按消息特征区分四种类型：
+      含 result → Response；含 error → Error；含 id → Request；否则 → Notification。
+    Server 端只收到 Request/Notification，Client 端只收到 Response/Error。
+    """
     import json
     obj = json.loads(data)
+    if "result" in obj:
+        return JSONRPCResponse(**obj)
+    if "error" in obj:
+        return JSONRPCError(**obj)
     if "id" in obj and obj["id"] is not None:
         return JSONRPCRequest(**obj)
     return JSONRPCNotification(**obj)

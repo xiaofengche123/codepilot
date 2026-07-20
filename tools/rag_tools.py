@@ -4,22 +4,23 @@ search_semantic / index_project
 """
 
 import os
+from typing import Optional
 
 
-def search_semantic(query: str, n: int = 10) -> str:
+def search_semantic(query: str, n: int = 10, workdir: Optional[str] = None) -> str:
     """
     语义搜索代码库。用自然语言查找功能相关的代码，不需要精确关键词。参数 query: 自然语言查询描述（如"登录验证的逻辑"）、n: 返回结果数（默认 10）。返回相关代码片段和位置。
     """
     from rag.retriever import hybrid_search
-    return hybrid_search(query, os.getcwd(), n)
+    return hybrid_search(query, workdir or os.getcwd(), n)
 
 
-def index_project(force: bool = False) -> str:
+def index_project(force: bool = False, workdir: Optional[str] = None) -> str:
     """
     向量化索引当前项目代码，供语义搜索使用。首次使用 search_semantic 前必须调用此工具。参数 force: 是否强制重建索引（默认 false 增量更新）。返回索引摘要。
     """
     from rag.indexer import index_project as do_index
-    return do_index(os.getcwd(), force=force)
+    return do_index(workdir or os.getcwd(), force=force)
 
 
 RAG_TOOLS = {

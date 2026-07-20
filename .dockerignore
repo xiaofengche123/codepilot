@@ -1,0 +1,19 @@
+# 版本与敏感文件
+.git
+.env
+
+# Python 环境/缓存
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# CodePilot 本地数据（向量库、对话历史）
+.codepilot/
+
+# IDE / 文档
+.idea/
+.vscode/
+docs/
+tests/

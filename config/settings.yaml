@@ -29,3 +29,9 @@ server:
   max_concurrent: 5
   host: "0.0.0.0"
   port: 8000
+
+# MCP 参数
+# allow_dangerous: 是否允许通过 MCP 通道调用危险工具（run_shell/git_add/git_commit）。
+# 默认 false —— MCP 是无交互通道，无法人工确认。
+mcp:
+  allow_dangerous: false
