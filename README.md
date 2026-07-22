@@ -7,10 +7,10 @@
 ## 特性
 
 - **多模型路由** — DeepSeek / Claude / OpenAI 自动检测可用性，手动 `/model` 热切换
-- **15 个内置工具** — 文件读写、代码搜索、Shell 执行、Git 操作、Web 搜索/抓取、语义搜索
+- **15 个内置工具** — 文件读写、代码搜索、Shell 执行、Git 操作、Web 搜索/抓取、混合检索
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
 - **MCP 协议** — 完整 Server（供 Claude Desktop 调用）+ Client（消费外部 MCP Server 工具）
-- **RAG 语义搜索** — ChromaDB 向量存储，自然语言搜索代码功能，无需精确关键词
+- **RAG 混合检索** — BM25 关键词召回 + ChromaDB 向量召回，使用 RRF 融合排序
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
 
@@ -75,7 +75,7 @@ python main.py -d /path/to/project  # 指定工作目录
 | Web | `web_search` | DuckDuckGo 搜索 |
 | Web | `web_fetch` | 抓取网页内容 |
 | RAG | `index_project` | 向量化索引项目 |
-| RAG | `search_semantic` | 语义搜索代码 |
+| RAG | `search_semantic` | BM25 + 向量混合检索代码 |
 
 ## MCP 集成
 
@@ -114,7 +114,7 @@ python main.py -d /path/to/project  # 指定工作目录
 
 启动 CodePilot 后会自动连接并发现工具，工具名以 `mcp_{server}_{tool}` 格式注册。
 
-## RAG 语义搜索
+## RAG 混合检索
 
 1. 进入项目目录，运行 `/index` 索引代码
 2. 之后 Agent 可调用 `search_semantic` 进行自然语言搜索
@@ -129,7 +129,28 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - Python 文件按函数/类 AST 精确切分
 - 其他语言按 30 行固定窗口切分
 - 向量模型：`all-MiniLM-L6-v2`（本地运行）
+- 关键词召回：内置 Okapi BM25，支持代码标识符和中英文注释分词
+- 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
 - 增量索引：按文件 mtime 跳过未修改文件
+
+可在 `config/settings.yaml` 中调整候选集倍数、BM25 参数、RRF 常数及两路权重。
+
+### 离线评估
+
+评估集采用 JSON 数组，每条数据包含查询和相关文件路径（也支持精确 chunk ID）：
+
+```json
+[
+  {"query": "用户登录校验", "relevant": ["auth/login.py"]},
+  {"query": "创建独立工作区", "relevant": ["worktree_manager.py"]}
+]
+```
+
+项目完成索引后，对比纯向量检索与混合检索的 Recall@K、MRR：
+
+```bash
+python -m rag.evaluate docs/rag_eval.json --project . -k 10
+```
 
 ## 项目结构
 
@@ -167,6 +188,7 @@ codepilot/
 - **LLM**: DeepSeek / Claude / OpenAI（LangChain 统一接口）
 - **Agent**: ReAct 模式，Function Calling
 - **向量存储**: ChromaDB + SentenceTransformers
+- **检索排序**: Okapi BM25 + RRF
 - **MCP**: JSON-RPC 2.0 over stdio
 - **Web**: DuckDuckGo Search + httpx + BeautifulSoup
 - **CLI**: Rich
@@ -179,7 +201,7 @@ pip install pytest
 pytest tests/ -v
 ```
 
-共 31 个测试用例，覆盖工具系统、记忆模块、配置管理和上下文裁剪。
+测试覆盖工具系统、MCP、服务接口、记忆模块、上下文裁剪、BM25 排序、RRF 融合及检索评估指标。
 
 ## 许可证
 

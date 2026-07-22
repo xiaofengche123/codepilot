@@ -175,6 +175,15 @@ def index_project(project_dir: str, force: bool = False) -> str:
             pass
         del index_state[rel]
 
+    # 修改后的文件可能产生不同的 chunk ID。写入新片段前先清理该文件的旧片段，
+    # 避免函数删除、移动或行号变化后留下无法被 upsert 覆盖的幽灵结果。
+    if not force:
+        for _, rel in files_to_index:
+            try:
+                collection.delete(where={"file": rel})
+            except Exception:
+                pass
+
     # 按文件切分、向量化、批量写入（有文件要索引时才加载 embedding 模型）
     model = _get_model() if files_to_index else None
     batch_size = 50

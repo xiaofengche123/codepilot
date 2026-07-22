@@ -30,6 +30,12 @@ DEFAULTS = {
     "rag": {
         "model_name": "all-MiniLM-L6-v2",
         "chunk_lines": 30,
+        "candidate_multiplier": 3,
+        "bm25_k1": 1.5,
+        "bm25_b": 0.75,
+        "rrf_k": 60,
+        "vector_weight": 1.0,
+        "bm25_weight": 1.0,
     },
     "server": {
         "max_concurrent": 5,

@@ -11,6 +11,8 @@ class TestConfig:
         assert config.get("agent.max_iterations") == 10
         assert config.get("model.temperature") == 0.3
         assert config.get("rag.chunk_lines") == 30
+        assert config.get("rag.rrf_k") == 60
+        assert config.get("rag.bm25_weight") == 1.0
 
     def test_dot_path_access(self):
         assert config.get("agent.max_context_tokens") == 8000
