@@ -9,7 +9,7 @@
 - **多模型路由** — DeepSeek / Claude / OpenAI 自动检测可用性，手动 `/model` 热切换
 - **15 个内置工具** — 文件读写、代码搜索、Shell 执行、Git 操作、Web 搜索/抓取、混合检索
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
-- **MCP 协议** — 完整 Server（供 Claude Desktop 调用）+ Client（消费外部 MCP Server 工具）
+- **MCP Tools 双端** — Server 供 Claude Desktop 调用，Client 消费外部 MCP Server 工具
 - **RAG 混合检索** — BM25 关键词召回 + ChromaDB 向量召回，使用 RRF 融合排序
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
@@ -113,6 +113,45 @@ python main.py -d /path/to/project  # 指定工作目录
 ```
 
 启动 CodePilot 后会自动连接并发现工具，工具名以 `mcp_{server}_{tool}` 格式注册。
+单个外部 Server 初始化失败只会跳过该连接，不会中止 Agent 启动；可在对应
+Server 配置中通过 `timeout` 设置初始化和调用超时。
+
+## HTTP API 与任务隔离
+
+启动服务：
+
+```bash
+python server.py
+```
+
+提交任务时必须传入 Git 仓库目录。服务为每个任务创建独立分支和 Git
+Worktree；隔离创建失败时任务会失败，不会降级到原工作区执行。
+
+```bash
+curl -X POST http://localhost:8000/tasks/submit \
+  -H "Content-Type: application/json" \
+  -d '{"input":"检查项目中的异常处理","project_dir":".","session_id":"demo"}'
+```
+
+- `GET /tasks/{task_id}`：查询状态和最终结果
+- `GET /tasks/{task_id}/events?cursor=0`：增量拉取流式文本、工具调用和生命周期事件
+- `DELETE /tasks/{task_id}`：取消尚未开始的任务
+- `GET /metrics`：Prometheus 文本格式任务指标
+
+相同 `project_dir` 与 `session_id` 使用同一份 JSON 对话历史；代码在临时
+Worktree 中执行，历史则持久化到原项目的 `.codepilot/sessions/`。
+
+## Docker 部署
+
+在 `.env` 中配置至少一个模型 API Key 后执行：
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+Dashboard 地址为 `http://localhost:8000`。Compose 会将当前 Git 仓库挂载为
+任务项目，并使用独立数据卷保存临时 Worktree。镜像包含 `/health` 健康检查。
 
 ## RAG 混合检索
 
@@ -201,7 +240,10 @@ pip install pytest
 pytest tests/ -v
 ```
 
-测试覆盖工具系统、MCP、服务接口、记忆模块、上下文裁剪、BM25 排序、RRF 融合及检索评估指标。
+测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git
+Worktree 隔离、RAG 增量索引与删除清理、服务端流式事件、会话记忆、上下文
+裁剪、BM25 排序、RRF 融合及检索评估指标。真实 LLM 测试默认跳过，可通过
+`CODEPILOT_RUN_LLM_TESTS=1` 显式启用。
 
 ## 许可证
 

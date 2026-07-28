@@ -5,6 +5,7 @@
 """
 
 import time
+import threading
 from dataclasses import dataclass, field
 from typing import Optional
 from collections import deque
@@ -18,6 +19,7 @@ class TaskEvent:
     type: str  # created, started, tool_call, thinking, completed, failed, cancelled
     timestamp: float = field(default_factory=time.time)
     data: dict = field(default_factory=dict)
+    sequence: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -25,6 +27,7 @@ class TaskEvent:
             "type": self.type,
             "timestamp": self.timestamp,
             "data": self.data,
+            "sequence": self.sequence,
         }
 
 
@@ -35,29 +38,38 @@ class EventBuffer:
         self._events: dict[str, deque[TaskEvent]] = {}
         self._total = 0
         self._max_total = max_total
+        self._next_sequence: dict[str, int] = {}
+        self._lock = threading.RLock()
 
     def append(self, event: TaskEvent):
-        q = self._events.setdefault(event.task_id, deque(maxlen=MAX_EVENTS_PER_TASK))
-        q.append(event)
-        self._total += 1
-        if self._total > self._max_total:
-            self._drop_oldest()
+        with self._lock:
+            q = self._events.setdefault(event.task_id, deque(maxlen=MAX_EVENTS_PER_TASK))
+            if len(q) == q.maxlen:
+                self._total -= 1
+            next_sequence = self._next_sequence.get(event.task_id, 0) + 1
+            self._next_sequence[event.task_id] = next_sequence
+            event.sequence = next_sequence
+            q.append(event)
+            self._total += 1
+            if self._total > self._max_total:
+                self._drop_oldest()
 
     def get_since(self, task_id: str, cursor: int = 0) -> tuple[list[dict], int]:
-        """增量拉取：返回 cursor 之后的事件列表和新 cursor。"""
-        q = self._events.get(task_id)
-        if not q:
-            return [], cursor
-        if cursor >= len(q):
-            return [], len(q)
-        events = [e.to_dict() for e in list(q)[cursor:]]
-        return events, len(q)
+        """按单调递增 sequence 增量拉取，队列淘汰不会让游标错位。"""
+        with self._lock:
+            q = self._events.get(task_id)
+            if not q:
+                return [], cursor
+            events = [e.to_dict() for e in q if e.sequence > cursor]
+            new_cursor = q[-1].sequence if q else cursor
+            return events, new_cursor
 
     def get_all(self, task_id: str) -> list[dict]:
-        q = self._events.get(task_id)
-        if not q:
-            return []
-        return [e.to_dict() for e in q]
+        with self._lock:
+            q = self._events.get(task_id)
+            if not q:
+                return []
+            return [e.to_dict() for e in q]
 
     def _drop_oldest(self):
         for tid in list(self._events.keys()):
@@ -69,9 +81,11 @@ class EventBuffer:
                 del self._events[tid]
 
     def clear(self, task_id: str):
-        q = self._events.pop(task_id, None)
-        if q:
-            self._total -= len(q)
+        with self._lock:
+            q = self._events.pop(task_id, None)
+            if q:
+                self._total -= len(q)
+            self._next_sequence.pop(task_id, None)
 
 
 # 全局单例

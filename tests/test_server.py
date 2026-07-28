@@ -7,21 +7,26 @@ CI 上无 Key 时自动跳过。
 
 import os
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
 from server import app
 
 needs_api_key = pytest.mark.skipif(
-    not os.getenv("DEEPSEEK_API_KEY") or "xxx" in os.getenv("DEEPSEEK_API_KEY", ""),
-    reason="DEEPSEEK_API_KEY not configured (CI has no API key)",
+    os.getenv("CODEPILOT_RUN_LLM_TESTS") != "1"
+    or not os.getenv("DEEPSEEK_API_KEY")
+    or "xxx" in os.getenv("DEEPSEEK_API_KEY", ""),
+    reason="set CODEPILOT_RUN_LLM_TESTS=1 with DEEPSEEK_API_KEY to run live LLM tests",
 )
 
 
-@pytest.fixture
-def client():
-    return AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test",
-    )
+@pytest_asyncio.fixture
+async def client():
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test",
+        ) as test_client:
+            yield test_client
 
 
 @pytest.mark.asyncio
@@ -84,7 +89,17 @@ async def test_cancel_task(client):
 @pytest.mark.asyncio
 async def test_get_nonexistent_task(client):
     resp = await client.get("/tasks/nonexistent-99999")
-    assert resp.status_code in (404, 503)  # 503 if lifespan not triggered in test
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_submit_rejects_non_git_project(client, tmp_path):
+    resp = await client.post("/tasks/submit", json={
+        "input": "hello",
+        "project_dir": str(tmp_path),
+    })
+    assert resp.status_code == 400
+    assert "Git" in resp.json()["detail"]
 
 
 @needs_api_key

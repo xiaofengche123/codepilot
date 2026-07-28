@@ -52,3 +52,14 @@ jobs:
           assert len(TOOLS_REGISTRY) == 15
           print(f'All imports OK, {len(TOOL_DEFINITIONS)} tools registered')
           "
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t codepilot:test .
+
+      - name: Validate Docker Compose
+        run: docker compose config

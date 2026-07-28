@@ -7,11 +7,12 @@ __pycache__/
 *.pyo
 venv/
 .venv/
+venv.broken-*/
 
 # CodePilot 本地数据
 .codepilot/
 
-# 面试文档（不上传）
+# 本地文档
 docs/
 
 # IDE

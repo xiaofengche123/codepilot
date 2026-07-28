@@ -28,6 +28,8 @@ class MCPClientConnection:
     """管理单个 MCP server 的 stdio 连接。"""
 
     def __init__(self, name: str, config: dict):
+        from config import config as app_config
+
         self.name = name
         self.config = config
         self.tools: dict[str, dict] = {}
@@ -36,6 +38,10 @@ class MCPClientConnection:
         self._lock = threading.Lock()
         self._pending: dict[int, Queue] = {}
         self._reader_thread: threading.Thread | None = None
+        self._stderr_thread: threading.Thread | None = None
+        self._request_timeout = float(
+            config.get("timeout", app_config.get("mcp.connect_timeout", 10))
+        )
 
     def connect(self) -> bool:
         """启动子进程，完成初始化握手，发现工具。"""
@@ -64,6 +70,8 @@ class MCPClientConnection:
         # 启动读线程
         self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True)
         self._reader_thread.start()
+        self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
+        self._stderr_thread.start()
 
         # 初始化
         init_result = self._send_request("initialize", {
@@ -72,14 +80,16 @@ class MCPClientConnection:
             "clientInfo": {"name": "codepilot", "version": "1.0.0"},
         })
         if init_result is None:
+            self.disconnect()
             return False
 
         # 发送 initialized 通知
-        self._send_notification("initialized", {})
+        self._send_notification("notifications/initialized", {})
 
         # 发现工具
         tools_result = self._send_request("tools/list", {})
         if tools_result is None:
+            self.disconnect()
             return False
 
         for tool in tools_result.get("tools", []):
@@ -93,6 +103,15 @@ class MCPClientConnection:
             }
 
         return True
+
+    def _drain_stderr(self):
+        """持续排空 stderr，避免外部 Server 因管道写满而死锁。"""
+        try:
+            for line in self._process.stderr:
+                if self.config.get("forward_stderr", False):
+                    print(f"  [MCP:{self.name}] {line.rstrip()}", file=sys.stderr)
+        except Exception:
+            pass
 
     def _reader_loop(self):
         """后台线程持续读取子进程 stdout，把响应分发到 pending 队列。"""
@@ -130,7 +149,7 @@ class MCPClientConnection:
             return None
 
         try:
-            response = queue.get(timeout=10)
+            response = queue.get(timeout=self._request_timeout)
         except Empty:
             self._pending.pop(rid, None)
             return None
@@ -175,6 +194,8 @@ class MCPClientConnection:
                 self._process.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 self._process.kill()
+                self._process.wait(timeout=1)
+        self._process = None
 
 
 class MCPClientManager:

@@ -8,6 +8,7 @@
 import json
 import os
 import threading
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,13 +26,21 @@ def _ensure_dir(project_dir: str) -> Path:
     return p
 
 
-def _get_path(project_dir: str) -> Path:
-    return Path(project_dir) / HISTORY_DIR / HISTORY_FILE
+def _safe_session_id(session_id: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", session_id)
+    return safe[:120] or "default"
 
 
-def load_history(project_dir: str) -> list:
+def _get_path(project_dir: str, session_id: str = None) -> Path:
+    base = Path(project_dir) / HISTORY_DIR
+    if session_id:
+        return base / "sessions" / f"{_safe_session_id(session_id)}.json"
+    return base / HISTORY_FILE
+
+
+def load_history(project_dir: str, session_id: str = None) -> list:
     """加载历史，返回 LangChain message 列表。失败时返回空列表。"""
-    path = _get_path(project_dir)
+    path = _get_path(project_dir, session_id)
     if not path.exists():
         return []
 
@@ -52,10 +61,15 @@ def load_history(project_dir: str) -> list:
     return messages
 
 
-def save_turn(project_dir: str, user_input: str, assistant_answer: str):
+def save_turn(
+    project_dir: str,
+    user_input: str,
+    assistant_answer: str,
+    session_id: str = None,
+):
     """追加一轮对话。"""
-    path = _get_path(project_dir)
-    _ensure_dir(project_dir)
+    path = _get_path(project_dir, session_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     with _lock:
         data = {"version": 1, "project": os.path.abspath(project_dir), "turns": []}
@@ -71,16 +85,16 @@ def save_turn(project_dir: str, user_input: str, assistant_answer: str):
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def clear_history(project_dir: str):
+def clear_history(project_dir: str, session_id: str = None):
     """清除当前项目的历史。"""
-    path = _get_path(project_dir)
+    path = _get_path(project_dir, session_id)
     if path.exists():
         path.unlink()
 
 
-def get_summary(project_dir: str, limit: int = 20) -> list[str]:
+def get_summary(project_dir: str, limit: int = 20, session_id: str = None) -> list[str]:
     """返回最近 N 轮的用户提问列表（用于 /history 展示）。"""
-    path = _get_path(project_dir)
+    path = _get_path(project_dir, session_id)
     if not path.exists():
         return []
 

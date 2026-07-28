@@ -80,6 +80,14 @@ class TestToolDispatcher:
         assert "run_shell" in DANGEROUS_TOOLS
         assert "git_add" in DANGEROUS_TOOLS
         assert "git_commit" in DANGEROUS_TOOLS
+
+    def test_registry_exposes_risk_level(self):
+        from tools import registry
+        from tools.registry import RiskLevel
+
+        assert registry.risk_of("read_file") is RiskLevel.SAFE
+        assert registry.risk_of("run_shell") is RiskLevel.CONFIRM
+        assert registry.risk_of("missing") is RiskLevel.FORBIDDEN
         assert "read_file" not in DANGEROUS_TOOLS
 
 

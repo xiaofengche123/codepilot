@@ -1,0 +1,21 @@
+services:
+  codepilot:
+    build: .
+    working_dir: /workspace/project
+    command: ["python", "/app/server.py"]
+    ports:
+      - "${CODEPILOT_PORT:-8000}:8000"
+    environment:
+      CODEPILOT_HOST: "0.0.0.0"
+      CODEPILOT_PORT: "8000"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      DEEPSEEK_BASE_URL: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+    volumes:
+      - ./:/workspace/project
+      - codepilot-worktrees:/workspace/.codepilot-worktrees
+    restart: unless-stopped
+
+volumes:
+  codepilot-worktrees:

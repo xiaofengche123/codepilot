@@ -7,12 +7,13 @@
 
 import asyncio
 import os
-import uuid
+import threading
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -23,22 +24,42 @@ from events import get_event_buffer, TaskEvent
 
 # ── 调度器封装 ────────────────────────────────────────────────
 
-_worktree_mgr: Optional[WorktreeManager] = None
 _task_queue: Optional[TaskQueue] = None
 _event_buffer = get_event_buffer()
+_worktree_managers: dict[str, WorktreeManager] = {}
+_worktree_managers_lock = threading.Lock()
+
+
+def _get_worktree_manager(project_dir: str) -> WorktreeManager:
+    root = str(Path(project_dir).resolve())
+    with _worktree_managers_lock:
+        manager = _worktree_managers.get(root)
+        if manager is None:
+            manager = WorktreeManager(root)
+            _worktree_managers[root] = manager
+        return manager
 
 
 async def _executor(task: Task):
     """后台执行一个 Agent 任务（在独立 worktree 中）。"""
     from agent import AgentSession
+    from model_router import get_router
 
     # 事件：开始
     _event_buffer.append(TaskEvent(task.id, "started", data={
         "user_input": task.user_input, "project": task.project_dir,
     }))
 
-    # 创建隔离工作区（失败时返回 None，降级为在项目目录直接执行）
-    worktree_path = _worktree_mgr.create(task.id)
+    # 创建隔离工作区；失败时拒绝执行，绝不降级污染原项目。
+    worktree_mgr = _get_worktree_manager(task.project_dir)
+    worktree_path = worktree_mgr.create(task.id)
+    if not worktree_path:
+        _event_buffer.append(TaskEvent(task.id, "failed", data={
+            "error": f"无法创建 Git Worktree: {task.project_dir}",
+        }))
+        raise RuntimeError(
+            f"无法为任务创建 Git Worktree，已拒绝在原工作区执行: {task.project_dir}"
+        )
 
     # 工具回调 → 事件
     def on_tool(tool_name, args, result):
@@ -53,22 +74,33 @@ async def _executor(task: Task):
         }))
         return False
 
+    def on_stream(chunk: str):
+        _event_buffer.append(TaskEvent(task.id, "stream", data={"content": chunk}))
+
     try:
-        wd = worktree_path or task.project_dir
-        # 每个任务独立的 LLM 实例（model 不可用时回退全局默认），互不影响
+        wd = worktree_path
+        # 无论是否显式指定模型，每个任务都创建独立 LLM 实例。
+        model_name = task.model or get_router().default_name()
         session = AgentSession(
-            working_dir=wd, model_name=task.model, confirm=confirm_dangerous,
+            working_dir=wd,
+            memory_dir=task.project_dir,
+            session_id=task.session_id,
+            model_name=model_name,
+            confirm=confirm_dangerous,
         )
-        if task.model and session.model_unavailable:
-            _event_buffer.append(TaskEvent(task.id, "warning", data={
-                "msg": f"Model '{task.model}' not available, using default",
-            }))
+        if session.model_unavailable:
+            raise RuntimeError(f"模型不可用或未配置 API Key: {model_name}")
 
         # session.run 是同步阻塞调用，放到线程池执行，
         # 否则会卡住事件循环，所有并发任务和 HTTP 请求都被阻塞
-        answer = await asyncio.to_thread(session.run, task.user_input, on_tool)
+        answer = await asyncio.to_thread(
+            session.run,
+            task.user_input,
+            on_tool,
+            on_stream,
+        )
 
-        diff = _worktree_mgr.collect_diff(worktree_path) if worktree_path else ""
+        diff = worktree_mgr.collect_diff(worktree_path)
 
         _event_buffer.append(TaskEvent(task.id, "completed", data={
             "answer": answer[:200], "diff": diff,
@@ -80,22 +112,21 @@ async def _executor(task: Task):
         raise
     finally:
         if worktree_path and worktree_path != task.project_dir:
-            _worktree_mgr.cleanup(worktree_path, task.id)
+            worktree_mgr.cleanup(worktree_path, task.id)
 
 
 # ── FastAPI 生命周期 ──────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _worktree_mgr, _task_queue
-    project_dir = os.getcwd()
-    _worktree_mgr = WorktreeManager(project_dir)
+    global _task_queue
     max_workers = config.get("server.max_concurrent", 5)
     _task_queue = TaskQueue(max_concurrent=max_workers)
     await _task_queue.start(_executor)
     yield
     await _task_queue.stop()
-    _worktree_mgr.cleanup_all()
+    for manager in list(_worktree_managers.values()):
+        manager.cleanup_all()
 
 
 app = FastAPI(
@@ -120,6 +151,10 @@ class SubmitRequest(BaseModel):
     input: str = Field(..., description="自然语言指令，如'帮我修复 login.py 的空指针异常'")
     project_dir: str = Field(default=".", description="项目目录路径")
     model: Optional[str] = Field(default=None, description="指定模型，如 deepseek-chat")
+    session_id: Optional[str] = Field(
+        default=None,
+        description="会话标识；相同项目和 session_id 共享持久化对话历史",
+    )
 
 
 class SubmitResponse(BaseModel):
@@ -147,10 +182,20 @@ class HealthResponse(BaseModel):
 @app.post("/tasks/submit", response_model=SubmitResponse)
 async def submit_task(req: SubmitRequest):
     """提交编码任务，立即返回 task_id，后台异步执行。"""
+    project_dir = Path(req.project_dir).expanduser().resolve()
+    if not project_dir.is_dir():
+        raise HTTPException(status_code=400, detail="project_dir 不存在或不是目录")
+    manager = _get_worktree_manager(str(project_dir))
+    if not manager.is_git_repository:
+        raise HTTPException(
+            status_code=400,
+            detail="project_dir 必须位于 Git 仓库中，服务端不会降级到原工作区执行",
+        )
     task = Task(
         user_input=req.input,
-        project_dir=req.project_dir,
+        project_dir=str(manager.repo_root),
         model=req.model,
+        session_id=req.session_id,
     )
     _event_buffer.append(TaskEvent(task.id, "created", data={
         "user_input": req.input, "project": req.project_dir,
@@ -228,6 +273,15 @@ async def metrics():
         "# HELP codepilot_tasks_failed Total tasks failed",
         "# TYPE codepilot_tasks_failed counter",
         f"codepilot_tasks_failed {stats['failed']}",
+        "# HELP codepilot_tasks_running Currently running tasks",
+        "# TYPE codepilot_tasks_running gauge",
+        f"codepilot_tasks_running {stats['running']}",
+        "# HELP codepilot_tasks_pending Currently pending tasks",
+        "# TYPE codepilot_tasks_pending gauge",
+        f"codepilot_tasks_pending {stats['pending']}",
+        "# HELP codepilot_tasks_cancelled Total cancelled tasks",
+        "# TYPE codepilot_tasks_cancelled counter",
+        f"codepilot_tasks_cancelled {stats['cancelled']}",
     ]
     return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain")
 

@@ -5,6 +5,8 @@
 
 import inspect
 
+from tools.registry import RiskLevel, ToolRegistry, ToolSpec
+
 from tools.core_tools import (
     CORE_TOOLS, CORE_TOOL_DEFINITIONS, CORE_DANGEROUS_TOOLS,
 )
@@ -18,9 +20,26 @@ from tools.rag_tools import (
     RAG_TOOLS, RAG_TOOL_DEFINITIONS, RAG_DANGEROUS_TOOLS,
 )
 
-TOOLS_REGISTRY = {**CORE_TOOLS, **GIT_TOOLS, **WEB_TOOLS, **RAG_TOOLS}
-TOOL_DEFINITIONS = CORE_TOOL_DEFINITIONS + GIT_TOOL_DEFINITIONS + WEB_TOOL_DEFINITIONS + RAG_TOOL_DEFINITIONS
-DANGEROUS_TOOLS: set[str] = CORE_DANGEROUS_TOOLS | GIT_DANGEROUS_TOOLS | WEB_DANGEROUS_TOOLS | RAG_DANGEROUS_TOOLS
+registry = ToolRegistry()
+registry.register_group(CORE_TOOLS, CORE_TOOL_DEFINITIONS, CORE_DANGEROUS_TOOLS)
+registry.register_group(GIT_TOOLS, GIT_TOOL_DEFINITIONS, GIT_DANGEROUS_TOOLS)
+registry.register_group(WEB_TOOLS, WEB_TOOL_DEFINITIONS, WEB_DANGEROUS_TOOLS)
+registry.register_group(RAG_TOOLS, RAG_TOOL_DEFINITIONS, RAG_DANGEROUS_TOOLS)
+
+TOOLS_REGISTRY = registry.functions
+TOOL_DEFINITIONS = registry.definitions
+DANGEROUS_TOOLS: set[str] = registry.dangerous_tools
+
+
+def register_tool(function, definition: dict, risk: RiskLevel = RiskLevel.SAFE) -> ToolSpec:
+    """运行时声明并注册新工具，无需修改 Agent 或 MCP 核心循环。"""
+    spec = registry.register(function, definition, risk)
+    TOOLS_REGISTRY[spec.name] = spec.function
+    TOOL_DEFINITIONS.append(spec.definition)
+    _ACCEPTS_WORKDIR[spec.name] = _accepts_workdir(spec.function)
+    if spec.risk in {RiskLevel.CONFIRM, RiskLevel.FORBIDDEN}:
+        DANGEROUS_TOOLS.add(spec.name)
+    return spec
 
 
 def _accepts_workdir(func) -> bool:

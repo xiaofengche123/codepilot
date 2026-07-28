@@ -66,10 +66,13 @@ class AgentSession:
     """
 
     def __init__(self, working_dir: str, max_context_tokens: int = None,
-                 model_name: str = None, confirm=None, max_iterations: int = None):
+                 model_name: str = None, confirm=None, max_iterations: int = None,
+                 memory_dir: str = None, session_id: str = None):
         if max_context_tokens is None:
             max_context_tokens = config.get("agent.max_context_tokens", 8000)
         self.working_dir = os.path.abspath(working_dir)
+        self.memory_dir = os.path.abspath(memory_dir or working_dir)
+        self.session_id = session_id
         self.context_mgr = ContextManager(max_tokens=max_context_tokens)
         self.max_iterations = max_iterations or DEFAULT_MAX_ITERATIONS
         self._confirm = confirm or _confirm_dangerous
@@ -122,7 +125,7 @@ class AgentSession:
         llm_with_tools = llm.bind_tools(self._get_all_tools())
 
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
-        messages.extend(load_history(self.working_dir))
+        messages.extend(load_history(self.memory_dir, self.session_id))
         messages.append(HumanMessage(content=user_input))
 
         for _iteration in range(self.max_iterations):
@@ -137,7 +140,10 @@ class AgentSession:
             if not tool_calls:
                 answer = response.content or ""
                 if answer:
-                    save_turn(self.working_dir, user_input, answer)
+                    save_turn(
+                        self.memory_dir, user_input, answer,
+                        session_id=self.session_id,
+                    )
                 return answer
 
             for tc in tool_calls:

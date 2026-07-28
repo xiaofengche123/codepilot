@@ -52,3 +52,12 @@ class TestMemory:
                 f.write("not valid json {{{")
             msgs = load_history(tmp)
             assert msgs == []
+
+    def test_sessions_are_persisted_independently(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_turn(tmp, "A", "answer A", session_id="session-a")
+            save_turn(tmp, "B", "answer B", session_id="session-b")
+            session_a = load_history(tmp, session_id="session-a")
+            session_b = load_history(tmp, session_id="session-b")
+            assert [m.content for m in session_a] == ["A", "answer A"]
+            assert [m.content for m in session_b] == ["B", "answer B"]

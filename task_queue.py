@@ -21,12 +21,19 @@ class TaskStatus(str, Enum):
 class Task:
     _id_counter = 0
 
-    def __init__(self, user_input: str, project_dir: str, model: str = None):
+    def __init__(
+        self,
+        user_input: str,
+        project_dir: str,
+        model: str = None,
+        session_id: str = None,
+    ):
         Task._id_counter += 1
         self.id = f"task-{Task._id_counter:06d}"
         self.user_input = user_input
         self.project_dir = project_dir
         self.model = model
+        self.session_id = session_id or self.id
         self.status = TaskStatus.PENDING
         self.result: Optional[str] = None
         self.error: Optional[str] = None
@@ -92,11 +99,7 @@ class TaskQueue:
 
     def stats(self) -> dict:
         """返回任务计数快照（供 /metrics 使用）。"""
-        total = completed = failed = 0
+        counts = {status.value: 0 for status in TaskStatus}
         for t in self._tasks.values():
-            total += 1
-            if t.status == TaskStatus.COMPLETED:
-                completed += 1
-            elif t.status == TaskStatus.FAILED:
-                failed += 1
-        return {"total": total, "completed": completed, "failed": failed}
+            counts[t.status.value] += 1
+        return {"total": len(self._tasks), **counts}

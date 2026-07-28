@@ -14,7 +14,29 @@ from typing import Optional
 class WorktreeManager:
     def __init__(self, repo_root: str):
         self.repo_root = Path(repo_root).resolve()
-        self._is_git = (self.repo_root / ".git").exists()
+        self._is_git = self._check_git_repository()
+
+    def _check_git_repository(self) -> bool:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=str(self.repo_root),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+            )
+            if result.returncode != 0:
+                return False
+            self.repo_root = Path(result.stdout.strip()).resolve()
+            return True
+        except Exception:
+            return False
+
+    @property
+    def is_git_repository(self) -> bool:
+        return self._is_git
 
     def create(self, task_id: str) -> Optional[str]:
         """为任务创建工作区，返回工作区路径；失败或非 git 项目返回 None。"""

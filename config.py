@@ -44,6 +44,7 @@ DEFAULTS = {
     },
     "mcp": {
         "allow_dangerous": False,
+        "connect_timeout": 10,
     },
 }
 

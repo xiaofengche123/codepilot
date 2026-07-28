@@ -148,6 +148,16 @@ class ModelRouter:
             return None
         return self._create_llm(name)
 
+    def default_name(self) -> str:
+        """返回第一个可用模型名；无可用模型时抛出与 get_llm 一致的错误。"""
+        for info in DEFAULT_MODELS:
+            if self._check_available(info):
+                return info.name
+        raise RuntimeError(
+            "未找到有效的 API Key，请在 .env 中配置 ANTHROPIC_API_KEY、"
+            "DEEPSEEK_API_KEY 或 OPENAI_API_KEY"
+        )
+
     def list_models(self) -> list[dict]:
         result = []
         for info in DEFAULT_MODELS:

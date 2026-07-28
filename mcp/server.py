@@ -23,7 +23,7 @@ from mcp.protocol import (
     INTERNAL_ERROR,
     PROTOCOL_VERSION,
 )
-from tools import TOOL_DEFINITIONS, DANGEROUS_TOOLS, execute_tool
+from tools import TOOL_DEFINITIONS, TOOLS_REGISTRY, DANGEROUS_TOOLS, execute_tool
 from config import config
 
 # stderr 用于日志，stdout 用于 JSON-RPC 消息
@@ -64,7 +64,7 @@ class MCPServer:
 
         if method == "initialize":
             return self._handle_initialize(msg)
-        elif method == "initialized":
+        elif method == "notifications/initialized":
             return None  # 通知，无需回复
         elif method == "ping":
             return self._handle_ping(msg)
@@ -74,6 +74,9 @@ class MCPServer:
             return self._handle_tools_call(msg)
         else:
             msg_id = getattr(msg, "id", None)
+            if isinstance(msg, JSONRPCNotification):
+                logger.warning(f"忽略未知通知: {method}")
+                return None
             return self._make_error(msg_id, METHOD_NOT_FOUND, f"Unknown method: {method}")
 
     # ── MCP 方法处理器 ──────────────────────────────────────
@@ -81,10 +84,15 @@ class MCPServer:
     def _handle_initialize(self, msg: JSONRPCRequest) -> JSONRPCResponse:
         self.initialized = True
         logger.info(f"客户端初始化: {msg.params.get('clientInfo', {})}")
+        requested_version = msg.params.get("protocolVersion")
+        negotiated_version = (
+            requested_version if requested_version == PROTOCOL_VERSION
+            else PROTOCOL_VERSION
+        )
         return JSONRPCResponse(
             id=msg.id,
             result={
-                "protocolVersion": PROTOCOL_VERSION,
+                "protocolVersion": negotiated_version,
                 "capabilities": self.capabilities,
                 "serverInfo": self.server_info,
             },
@@ -110,6 +118,10 @@ class MCPServer:
 
         if not tool_name:
             return self._make_error(msg.id, INVALID_PARAMS, "Missing tool name")
+        if tool_name not in TOOLS_REGISTRY:
+            return self._make_error(
+                msg.id, INVALID_PARAMS, f"Unknown tool: {tool_name}"
+            )
 
         logger.info(f"调用工具: {tool_name}({arguments})")
 
@@ -122,6 +134,7 @@ class MCPServer:
                     "（无法交互确认）。在 config/settings.yaml 中设置"
                     " mcp.allow_dangerous: true 可放开。"
                 )}],
+                "isError": True,
             })
 
         try:

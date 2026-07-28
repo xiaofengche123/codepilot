@@ -41,3 +41,4 @@ server:
 # 默认 false —— MCP 是无交互通道，无法人工确认。
 mcp:
   allow_dangerous: false
+  connect_timeout: 10

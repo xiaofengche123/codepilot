@@ -216,6 +216,7 @@
         <textarea class="prompt-area" id="input" placeholder="描述想让 AI 做什么 &mdash; 例如：分析项目架构、修复 bug、添加功能..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit();}"></textarea>
         <div class="inp-row">
           <input id="dir" placeholder="项目路径" value=".">
+          <input id="session" placeholder="会话 ID（可选）">
           <select id="model"><option value="">自动选模型</option><option value="deepseek-chat">DeepSeek Chat</option><option value="deepseek-reasoner">DeepSeek Reasoner</option></select>
           <button class="btn btn-go" onclick="submit()">&#9654; 执行</button>
         </div>
@@ -282,10 +283,10 @@ function toast(m,t){const e=document.createElement('div');e.className='toast '+t
 
 async function submit(){
   const i=document.getElementById('input').value.trim();if(!i)return toast('请输入任务描述','e');
-  const d=document.getElementById('dir').value.trim()||'.';const m=document.getElementById('model').value||null;
+  const d=document.getElementById('dir').value.trim()||'.';const m=document.getElementById('model').value||null;const s=document.getElementById('session').value.trim()||null;
   document.getElementById('input').value='';
   try{
-    const r=await fetch(A+'/tasks/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:i,project_dir:d,model:m})});
+    const r=await fetch(A+'/tasks/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:i,project_dir:d,model:m,session_id:s})});
     if(!r.ok)throw new Error(await r.text());const j=await r.json();
     ids.unshift(j.task_id);if(ids.length>100)ids.pop();localStorage.setItem('cp_ids',JSON.stringify(ids));
     toast('&#10003; 任务已提交 <b>'+j.task_id+'</b>','g');refresh();
@@ -310,9 +311,11 @@ function evHTML(e){
   const dt=new Date(e.timestamp*1000);let detail='';
   if(e.data){if(e.data.user_input)detail=esc(e.data.user_input.substring(0,100));
   else if(e.data.tool)detail='&#128295; '+e.data.tool;
+  else if(e.data.content)detail=esc(e.data.content.substring(0,160));
+  else if(e.data.msg)detail=esc(e.data.msg.substring(0,160));
   else if(e.data.answer)detail=esc(e.data.answer.substring(0,100));
   else if(e.data.error)detail=esc(e.data.error.substring(0,100));}
-  const types={created:'cr',started:'st',completed:'ok',failed:'fl',tool_call:'tc',cancelled:'fl'};
+  const types={created:'cr',started:'st',stream:'st',warning:'fl',completed:'ok',failed:'fl',tool_call:'tc',cancelled:'fl'};
   return '<div class="ev-item"><div class="ev-mark '+types[e.type]+'">'+(e.type[0]||'').toUpperCase()+'</div>'
     +'<div class="ev-body"><div class="ev-head"><span class="ev-type '+types[e.type]+'">'+e.type+'</span><span class="ev-time">'+dt.toLocaleTimeString()+'</span></div>'
     +'<div class="ev-detail">'+detail+'</div></div><span style="font-size:10px;color:var(--faint);font-family:monospace">'+e.task_id+'</span></div>';
@@ -325,8 +328,8 @@ async function refresh(){
     document.getElementById('s-total').textContent=m.codepilot_tasks_total||0;
     document.getElementById('s-done').textContent=m.codepilot_tasks_completed||0;
     document.getElementById('s-fail').textContent=m.codepilot_tasks_failed||0;
-    document.getElementById('s-running').textContent=(m.codepilot_tasks_total||0)-(m.codepilot_tasks_completed||0)-(m.codepilot_tasks_failed||0);
-    const usage=Math.min(100,Math.round(((m.codepilot_tasks_total||0)-(m.codepilot_tasks_completed||0)-(m.codepilot_tasks_failed||0))/5*100));
+    document.getElementById('s-running').textContent=m.codepilot_tasks_running||0;
+    const usage=Math.min(100,Math.round((m.codepilot_tasks_running||0)/5*100));
     document.getElementById('usage-bar').style.width=usage+'%';document.getElementById('usage-pct').textContent=usage;
     try{const hr=await fetch(A+'/health');const hd=await hr.json();document.getElementById('s-tools').textContent=hd.tools_count||15;}catch(e){}
   }catch(e){}
