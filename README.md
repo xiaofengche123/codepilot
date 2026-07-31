@@ -1,8 +1,10 @@
 # 码搭 CodePilot
 
 [![tests](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml/badge.svg)](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-智能编程助手 Agent CLI —— 仿 Claude Code 的本地 AI 编程助手。基于 ReAct 模式，支持自然语言驱动的代码浏览、搜索、修改、Git 操作和命令执行。
+本地智能编程助手 Agent 平台，提供 **CLI、HTTP API 和 Web Dashboard** 三种使用方式。基于 ReAct 与 Function Calling 构建，支持自然语言驱动的代码检索与修改、Git 操作、MCP 工具扩展、RAG 混合检索和多任务隔离执行。
 
 ## 特性
 
@@ -13,6 +15,33 @@
 - **RAG 混合检索** — BM25 关键词召回 + ChromaDB 向量召回，使用 RRF 融合排序
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
+- **任务服务化** — FastAPI + asyncio 并发调度，Git Worktree 隔离任务工作区
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    U["CLI / HTTP API / Dashboard"] --> A["ReAct Agent"]
+    A --> MR["多模型路由<br/>DeepSeek / Claude / OpenAI"]
+    A --> TR["声明式工具注册中心<br/>Schema + Risk Level"]
+    A --> MEM["会话记忆<br/>Token 预算裁剪"]
+
+    TR --> BUILTIN["15 个内置工具<br/>File / Git / Web / RAG"]
+    TR --> MC["MCP Client<br/>外部 MCP Server"]
+    MS["Claude Desktop 等客户端"] -->|"JSON-RPC 2.0 / stdio"| MPS["MCP Server"]
+    MPS --> BUILTIN
+
+    BUILTIN --> RAG["混合代码检索"]
+    RAG --> BM25["BM25 关键词召回"]
+    RAG --> VECTOR["MiniLM + ChromaDB<br/>向量召回"]
+    BM25 --> RRF["RRF 融合排序"]
+    VECTOR --> RRF
+
+    U --> Q["asyncio Queue + Semaphore"]
+    Q --> WT["独立 Branch + Worktree"]
+    WT --> A
+    A --> EVT["状态 / 增量事件 / Metrics"]
+```
 
 ## 快速开始
 
@@ -133,10 +162,32 @@ curl -X POST http://localhost:8000/tasks/submit \
   -d '{"input":"检查项目中的异常处理","project_dir":".","session_id":"demo"}'
 ```
 
+响应示例：
+
+```json
+{
+  "task_id": "task-000001",
+  "status": "pending"
+}
+```
+
 - `GET /tasks/{task_id}`：查询状态和最终结果
 - `GET /tasks/{task_id}/events?cursor=0`：增量拉取流式文本、工具调用和生命周期事件
 - `DELETE /tasks/{task_id}`：取消尚未开始的任务
 - `GET /metrics`：Prometheus 文本格式任务指标
+
+任务状态查询示例：
+
+```json
+{
+  "task_id": "task-000001",
+  "status": "completed",
+  "input": "检查项目中的异常处理",
+  "result": "已检查异常处理路径并给出修改建议",
+  "error": null,
+  "diff": ""
+}
+```
 
 相同 `project_dir` 与 `session_id` 使用同一份 JSON 对话历史；代码在临时
 Worktree 中执行，历史则持久化到原项目的 `.codepilot/sessions/`。
@@ -152,6 +203,8 @@ docker compose ps
 
 Dashboard 地址为 `http://localhost:8000`。Compose 会将当前 Git 仓库挂载为
 任务项目，并使用独立数据卷保存临时 Worktree。镜像包含 `/health` 健康检查。
+
+Dashboard 可提交 Agent 任务并查看运行状态、流式输出、工具调用过程和任务指标。
 
 ## RAG 混合检索
 
@@ -201,14 +254,21 @@ codepilot/
 ├── memory.py            # 对话记忆
 ├── context_mgr.py       # 上下文管理
 ├── config.py            # 配置加载器
+├── server.py            # FastAPI 服务与指标接口
+├── task_queue.py        # 异步任务队列与并发控制
+├── worktree_manager.py  # Git Worktree 隔离
+├── events.py            # 增量任务事件
 ├── install.py           # 一键安装
+├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt     # Python 依赖
 ├── mcp_servers.json     # MCP Client 配置
 ├── .env.example         # API Key 模板
 ├── config/
 │   └── settings.yaml    # 配置文件
 ├── tools/
-│   ├── __init__.py      # 工具注册中心
+│   ├── __init__.py      # 工具统一入口
+│   ├── registry.py      # 声明式注册与风险等级
 │   ├── core_tools.py    # 核心工具 (5)
 │   ├── git_tools.py     # Git 工具 (6)
 │   ├── web_tools.py     # Web 工具 (2)
@@ -217,9 +277,13 @@ codepilot/
 │   ├── protocol.py      # JSON-RPC 2.0 + MCP 消息
 │   ├── server.py        # MCP Server
 │   └── client.py        # MCP Client
-└── rag/
-    ├── indexer.py       # 代码索引器
-    └── retriever.py     # 混合检索引擎
+├── rag/
+│   ├── indexer.py       # AST 切分与增量索引
+│   ├── retriever.py     # BM25 + 向量 + RRF
+│   └── evaluate.py      # Recall@K / MRR 离线评估
+├── static/
+│   └── dashboard.html   # Web Dashboard
+└── tests/               # 单元、集成与端到端测试
 ```
 
 ## 技术栈
@@ -240,6 +304,13 @@ pip install pytest
 pytest tests/ -v
 ```
 
+当前测试基线（Python 3.11/3.12 均纳入 GitHub Actions）：
+
+```text
+70 tests collected
+67 passed, 3 skipped
+```
+
 测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git
 Worktree 隔离、RAG 增量索引与删除清理、服务端流式事件、会话记忆、上下文
 裁剪、BM25 排序、RRF 融合及检索评估指标。真实 LLM 测试默认跳过，可通过
@@ -247,4 +318,4 @@ Worktree 隔离、RAG 增量索引与删除清理、服务端流式事件、会�
 
 ## 许可证
 
-MIT
+[MIT](LICENSE)
