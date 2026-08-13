@@ -19,6 +19,7 @@ import chromadb
 CHROMA_DIR = ".codepilot/chroma"
 STATE_FILE = ".codepilot/index_state.json"
 COLLECTION_NAME = "code_snippets"
+INDEX_SCHEMA_VERSION = 2
 _chunk_lines = None
 
 
@@ -28,15 +29,27 @@ def _get_chunk_lines() -> int:
         from config import config
         _chunk_lines = config.get("rag.chunk_lines", 30)
     return _chunk_lines
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".idea", ".vscode", ".codepilot"}
+SKIP_DIRS = {
+    ".git", "node_modules", "__pycache__", ".venv", "venv", ".idea",
+    ".vscode", ".codepilot", ".rag-eval", ".pytest_cache", ".agents",
+    ".codex", "agent面试",
+}
 
 CODE_EXTENSIONS = {
     ".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".go", ".rs",
     ".html", ".css", ".vue", ".yaml", ".yml", ".json", ".md", ".txt",
     ".sh", ".sql", ".xml", ".toml", ".cfg", ".ini", ".cpp", ".c", ".h",
 }
+DOC_EXTENSIONS = {".md", ".txt"}
 
 _embedding_model = None
+
+
+def _has_skipped_part(parts: set[str]) -> bool:
+    """排除依赖、缓存和评测资料；同时覆盖 venv.broken-* 等环境目录。"""
+    return bool(parts & SKIP_DIRS) or any(
+        part.startswith(("venv.", ".venv.")) for part in parts
+    )
 
 
 def _get_model() -> SentenceTransformer:
@@ -44,7 +57,10 @@ def _get_model() -> SentenceTransformer:
     if _embedding_model is None:
         from config import config
         model_name = config.get("rag.model_name", "all-MiniLM-L6-v2")
-        _embedding_model = SentenceTransformer(model_name)
+        _embedding_model = SentenceTransformer(
+            model_name,
+            local_files_only=bool(config.get("rag.local_files_only", True)),
+        )
     return _embedding_model
 
 
@@ -122,29 +138,46 @@ def index_project(project_dir: str, force: bool = False) -> str:
 
     # 加载索引状态
     index_state = {}
+    schema_is_current = False
     if not force and state_path.exists():
         try:
-            index_state = json.loads(state_path.read_text(encoding="utf-8"))
+            stored_state = json.loads(state_path.read_text(encoding="utf-8"))
+            if (
+                isinstance(stored_state, dict)
+                and stored_state.get("version") == INDEX_SCHEMA_VERSION
+                and isinstance(stored_state.get("files"), dict)
+            ):
+                index_state = stored_state["files"]
+                schema_is_current = True
         except (json.JSONDecodeError, OSError):
             pass
+
+    # v2 为每个 chunk 增加 content_type。旧状态无法证明已有 Chroma 记录包含
+    # 该字段，因此升级后自动完整重建一次，避免默认 code 过滤返回空结果。
+    rebuild_for_schema = not force and state_path.exists() and not schema_is_current
+    effective_force = force or rebuild_for_schema
+    if effective_force:
+        index_state = {}
 
     # 收集文件（seen_files 记录全量代码文件，用于识别已删除的文件）
     files_to_index = []
     seen_files = set()
     for filepath in root.rglob("*"):
         parts = set(filepath.relative_to(root).parts)
-        if parts & SKIP_DIRS:
+        if _has_skipped_part(parts):
             continue
         if not filepath.is_file():
             continue
         if filepath.suffix not in CODE_EXTENSIONS:
             continue
 
-        rel = str(filepath.relative_to(root))
+        # Chunk ID 和 metadata 使用跨平台稳定的 POSIX 相对路径，避免 Windows
+        # 反斜杠导致评测标签、BM25 文件名检索和跨机器索引结果不一致。
+        rel = filepath.relative_to(root).as_posix()
         seen_files.add(rel)
         mtime = filepath.stat().st_mtime
 
-        if not force and index_state.get(rel) == mtime:
+        if not effective_force and index_state.get(rel) == mtime:
             continue
 
         files_to_index.append((filepath, rel))
@@ -156,10 +189,14 @@ def index_project(project_dir: str, force: bool = False) -> str:
     if not files_to_index and not removed_files:
         return "[完成] 索引已是最新，没有需要更新的文件"
 
+    # 先确保模型可用，再删除或重建任何持久数据。否则离线加载失败会留下
+    # 缺少已修改文件 chunk 的半更新索引。
+    model = _get_model() if files_to_index else None
+
     # 初始化 ChromaDB
     client = chromadb.PersistentClient(path=chroma_path)
     try:
-        client.delete_collection(COLLECTION_NAME) if force else None
+        client.delete_collection(COLLECTION_NAME) if effective_force else None
     except Exception:
         pass
 
@@ -177,15 +214,14 @@ def index_project(project_dir: str, force: bool = False) -> str:
 
     # 修改后的文件可能产生不同的 chunk ID。写入新片段前先清理该文件的旧片段，
     # 避免函数删除、移动或行号变化后留下无法被 upsert 覆盖的幽灵结果。
-    if not force:
+    if not effective_force:
         for _, rel in files_to_index:
             try:
                 collection.delete(where={"file": rel})
             except Exception:
                 pass
 
-    # 按文件切分、向量化、批量写入（有文件要索引时才加载 embedding 模型）
-    model = _get_model() if files_to_index else None
+    # 按文件切分、向量化、批量写入
     batch_size = 50
     ids_batch, docs_batch, metas_batch = [], [], []
     total_chunks = 0
@@ -210,6 +246,9 @@ def index_project(project_dir: str, force: bool = False) -> str:
                 "file": chunk["file"],
                 "start_line": chunk["start_line"],
                 "end_line": chunk["end_line"],
+                "content_type": (
+                    "document" if filepath.suffix in DOC_EXTENSIONS else "code"
+                ),
             })
             total_chunks += 1
 
@@ -226,7 +265,13 @@ def index_project(project_dir: str, force: bool = False) -> str:
 
     # 保存索引状态
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(index_state, indent=2), encoding="utf-8")
+    state_path.write_text(
+        json.dumps(
+            {"version": INDEX_SCHEMA_VERSION, "files": index_state},
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     elapsed = time.time() - start_time
     summary = f"[完成] 索引 {len(files_to_index)} 个文件，{total_chunks} 个片段，耗时 {elapsed:.1f}s"

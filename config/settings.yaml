@@ -22,13 +22,31 @@ tools:
 # RAG 参数
 rag:
   model_name: "all-MiniLM-L6-v2"
+  # 查询和增量索引均不隐式访问模型仓库；请在安装阶段准备模型缓存。
+  local_files_only: true
   chunk_lines: 30
+  # 默认搜索源码与配置；设为 true 时同时搜索 Markdown/TXT 文档。
+  include_docs: false
   candidate_multiplier: 3
   bm25_k1: 1.5
   bm25_b: 0.75
-  rrf_k: 60
-  vector_weight: 1.0
-  bm25_weight: 1.0
+  # 30 条开发集调参结果：代码检索以精确词项为主，BM25 权重更高。
+  # 该参数仍需在独立冻结测试集复核，不能当作最终最优值。
+  rrf_k: 10
+  vector_weight: 0.25
+  bm25_weight: 2.0
+  reranker:
+    enabled: false
+    # CPU 友好的多语言模型；有 GPU 时可切换为 BAAI/bge-reranker-v2-m3。
+    model_name: "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+    candidate_count: 30
+    batch_size: 16
+    max_length: 512
+    device: null
+    cache_folder: ".codepilot/model-cache"
+    # 线上查询不隐式下载模型；首次使用前显式预下载，失败则回退 RRF。
+    local_files_only: true
+    fallback_on_error: true
 
 # 服务化参数
 server:

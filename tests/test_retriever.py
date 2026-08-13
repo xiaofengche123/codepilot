@@ -37,6 +37,7 @@ def test_rrf_deduplicates_and_boosts_shared_hit():
     assert {hit.uid for hit in ranked[1:]} == {"semantic", "keyword"}
     assert ranked[0].vector_rank == 2
     assert ranked[0].bm25_rank == 1
+    assert [hit.rrf_rank for hit in ranked] == [1, 2, 3]
 
 
 def test_calculate_metrics_supports_file_and_chunk_labels():
@@ -49,12 +50,65 @@ def test_calculate_metrics_supports_file_and_chunk_labels():
     assert mrr == 1.0
 
 
+def test_calculate_metrics_tolerates_shifted_overlapping_chunk_ranges():
+    hits = [
+        SearchHit(
+            uid="rag/retriever.py:122-153",
+            document="",
+            metadata={
+                "file": "rag/retriever.py",
+                "start_line": 122,
+                "end_line": 153,
+            },
+        )
+    ]
+    recall, mrr = calculate_metrics(hits, {r"rag\retriever.py:119-150"})
+    assert recall == 1.0
+    assert mrr == 1.0
+
+
+def test_calculate_metrics_rejects_incidental_range_overlap():
+    hits = [
+        SearchHit(
+            uid="rag/retriever.py:180-216",
+            document="",
+            metadata={
+                "file": "rag/retriever.py",
+                "start_line": 180,
+                "end_line": 216,
+            },
+        )
+    ]
+    recall, mrr = calculate_metrics(hits, {"rag/retriever.py:216-258"})
+    assert recall == 0.0
+    assert mrr == 0.0
+
+
+def test_include_docs_reads_code_documents_and_legacy_records():
+    class FakeCollection:
+        def get(self, **kwargs):
+            assert "where" not in kwargs
+            return {
+                "ids": ["code", "doc", "legacy"],
+                "documents": ["source", "readme", "old"],
+                "metadatas": [
+                    {"file": "app.py", "content_type": "code"},
+                    {"file": "README.md", "content_type": "document"},
+                    {"file": "old.py"},
+                ],
+            }
+
+    hits = retriever._collection_documents(FakeCollection(), include_docs=True)
+    assert [hit.uid for hit in hits] == ["code", "doc", "legacy"]
+
+
 def test_hybrid_retrieve_runs_two_retrievers_and_fuses(monkeypatch):
     class FakeCollection:
         def count(self):
             return 3
 
-        def get(self, include):
+        def get(self, include, where=None):
+            assert where == {"content_type": "code"}
             return {
                 "ids": ["auth", "cache", "helper"],
                 "documents": ["def login_user(): pass", "clear cache", "authentication helper"],
@@ -66,6 +120,7 @@ def test_hybrid_retrieve_runs_two_retrievers_and_fuses(monkeypatch):
             }
 
         def query(self, **kwargs):
+            assert kwargs["where"] == {"content_type": "code"}
             return {
                 "ids": [["helper", "auth", "cache"]],
                 "documents": [["authentication helper", "def login_user(): pass", "clear cache"]],
@@ -91,3 +146,29 @@ def test_hybrid_retrieve_runs_two_retrievers_and_fuses(monkeypatch):
     assert hits[0].uid == "auth"
     assert hits[0].vector_rank == 2
     assert hits[0].bm25_rank == 1
+
+
+def test_rerank_uses_rrf_top_30_then_truncates_to_requested_k(monkeypatch):
+    candidates = [_hit(f"chunk-{i}") for i in range(30)]
+    observed = {}
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_args: [])
+
+    def fake_candidates(*_args):
+        observed["candidate_limit"] = _args[3]
+        return candidates
+
+    def fake_rerank(_query, hits, limit):
+        observed["rerank_count"] = len(hits)
+        observed["final_limit"] = limit
+        return hits[:limit]
+
+    monkeypatch.setattr(retriever, "_hybrid_candidates", fake_candidates)
+    monkeypatch.setattr("rag.reranker.rerank", fake_rerank)
+    hits = retriever.retrieve("query", ".", n=10, mode="rerank")
+    assert len(hits) == 10
+    assert observed == {
+        "candidate_limit": 30,
+        "rerank_count": 30,
+        "final_limit": 10,
+    }

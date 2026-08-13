@@ -10,9 +10,14 @@ class TestConfig:
     def test_defaults_loaded(self):
         assert config.get("agent.max_iterations") == 10
         assert config.get("model.temperature") == 0.3
+        assert config.get("rag.include_docs") is False
+        assert config.get("rag.local_files_only") is True
         assert config.get("rag.chunk_lines") == 30
-        assert config.get("rag.rrf_k") == 60
-        assert config.get("rag.bm25_weight") == 1.0
+        assert config.get("rag.rrf_k") == 10
+        assert config.get("rag.vector_weight") == 0.25
+        assert config.get("rag.bm25_weight") == 2.0
+        assert config.get("rag.reranker.enabled") is False
+        assert config.get("rag.reranker.candidate_count") == 30
 
     def test_dot_path_access(self):
         assert config.get("agent.max_context_tokens") == 8000

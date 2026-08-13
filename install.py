@@ -34,7 +34,23 @@ def check_git() -> bool:
 def setup_venv(project_dir: Path) -> Path:
     venv_dir = project_dir / "venv"
     if venv_dir.exists():
-        print(f"  [OK] 虚拟环境已存在: {venv_dir}")
+        python = venv_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        try:
+            result = subprocess.run(
+                [str(python), "-c", "import sys; raise SystemExit(sys.prefix == sys.base_prefix)"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            result = None
+
+        if result is None or result.returncode != 0:
+            print(f"  [FAIL] 虚拟环境已损坏或解释器不可用: {venv_dir}")
+            print("         请将该目录重命名或删除后重新运行安装脚本。")
+            raise SystemExit(1)
+
+        print(f"  [OK] 虚拟环境可用: {venv_dir}")
     else:
         print(f"  [..] 正在创建虚拟环境...")
         subprocess.run([sys.executable, "-m", "venv", str(venv_dir)], check=True)

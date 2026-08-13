@@ -12,7 +12,7 @@
 - **15 个内置工具** — 文件读写、代码搜索、Shell 执行、Git 操作、Web 搜索/抓取、混合检索
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
 - **MCP Tools 双端** — Server 供 Claude Desktop 调用，Client 消费外部 MCP Server 工具
-- **RAG 混合检索** — BM25 关键词召回 + ChromaDB 向量召回，使用 RRF 融合排序
+- **RAG 混合检索与精排** — BM25 + ChromaDB 向量召回、RRF 融合，并可用多语言 Cross-Encoder 精排
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
 - **任务服务化** — FastAPI + asyncio 并发调度，Git Worktree 隔离任务工作区
@@ -206,10 +206,19 @@ Dashboard 地址为 `http://localhost:8000`。Compose 会将当前 Git 仓库挂
 
 Dashboard 可提交 Agent 任务并查看运行状态、流式输出、工具调用过程和任务指标。
 
-## RAG 混合检索
+## RAG 混合检索与 Cross-Encoder 精排
 
 1. 进入项目目录，运行 `/index` 索引代码
-2. 之后 Agent 可调用 `search_semantic` 进行自然语言搜索
+2. 首次使用精排前显式准备模型（只需一次）
+3. 之后 Agent 可调用 `search_semantic` 进行自然语言搜索
+
+```bash
+# 已有缓存时只检查本地模型
+python -m rag.reranker
+
+# 首次安装时允许下载多语言 Cross-Encoder
+python -m rag.reranker --download
+```
 
 ```
 你: 找到处理用户登录校验的代码
@@ -223,9 +232,15 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - 向量模型：`all-MiniLM-L6-v2`（本地运行）
 - 关键词召回：内置 Okapi BM25，支持代码标识符和中英文注释分词
 - 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
+- 精排：启用后对 RRF Top-30 使用 `mmarco-mMiniLMv2-L12-H384-v1` 进行 `(query, chunk)` 成对打分，再返回最终 Top-K；CPU 默认关闭
+- 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
+- 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件
+- 索引 schema 升级：检测到缺少 `content_type` 的旧版索引状态时，下一次 `/index` 会自动完整重建
 
-可在 `config/settings.yaml` 中调整候选集倍数、BM25 参数、RRF 常数及两路权重。
+可在 `config/settings.yaml` 中调整候选集倍数、BM25、RRF 及 Reranker。需要高质量
+模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
+BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
 ### 离线评估
 
@@ -238,10 +253,11 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 ]
 ```
 
-项目完成索引后，对比纯向量检索与混合检索的 Recall@K、MRR：
+项目完成索引后，对比 BM25、Vector、Hybrid 与 Rerank 的 Recall@K、MRR、
+平均延迟、P95 延迟和精排回退率：
 
 ```bash
-python -m rag.evaluate docs/rag_eval.json --project . -k 10
+python -m rag.evaluate .rag-eval/codepilot-dev.json --project . -k 10
 ```
 
 ## 项目结构
@@ -307,13 +323,13 @@ pytest tests/ -v
 当前测试基线（Python 3.11/3.12 均纳入 GitHub Actions）：
 
 ```text
-70 tests collected
-67 passed, 3 skipped
+83 tests collected
+80 passed, 3 skipped
 ```
 
 测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git
 Worktree 隔离、RAG 增量索引与删除清理、服务端流式事件、会话记忆、上下文
-裁剪、BM25 排序、RRF 融合及检索评估指标。真实 LLM 测试默认跳过，可通过
+裁剪、BM25 排序、RRF 融合、Cross-Encoder 精排/回退及检索评估指标。真实 LLM 测试默认跳过，可通过
 `CODEPILOT_RUN_LLM_TESTS=1` 显式启用。
 
 ## 许可证

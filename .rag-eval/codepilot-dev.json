@@ -1,0 +1,182 @@
+[
+  {
+    "id": "CP-I01",
+    "category": "identifier",
+    "query": "ModelRouter create 如何为任务创建独立模型实例",
+    "relevant": ["model_router.py:71-173"]
+  },
+  {
+    "id": "CP-I02",
+    "category": "identifier",
+    "query": "max_iterations 在哪里限制 Agent 最大循环次数",
+    "relevant": ["agent.py:60-197"]
+  },
+  {
+    "id": "CP-I03",
+    "category": "identifier",
+    "query": "MCPClientManager 如何连接所有外部 MCP Server",
+    "relevant": ["mcp/client.py:201-283"]
+  },
+  {
+    "id": "CP-I04",
+    "category": "identifier",
+    "query": "reciprocal_rank_fusion 的实现位置和去重逻辑",
+    "relevant": ["rag/retriever.py:119-150"]
+  },
+  {
+    "id": "CP-I05",
+    "category": "identifier",
+    "query": "EventBuffer 如何根据 cursor 增量读取任务事件",
+    "relevant": ["events.py:34-88"]
+  },
+  {
+    "id": "CP-I06",
+    "category": "identifier",
+    "query": "execute_tool 如何阻止模型覆盖 workdir 参数",
+    "relevant": ["tools/__init__.py:59-78"]
+  },
+  {
+    "id": "CP-N01",
+    "category": "natural_language",
+    "query": "如何限制同时执行的 Agent 任务数量",
+    "relevant": ["task_queue.py:44-105"]
+  },
+  {
+    "id": "CP-N02",
+    "category": "natural_language",
+    "query": "对话历史超过上下文预算后如何裁剪并保护工具消息配对",
+    "relevant": ["context_mgr.py:31-80"]
+  },
+  {
+    "id": "CP-N03",
+    "category": "natural_language",
+    "query": "CodePilot 怎样保存一轮用户问题和最终回答",
+    "relevant": ["memory.py:64-85"]
+  },
+  {
+    "id": "CP-N04",
+    "category": "natural_language",
+    "query": "怎样把 Python 源码按照顶层函数和类切成检索片段",
+    "relevant": ["rag/indexer.py:65-97"]
+  },
+  {
+    "id": "CP-N05",
+    "category": "natural_language",
+    "query": "代码搜索怎样同时利用语义相似度和关键词匹配",
+    "relevant": ["rag/retriever.py:216-258"]
+  },
+  {
+    "id": "CP-N06",
+    "category": "natural_language",
+    "query": "危险的 Shell 和 Git 操作是怎样分级注册的",
+    "relevant": ["tools/registry.py:26-85", "tools/__init__.py:34-42"]
+  },
+  {
+    "id": "CP-N07",
+    "category": "natural_language",
+    "query": "服务端怎样输出任务总数、完成数和失败数指标",
+    "relevant": ["server.py:258-286", "task_queue.py:44-105"]
+  },
+  {
+    "id": "CP-N08",
+    "category": "natural_language",
+    "query": "索引更新时怎样删除已经从项目中移除的文件片段",
+    "relevant": ["rag/indexer.py:119-252"]
+  },
+  {
+    "id": "CP-B01",
+    "category": "bug_symptom",
+    "query": "为什么工具返回消息失去对应的 tool call 后模型接口可能报错",
+    "relevant": ["context_mgr.py:31-80"]
+  },
+  {
+    "id": "CP-B02",
+    "category": "bug_symptom",
+    "query": "MCP 子进程启动失败后为什么可能残留进程或管道",
+    "relevant": ["mcp/client.py:27-198"]
+  },
+  {
+    "id": "CP-B03",
+    "category": "bug_symptom",
+    "query": "修改过的文件重新索引后为什么还会搜到已经删除的旧函数",
+    "relevant": ["rag/indexer.py:119-252"]
+  },
+  {
+    "id": "CP-B04",
+    "category": "bug_symptom",
+    "query": "模型流式请求中途异常为什么可能再次调用模型并重复计费",
+    "relevant": ["agent.py:60-197"]
+  },
+  {
+    "id": "CP-B05",
+    "category": "bug_symptom",
+    "query": "两个 HTTP 任务同时指定不同模型时如何避免全局路由相互覆盖",
+    "relevant": ["server.py:43-115", "model_router.py:71-173"]
+  },
+  {
+    "id": "CP-B06",
+    "category": "bug_symptom",
+    "query": "创建 Git worktree 失败后如何避免 Agent 直接修改主工作目录",
+    "relevant": ["server.py:43-115", "worktree_manager.py:14-119"]
+  },
+  {
+    "id": "CP-C01",
+    "category": "cross_module",
+    "query": "HTTP 提交任务后从进入队列到创建独立工作区再执行 Agent 的完整链路",
+    "relevant": ["server.py:183-206", "task_queue.py:44-105", "server.py:43-115", "worktree_manager.py:14-119"]
+  },
+  {
+    "id": "CP-C02",
+    "category": "cross_module",
+    "query": "Agent 如何发现 MCP 工具、调用外部服务并回填工具结果",
+    "relevant": ["agent.py:60-197", "mcp/client.py:201-283", "mcp/client.py:27-198"]
+  },
+  {
+    "id": "CP-C03",
+    "category": "cross_module",
+    "query": "项目代码从文件切分、生成向量到混合搜索返回结果经历哪些模块",
+    "relevant": ["rag/indexer.py:65-97", "rag/indexer.py:119-252", "rag/retriever.py:216-258", "tools/rag_tools.py:10-15"]
+  },
+  {
+    "id": "CP-C04",
+    "category": "cross_module",
+    "query": "用户选择模型后如何创建供应商客户端并在 Agent 会话中使用",
+    "relevant": ["model_router.py:71-173", "agent.py:60-197"]
+  },
+  {
+    "id": "CP-C05",
+    "category": "cross_module",
+    "query": "任务执行过程中的流式文本和工具调用如何变成可增量拉取的事件",
+    "relevant": ["server.py:43-115", "events.py:34-88", "server.py:240-243"]
+  },
+  {
+    "id": "CP-C06",
+    "category": "cross_module",
+    "query": "内置工具如何通过同一注册表同时提供给 Agent 和 MCP Server",
+    "relevant": ["tools/registry.py:26-85", "tools/__init__.py:34-42", "agent.py:60-197", "mcp/server.py:37-160"]
+  },
+  {
+    "id": "CP-M01",
+    "category": "mixed_language",
+    "query": "running task 为什么不能真正 cancel 正在执行的线程",
+    "relevant": ["task_queue.py:44-105", "server.py:228-236"]
+  },
+  {
+    "id": "CP-M02",
+    "category": "mixed_language",
+    "query": "MCP stdio 的 stdout 为什么不能输出普通 log",
+    "relevant": ["mcp/server.py:37-160"]
+  },
+  {
+    "id": "CP-M03",
+    "category": "mixed_language",
+    "query": "BM25 candidate 和 vector candidate 如何通过 RRF merge",
+    "relevant": ["rag/retriever.py:119-150", "rag/retriever.py:216-258"]
+  },
+  {
+    "id": "CP-M04",
+    "category": "mixed_language",
+    "query": "session history JSON 损坏以后如何 fallback",
+    "relevant": ["memory.py:41-61"]
+  }
+]

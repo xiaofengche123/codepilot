@@ -9,7 +9,7 @@ from typing import Optional
 
 def search_semantic(query: str, n: int = 10, workdir: Optional[str] = None) -> str:
     """
-    混合搜索代码库。结合向量语义召回与 BM25 关键词召回，通过 RRF 融合排序。参数 query: 自然语言查询描述（如"登录验证的逻辑"）、n: 返回结果数（默认 10）。返回相关代码片段和位置。
+    高质量搜索代码库。结合向量语义召回与 BM25 关键词召回，通过 RRF 融合，并按配置使用 Cross-Encoder 精排。参数 query: 自然语言查询描述（如"登录验证的逻辑"）、n: 返回结果数（默认 10）。返回相关代码片段和位置。
     """
     from rag.retriever import hybrid_search
     return hybrid_search(query, workdir or os.getcwd(), n)
@@ -33,7 +33,7 @@ RAG_TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "search_semantic",
-            "description": "混合搜索代码库。结合向量语义召回与 BM25 关键词召回，通过 RRF 融合排序。适合按功能描述或精确标识符查找代码，需先运行 index_project。",
+            "description": "高质量搜索代码库。结合向量语义召回与 BM25 关键词召回，通过 RRF 融合，并按配置使用 Cross-Encoder 对候选精排。适合按功能描述或精确标识符查找代码，需先运行 index_project。",
             "parameters": {
                 "type": "object",
                 "properties": {

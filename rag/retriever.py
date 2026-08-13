@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 import math
 import re
+import warnings
 from typing import Any, Iterable
 
 from rag.indexer import _get_collection, _get_model
@@ -32,6 +33,8 @@ class SearchHit:
     score: float = 0.0
     vector_rank: int | None = None
     bm25_rank: int | None = None
+    rrf_rank: int | None = None
+    rerank_score: float | None = None
 
 
 @lru_cache(maxsize=4_096)
@@ -145,13 +148,23 @@ def reciprocal_rank_fusion(
         scores[hit.uid] += bm25_weight / (rrf_k + rank)
 
     ranked = sorted(merged.values(), key=lambda hit: (-scores[hit.uid], hit.uid))
-    for hit in ranked:
+    for rank, hit in enumerate(ranked, start=1):
         hit.score = scores[hit.uid]
+        hit.rrf_rank = rank
     return ranked[:limit]
 
 
-def _collection_documents(collection) -> list[SearchHit]:
-    data = collection.get(include=["documents", "metadatas"])
+def _content_filter(include_docs: bool) -> dict | None:
+    """代码搜索默认排除说明文档，避免 README 等文字压过真实实现。"""
+    return None if include_docs else {"content_type": "code"}
+
+
+def _collection_documents(collection, include_docs: bool = False) -> list[SearchHit]:
+    kwargs = {"include": ["documents", "metadatas"]}
+    where = _content_filter(include_docs)
+    if where:
+        kwargs["where"] = where
+    data = collection.get(**kwargs)
     ids = data.get("ids") or []
     documents = data.get("documents") or []
     metadatas = data.get("metadatas") or []
@@ -165,18 +178,27 @@ def _collection_documents(collection) -> list[SearchHit]:
     ]
 
 
-def _vector_rank(query: str, collection, limit: int) -> list[SearchHit]:
+def _vector_rank(
+    query: str,
+    collection,
+    limit: int,
+    include_docs: bool = False,
+) -> list[SearchHit]:
     count = collection.count()
     if count == 0 or limit <= 0:
         return []
 
     model = _get_model()
     query_embedding = model.encode([query], show_progress_bar=False).tolist()
-    results = collection.query(
+    query_kwargs = dict(
         query_embeddings=query_embedding,
         n_results=min(limit, count),
         include=["documents", "metadatas", "distances"],
     )
+    where = _content_filter(include_docs)
+    if where:
+        query_kwargs["where"] = where
+    results = collection.query(**query_kwargs)
 
     ids = (results.get("ids") or [[]])[0]
     documents = (results.get("documents") or [[]])[0]
@@ -195,8 +217,41 @@ def _vector_rank(query: str, collection, limit: int) -> list[SearchHit]:
     return hits
 
 
+def _hybrid_candidates(
+    query: str,
+    collection,
+    documents: list[SearchHit],
+    limit: int,
+    include_docs: bool,
+    k1: float,
+    b: float,
+) -> list[SearchHit]:
+    """并行执行两路召回，并返回 RRF 排名候选。"""
+    from config import config
+
+    multiplier = max(1, int(config.get("rag.candidate_multiplier", 3)))
+    recall_limit = min(max(limit * multiplier, limit), 100)
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-retrieval") as executor:
+        vector_future = executor.submit(
+            _vector_rank, query, collection, recall_limit, include_docs,
+        )
+        keyword_future = executor.submit(
+            bm25_rank, query, documents, recall_limit, k1, b,
+        )
+        vector_hits = vector_future.result()
+        keyword_hits = keyword_future.result()
+    return reciprocal_rank_fusion(
+        vector_hits,
+        keyword_hits,
+        limit,
+        rrf_k=max(1, int(config.get("rag.rrf_k", 60))),
+        vector_weight=float(config.get("rag.vector_weight", 1.0)),
+        bm25_weight=float(config.get("rag.bm25_weight", 1.0)),
+    )
+
+
 def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") -> list[SearchHit]:
-    """返回结构化排名结果；mode 支持 vector、bm25、hybrid。"""
+    """返回结构化排名结果；支持 vector、bm25、hybrid、rerank。"""
     if not query.strip() or n <= 0:
         return []
 
@@ -205,36 +260,48 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
         raise LookupError("项目尚未索引，请先运行 /index 或调用 index_project")
 
     from config import config
-    multiplier = max(1, int(config.get("rag.candidate_multiplier", 3)))
-    candidate_limit = min(max(n * multiplier, n), 100)
     k1 = float(config.get("rag.bm25_k1", 1.5))
     b = float(config.get("rag.bm25_b", 0.75))
+    include_docs = bool(config.get("rag.include_docs", False))
 
     if mode == "vector":
-        return _vector_rank(query, collection, n)
+        return _vector_rank(query, collection, n, include_docs)
 
-    documents = _collection_documents(collection)
+    documents = _collection_documents(collection, include_docs)
     if mode == "bm25":
         return bm25_rank(query, documents, n, k1=k1, b=b)
-    if mode != "hybrid":
+    if mode not in {"hybrid", "rerank"}:
         raise ValueError(f"不支持的检索模式: {mode}")
 
-    # 两路召回相互独立，并行执行以降低混合检索延迟。
-    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-retrieval") as executor:
-        vector_future = executor.submit(_vector_rank, query, collection, candidate_limit)
-        keyword_future = executor.submit(
-            bm25_rank, query, documents, candidate_limit, k1, b,
+    if mode == "hybrid":
+        return _hybrid_candidates(
+            query, collection, documents, n, include_docs, k1, b,
         )
-        vector_hits = vector_future.result()
-        keyword_hits = keyword_future.result()
-    return reciprocal_rank_fusion(
-        vector_hits,
-        keyword_hits,
-        n,
-        rrf_k=max(1, int(config.get("rag.rrf_k", 60))),
-        vector_weight=float(config.get("rag.vector_weight", 1.0)),
-        bm25_weight=float(config.get("rag.bm25_weight", 1.0)),
+
+    candidate_count = min(
+        100,
+        max(n, int(config.get("rag.reranker.candidate_count", 30))),
     )
+    candidates = _hybrid_candidates(
+        query, collection, documents, candidate_count, include_docs, k1, b,
+    )
+    try:
+        from rag.reranker import rerank
+
+        return rerank(query, candidates, n)
+    except Exception as exc:
+        if not bool(config.get("rag.reranker.fallback_on_error", True)):
+            raise
+        warnings.warn(
+            f"Cross-Encoder rerank failed; falling back to RRF: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        fallback = candidates[:n]
+        for hit in fallback:
+            hit.metadata = dict(hit.metadata)
+            hit.metadata["rerank_fallback"] = True
+        return fallback
 
 
 def _format_hits(query: str, hits: list[SearchHit], title: str) -> str:
@@ -252,8 +319,13 @@ def _format_hits(query: str, hits: list[SearchHit], title: str) -> str:
         if hit.bm25_rank is not None:
             ranks.append(f"BM25#{hit.bm25_rank}")
         details = []
-        if title == "混合检索":
+        if hit.rerank_score is not None:
+            details.append(f"Rerank:{hit.rerank_score:.4f}")
+            details.append(f"RRF#{hit.rrf_rank}")
+        elif title in {"混合检索", "精排检索"}:
             details.append(f"RRF:{hit.score:.4f}")
+            if hit.metadata.get("rerank_fallback"):
+                details.append("Rerank回退")
         details.extend(ranks)
         source = ", ".join(details) or "未知"
         lines.append(f"  {file}:{start} ({source}) | {snippet}")
@@ -272,11 +344,15 @@ def semantic_search(query: str, project_dir: str, n: int = 10) -> str:
 
 
 def hybrid_search(query: str, project_dir: str, n: int = 10) -> str:
-    """BM25 + ChromaDB 向量召回，经 RRF 融合后的混合检索。"""
+    """BM25 + 向量 + RRF，并按配置使用 Cross-Encoder 精排。"""
     try:
-        hits = retrieve(query, project_dir, n, mode="hybrid")
+        from config import config
+
+        rerank_enabled = bool(config.get("rag.reranker.enabled", True))
+        mode = "rerank" if rerank_enabled else "hybrid"
+        hits = retrieve(query, project_dir, n, mode=mode)
     except LookupError as e:
         return f"[未索引] {e}"
     except Exception as e:
         return f"[错误] 检索失败: {e}"
-    return _format_hits(query, hits, "混合检索")
+    return _format_hits(query, hits, "精排检索" if rerank_enabled else "混合检索")
