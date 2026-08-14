@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "frozen_at": "2026-08-14T02:30:18.287215+00:00",
+  "dataset": ".rag-eval/codepilot-test-v1.json",
+  "dataset_sha256": "c74dde28140e5d03bc2d0a5ffef323777b3174bf2a5111569c81cbc86600bd55",
+  "corpus_sha256_at_freeze": "3fd97b330a8ceeba1c2c7b88a72f157613f8153389d122d6a34bf3f65410428b",
+  "git_head_at_freeze": "89448462a77f7e5eb3c0eaf5484e9e2eedf9873b",
+  "git_dirty_at_freeze": true,
+  "query_count": 150,
+  "categories": {
+    "bug_symptom": 30,
+    "cross_module": 30,
+    "identifier": 30,
+    "mixed_language": 30,
+    "natural_language": 30
+  },
+  "required_labels": 209,
+  "supporting_labels": 106,
+  "policy": {
+    "test_results_must_not_change_labels": true,
+    "required_grade": 2,
+    "supporting_grade": 1,
+    "new_labels_require_a_new_dataset_version": true
+  }
+}

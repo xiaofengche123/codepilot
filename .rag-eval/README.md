@@ -1,37 +1,49 @@
-# CodePilot RAG 开发评测集
+# CodePilot RAG 评测协议
 
-`codepilot-dev.json` 是第一版 30 条人工标注开发集，用于发现检索问题和调整参数，不作为最终测试集或简历指标的唯一依据。
+## 数据集角色
 
-## 分布
+- `codepilot-dev.json`：30 条开发集，只用于诊断和调参，不对外作为最终指标。
+- `codepilot-test-v1.json`：150 条内部冻结集，五类各 30 条。每条分别标注必须命中的 `required` 和仅提供帮助的 `supporting`；测试代码原则上只属于 supporting。
+- CodeSearchNet：外部可比基准，使用官方 99 条自然语言查询和人工 0–3 级相关性判断。
+- `agent-tasks-v1.json`：20 个隔离的缺陷修复任务，用于比较 Hybrid 与 Rerank 对实际 Agent 成功率的影响。
 
-| 类别 | 数量 | 目的 |
-|---|---:|---|
-| `identifier` | 6 | 精确类名、方法名、配置名和标识符 |
-| `natural_language` | 8 | 自然语言功能描述 |
-| `bug_symptom` | 6 | 症状与源码表述不完全一致的异常定位 |
-| `cross_module` | 6 | 需要多个模块共同回答的调用链 |
-| `mixed_language` | 4 | 中英文和技术术语混合查询 |
+内部集与外部集必须分别报告，不合并为单一分数。内部集适配 CodePilot 当前代码库，CodeSearchNet 衡量跨仓库泛化，两者回答的问题不同。
 
-合计 30 条。`relevant` 使用当前索引器实际生成的 Chunk ID：`相对路径:起始行-结束行`。
+## 冻结规则
 
-## 防止数据泄漏
-
-评测目录命名为 `.rag-eval`，并已加入 `rag/indexer.py` 的 `SKIP_DIRS`。强制重建索引后，评测问题及答案不会进入 ChromaDB。修改相关源码导致 AST 行号变化时，必须同步更新 Chunk ID。
-
-## 运行
+冻结前运行：
 
 ```powershell
-.\venv\Scripts\python.exe -c "from rag.indexer import index_project; print(index_project(r'D:\codepilot', force=True))"
-.\venv\Scripts\python.exe -m rag.evaluate .rag-eval\codepilot-dev.json --project . -k 5
-.\venv\Scripts\python.exe -m rag.evaluate .rag-eval\codepilot-dev.json --project . -k 10
+.\venv\Scripts\python.exe -m rag.eval_dataset .rag-eval\codepilot-test-v1.json --project .
 ```
 
-## 使用原则
+命令会校验数量、分类、重复问题、与开发集的精确重复、标注是否能映射到当前 Chunk，并把数据集 SHA-256、语料 SHA-256 与 Git HEAD 写入 manifest。冻结后只允许修订到新版本（例如 test-v2），不得根据 test-v1 结果修改问题或答案。
 
-1. 先根据源码判断相关 Chunk，不能根据某种检索方法的返回结果反向标答案。
-2. 调参阶段可以查看本开发集；确定参数后，另建独立测试集并冻结。
-3. 必须按类别查看失败案例，不能只看总体平均值。
-4. 当前评测程序支持 BM25/Vector/Hybrid、二元相关性、Recall@K、MRR 和预热后延迟；后续可增加 Precision@K 与 nDCG。
-5. 简历只能写实际冻结测试集的结果，并记录 Git commit、配置和评测日期。
+正式内部评测只运行一次：
 
-当前评测程序已经输出 BM25、Vector、Hybrid 三条基线，以及模型预热后的平均/P95 查询延迟。详细误差归因见 `error-analysis-2026-08-13.md`。
+```powershell
+.\venv\Scripts\python.exe -m rag.evaluate .rag-eval\codepilot-test-v1.json --project . --ks 5 10 --output .rag-eval\results\codepilot-test-v1-2026-08-14.json
+```
+
+报告包括 Required Recall@5/@10、MRR、graded nDCG、分类指标、P95/最大延迟、失败案例、fallback 率、相对 Hybrid 的成对差异和 bootstrap 置信区间。
+
+## CodeSearchNet 外部基准
+
+```powershell
+.\venv\Scripts\python.exe -m rag.codesearchnet prepare
+.\venv\Scripts\python.exe -m rag.codesearchnet evaluate
+```
+
+当前协议在官方人工判断 URL 的并集上重排，将未判断的 query-url 对视为 0。它不是 CodeSearchNet 归档排行榜的全语料检索分数，报告必须保留这一限定。由于部分固定 commit 的原始文件已返回 404，结果还会披露 URL 覆盖率、缺失标注等级分布及受影响查询数。
+
+## 端到端 Agent 对比
+
+执行器只在 `D:\codepilot\.rag-eval\worktrees` 创建隔离副本，并将 `TEMP`、`TMP`、`HF_HOME` 和 `SENTENCE_TRANSFORMERS_HOME` 指向 D 盘。每个任务注入一个已知缺陷，然后记录任务成功、总耗时、工具/语义检索调用次数、是否修改目标文件、意外修改文件和测试结果。
+
+真实运行会产生模型 API 费用，因此执行器要求显式确认：
+
+```powershell
+.\venv\Scripts\python.exe .rag-eval\run_agent_eval.py --model deepseek-chat --condition both --confirm-cost
+```
+
+不带 `--confirm-cost` 时不会发起任何 Agent API 调用。

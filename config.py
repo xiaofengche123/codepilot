@@ -29,6 +29,7 @@ DEFAULTS = {
     },
     "rag": {
         "model_name": "all-MiniLM-L6-v2",
+        "cache_folder": ".codepilot/model-cache",
         "local_files_only": True,
         "chunk_lines": 30,
         "include_docs": False,

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import threading
 from typing import Iterable, Protocol
@@ -38,7 +39,7 @@ _predict_lock = threading.Lock()
 def _settings() -> dict:
     from config import PROJECT_ROOT, config
 
-    configured_cache = str(
+    configured_cache = os.getenv("CODEPILOT_MODEL_CACHE") or str(
         config.get("rag.reranker.cache_folder", ".codepilot/model-cache")
     )
     cache_path = Path(configured_cache)

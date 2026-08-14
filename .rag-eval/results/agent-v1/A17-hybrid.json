@@ -1,0 +1,131 @@
+{
+  "task_id": "A17",
+  "condition": "hybrid",
+  "model": "deepseek-chat",
+  "success": false,
+  "elapsed_seconds": 23.566420099989045,
+  "semantic_search_calls": 2,
+  "tool_call_count": 15,
+  "changed_by_agent": [],
+  "modified_expected_file": false,
+  "mutation_restored": false,
+  "unexpected_files": [],
+  "test_returncode": 1,
+  "test_output": "F.....                                                                   [100%]\n================================== FAILURES ===================================\n___________ test_cross_encoder_reranks_pairs_and_preserves_rrf_rank ___________\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000296E1555940>\n\n    def test_cross_encoder_reranks_pairs_and_preserves_rrf_rank(monkeypatch):\n        class FakeCrossEncoder:\n            def predict(self, pairs, **kwargs):\n                assert pairs[0][0] == \"authentication\"\n                assert \"file: first.py\" in pairs[0][1]\n                assert kwargs[\"show_progress_bar\"] is False\n                return np.array([0.1, 0.9, 0.4])\n    \n        monkeypatch.setattr(reranker, \"_load_model\", lambda: FakeCrossEncoder())\n        monkeypatch.setattr(\n            reranker,\n            \"_settings\",\n            lambda: {\"batch_size\": 8},\n        )\n        hits = [_hit(\"first\", \"cache\"), _hit(\"second\", \"login\"), _hit(\"third\", \"token\")]\n    \n        ranked = reranker.rerank(\"authentication\", hits, limit=2)\n    \n        assert [hit.uid for hit in ranked] == [\"second\", \"third\"]\n        assert ranked[0].rerank_score == pytest.approx(0.9)\n>       assert ranked[0].rrf_rank == 2\nE       AssertionError: assert None == 2\nE        +  where None = SearchHit(uid='second', document='login', metadata={'file': 'second.py', 'start_line': 1, 'end_line': 3}, score=0.0, vector_rank=None, bm25_rank=None, rrf_rank=None, rerank_score=0.9).rrf_rank\n\ntests\\test_reranker.py:40: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_reranker.py::test_cross_encoder_reranks_pairs_and_preserves_rrf_rank\n1 failed, 5 passed in 13.57s\n",
+  "agent_error": null,
+  "answer": "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。",
+  "tool_calls": [
+    {
+      "name": "index_project",
+      "arguments": {},
+      "result_preview": "[完成] 索引已是最新，没有需要更新的文件"
+    },
+    {
+      "name": "search_semantic",
+      "arguments": {
+        "query": "精排结果保存原始 RRF 名次 元数据 metadata 排序"
+      },
+      "result_preview": "混合检索: 找到 10 条相关结果:\n  rag/reranker.py:109 (RRF:0.1818, BM25#1) | def rerank(query: str, hits: Iterable[RerankHit], limit: int) -> list[RerankHit]:     \"\"\"对 ``(query, chunk)`` 成对打分并稳定排序。\"\"\"     candidates = list(hits\n  rag/retriever.py:307 (RRF:0.1767, 向量#15, BM25#2) | def _format_hits(query: str, hit"
+    },
+    {
+      "name": "search_semantic",
+      "arguments": {
+        "query": "RRF rank fusion 精排 rerank 保存结果 metadata"
+      },
+      "result_preview": "混合检索: 找到 10 条相关结果:\n  rag/retriever.py:307 (RRF:0.1937, 向量#11, BM25#1) | def _format_hits(query: str, hits: list[SearchHit], title: str) -> str:     if not hits:         return f\"[未找到] {title}没有匹配 '{query}' 的结果\"      lines \n  rag/retriever.py:122 (RRF:0.1875, 向量#2, BM25#2) | def reciprocal_rank_fusio"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/reranker.py"
+      },
+      "result_preview": "   1 | \"\"\"Cross-Encoder 精排层。\n   2 | \n   3 | 只处理多路召回后的少量候选，不参与全库召回。模型懒加载并在进程内复用；\n   4 | 加载或推理失败时由调用方决定是否回退到 RRF 排名。\n   5 | \"\"\"\n   6 | \n   7 | from __future__ import annotations\n   8 | \n   9 | from dataclasses import dataclass\n  10 | import os\n  11 | from pathlib import Path\n  12 | import threading\n  "
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "start_line": 1,
+        "end_line": 180
+      },
+      "result_preview": "   2 | 码搭 CodePilot · RAG 混合检索引擎\n   3 | \n   4 | 使用 ChromaDB 向量召回和 BM25 关键词召回，并通过 RRF 融合两路排名。\n   5 | \"\"\"\n   6 | \n   7 | from __future__ import annotations\n   8 | \n   9 | from collections import Counter\n  10 | from concurrent.futures import ThreadPoolExecutor\n  11 | from dataclasses import dataclass\n "
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "tests/test_reranker.py"
+      },
+      "result_preview": "   1 | import numpy as np\n   2 | import pytest\n   3 | import threading\n   4 | import time\n   5 | \n   6 | import rag.reranker as reranker\n   7 | import rag.retriever as retriever\n   8 | from rag.retriever import SearchHit\n   9 | \n  10 | \n  11 | def _hit(uid: str, document: str, rrf_score: float = 0.0"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "start_line": 180,
+        "end_line": 380
+      },
+      "result_preview": " 181 | def _vector_rank(\n 182 |     query: str,\n 183 |     collection,\n 184 |     limit: int,\n 185 |     include_docs: bool = False,\n 186 | ) -> list[SearchHit]:\n 187 |     count = collection.count()\n 188 |     if count == 0 or limit <= 0:\n 189 |         return []\n 190 | \n 191 |     model = _get_mod"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/reranker.py"
+      },
+      "result_preview": "   1 | \"\"\"Cross-Encoder 精排层。\n   2 | \n   3 | 只处理多路召回后的少量候选，不参与全库召回。模型懒加载并在进程内复用；\n   4 | 加载或推理失败时由调用方决定是否回退到 RRF 排名。\n   5 | \"\"\"\n   6 | \n   7 | from __future__ import annotations\n   8 | \n   9 | from dataclasses import dataclass\n  10 | import os\n  11 | from pathlib import Path\n  12 | import threading\n  "
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "class SearchHit"
+      },
+      "result_preview": "找到 1 条结果:\n  rag\\retriever.py:27: class SearchHit:"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "start_line": 1,
+        "end_line": 80
+      },
+      "result_preview": "   2 | 码搭 CodePilot · RAG 混合检索引擎\n   3 | \n   4 | 使用 ChromaDB 向量召回和 BM25 关键词召回，并通过 RRF 融合两路排名。\n   5 | \"\"\"\n   6 | \n   7 | from __future__ import annotations\n   8 | \n   9 | from collections import Counter\n  10 | from concurrent.futures import ThreadPoolExecutor\n  11 | from dataclasses import dataclass\n "
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "rerank\\("
+      },
+      "result_preview": "找到 5 条结果:\n  rag\\codesearchnet.py:210: reranked = rerank(query, candidates, max_k)\n  rag\\reranker.py:109: def rerank(query: str, hits: Iterable[RerankHit], limit: int) -> list[RerankHit]:\n  rag\\retriever.py:291: return rerank(query, candidates, n)\n  tests\\test_reranker.py:36: ranked = reranker.rerank"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "start_line": 250,
+        "end_line": 300
+      },
+      "result_preview": " 251 | \n 252 | \n 253 | def retrieve(query: str, project_dir: str, n: int = 10, mode: str = \"hybrid\") -> list[SearchHit]:\n 254 |     \"\"\"返回结构化排名结果；支持 vector、bm25、hybrid、rerank。\"\"\"\n 255 |     if not query.strip() or n <= 0:\n 256 |         return []\n 257 | \n 258 |     collection = _get_collection(projec"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "tests/test_reranker.py"
+      },
+      "result_preview": "   1 | import numpy as np\n   2 | import pytest\n   3 | import threading\n   4 | import time\n   5 | \n   6 | import rag.reranker as reranker\n   7 | import rag.retriever as retriever\n   8 | from rag.retriever import SearchHit\n   9 | \n  10 | \n  11 | def _hit(uid: str, document: str, rrf_score: float = 0.0"
+    },
+    {
+      "name": "run_shell",
+      "arguments": {
+        "command": "cd /workspace && python -m pytest tests/test_reranker.py -x -q 2>&1 | head -50"
+      },
+      "result_preview": "\n[stderr]\nThe system cannot find the path specified.\n"
+    },
+    {
+      "name": "run_shell",
+      "arguments": {
+        "command": "cd /workspace && python -m pytest tests/test_reranker.py -x -q 2>&1 | head -50"
+      },
+      "result_preview": "\n[stderr]\nThe system cannot find the path specified.\n"
+    }
+  ],
+  "index_message": "[完成] 索引 51 个文件，280 个片段，耗时 7.2s"
+}

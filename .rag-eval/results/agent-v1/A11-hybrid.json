@@ -1,0 +1,108 @@
+{
+  "task_id": "A11",
+  "condition": "hybrid",
+  "model": "deepseek-chat",
+  "success": true,
+  "elapsed_seconds": 21.829126700002234,
+  "semantic_search_calls": 2,
+  "tool_call_count": 12,
+  "changed_by_agent": [
+    "events.py"
+  ],
+  "modified_expected_file": true,
+  "mutation_restored": true,
+  "unexpected_files": [],
+  "test_returncode": 0,
+  "test_output": "..                                                                       [100%]\n2 passed in 0.05s\n",
+  "agent_error": null,
+  "answer": "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。",
+  "tool_calls": [
+    {
+      "name": "index_project",
+      "arguments": {},
+      "result_preview": "[完成] 索引已是最新，没有需要更新的文件"
+    },
+    {
+      "name": "search_semantic",
+      "arguments": {
+        "query": "清空任务事件 task event sequence 重置"
+      },
+      "result_preview": "混合检索: 找到 10 条相关结果:\n  server.py:240 (RRF:0.2010, 向量#3, BM25#1) | async def get_events(task_id: str, cursor: int = Query(default=0)):     \"\"\"增量拉取任务事件（实时进度监控）。\"\"\"     events, new_cursor = _event_buffer.get_since(task_\n  server.py:43 (RRF:0.1753, 向量#19, BM25#2) | async def _executor(task: Task):     \"\"\""
+    },
+    {
+      "name": "search_semantic",
+      "arguments": {
+        "query": "task_id 游标 cursor sequence 清理"
+      },
+      "result_preview": "混合检索: 找到 10 条相关结果:\n  events.py:34 (RRF:0.1985, 向量#5, BM25#1) | class EventBuffer:     \"\"\"内存环形缓冲区，按 task_id 存储事件。\"\"\"      def __init__(self, max_total: int = 10000):         self._events: dict[str, deque[TaskEvent]\n  tests/test_events.py:4 (RRF:0.1859, 向量#3, BM25#2) | def test_event_cursor_survives_r"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "events.py"
+      },
+      "result_preview": "   1 | \"\"\"\n   2 | 码搭 CodePilot · 任务事件模型\n   3 | \n   4 | 记录任务全生命周期事件，支持增量拉取实现实时进度监控。\n   5 | \"\"\"\n   6 | \n   7 | import time\n   8 | import threading\n   9 | from dataclasses import dataclass, field\n  10 | from typing import Optional\n  11 | from collections import deque\n  12 | \n  13 | MAX_EVENTS_PER_TASK "
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "tests/test_events.py"
+      },
+      "result_preview": "   1 | from events import EventBuffer, TaskEvent, MAX_EVENTS_PER_TASK\n   2 | \n   3 | \n   4 | def test_event_cursor_survives_ring_buffer_eviction():\n   5 |     buffer = EventBuffer()\n   6 |     task_id = \"task-events\"\n   7 |     for number in range(MAX_EVENTS_PER_TASK + 5):\n   8 |         buffer.appe"
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "clear\\("
+      },
+      "result_preview": "找到 3 条结果:\n  events.py:83: def clear(self, task_id: str):\n  task_queue.py:77: self._workers.clear()\n  tests\\test_events.py:24: buffer.clear(\"task-clear\")"
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "_event_buffer|get_event_buffer"
+      },
+      "result_preview": "找到 20 条结果:\n  events.py:92: _event_buffer: Optional[EventBuffer] = None\n  events.py:95: def get_event_buffer() -> EventBuffer:\n  events.py:96: global _event_buffer\n  events.py:97: if _event_buffer is None:\n  events.py:98: _event_buffer = EventBuffer()\n  events.py:99: return _event_buffer\n  server.py:"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "server.py",
+        "start_line": 180,
+        "end_line": 260
+      },
+      "result_preview": " 181 | \n 182 | @app.post(\"/tasks/submit\", response_model=SubmitResponse)\n 183 | async def submit_task(req: SubmitRequest):\n 184 |     \"\"\"提交编码任务，立即返回 task_id，后台异步执行。\"\"\"\n 185 |     project_dir = Path(req.project_dir).expanduser().resolve()\n 186 |     if not project_dir.is_dir():\n 187 |         raise H"
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "delete|clear|清空|purge|remove",
+        "path": "server.py"
+      },
+      "result_preview": "[未找到] 在 server.py 中没有匹配 'delete|clear|清空|purge|remove' 的内容"
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "clear|清空"
+      },
+      "result_preview": "找到 20 条结果:\n  events.py:83: def clear(self, task_id: str):\n  main.py:87: console.print(\"  [dim]输入 exit 退出, /model /git /index /clear /history /mcp /dir[/dim]\\n\")\n  main.py:133: from memory import clear_history, get_summary\n  main.py:176: elif cmd == \"/clear\":\n  main.py:177: clear_history(working_dir)"
+    },
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": "events.py",
+        "content": "\"\"\"\n码搭 CodePilot · 任务事件模型\n\n记录任务全生命周期事件，支持增量拉取实现实时进度监控。\n\"\"\"\n\nimport time\nimport threading\nfrom dataclasses import dataclass, field\nfrom typing import Optional\nfrom collections import deque\n\nMAX_EVENTS_PER_TASK = 500  # 每个任务最多保留 500 条事件\n\n\n@dataclass\nclass TaskEvent:\n    task_id: str\n    type: str  # created, started, tool_call, thinking, completed, failed, cancelled\n    timestamp: float = field(default_factory=time.time)\n    data: dict = field(default_factory=dict)\n    sequence: int = 0\n\n    def to_dict(self) -> dict:\n        return {\n            \"task_id\": self.task_id,\n            \"type\": self.type,\n            \"timestamp\": self.timestamp,\n            \"data\": self.data,\n            \"sequence\": self.sequence,\n        }\n\n\nclass EventBuffer:\n    \"\"\"内存环形缓冲区，按 task_id 存储事件。\"\"\"\n\n    def __init__(self, max_total: int = 10000):\n        self._events: dict[str, deque[TaskEvent]] = {}\n        self._total = 0\n        self._max_total = max_total\n        self._next_sequence: dict[str, int] = {}\n        self._lock = threading.RLock()\n\n    def append(self, event: TaskEvent):\n        with self._lock:\n            q = self._events.setdefault(event.task_id, deque(maxlen=MAX_EVENTS_PER_TASK))\n            if len(q) == q.maxlen:\n                self._total -= 1\n            next_sequence = self._next_sequence.get(event.task_id, 0) + 1\n            self._next_sequence[event.task_id] = next_sequence\n            event.sequence = next_sequence\n            q.append(event)\n            self._total += 1\n            if self._total > self._max_total:\n                self._drop_oldest()\n\n    def get_since(self, task_id: str, cursor: int = 0) -> tuple[list[dict], int]:\n        \"\"\"按单调递增 sequence 增量拉取，队列淘汰不会让游标错位。\"\"\"\n        with self._lock:\n            q = self._events.get(task_id)\n            if not q:\n                return [], cursor\n            events = [e.to_dict() for e in q if e.sequence > cursor]\n            new_cursor = q[-1].sequence if q else cursor\n            return events, new_cursor\n\n    def get_all(self, task_id: str) -> list[dict]:\n        with self._lock:\n            q = self._events.get(task_id)\n            if not q:\n                return []\n            return [e.to_dict() for e in q]\n\n    def _drop_oldest(self):\n        for tid in list(self._events.keys()):\n            q = self._events[tid]\n            while q and self._total > self._max_total:\n                q.popleft()\n                self._total -= 1\n            if not q:\n                del self._events[tid]\n\n    def clear(self, task_id: str):\n        with self._lock:\n            q = self._events.pop(task_id, None)\n            if q:\n                self._total -= len(q)\n            # 同时重置该 task 的 sequence 计数器，避免重用 task_id 时游标错位\n            self._next_sequence.pop(task_id, None)\n\n\n# 全局单例\n_event_buffer: Optional[EventBuffer] = None\n\n\ndef get_event_buffer() -> EventBuffer:\n    global _event_buffer\n    if _event_buffer is None:\n        _event_buffer = EventBuffer()\n    return _event_buffer\n"
+      },
+      "result_preview": "[成功] 已写入 events.py (2978 字符)"
+    },
+    {
+      "name": "run_shell",
+      "arguments": {
+        "command": "cd /home/user && python -m pytest tests/test_events.py -v 2>&1 | head -30"
+      },
+      "result_preview": "\n[stderr]\nThe system cannot find the path specified.\n"
+    }
+  ],
+  "index_message": "[完成] 索引 51 个文件，280 个片段，耗时 7.1s"
+}

@@ -22,6 +22,8 @@ tools:
 # RAG 参数
 rag:
   model_name: "all-MiniLM-L6-v2"
+  # 向量模型与 Cross-Encoder 统一缓存到项目目录，避免写入系统盘。
+  cache_folder: ".codepilot/model-cache"
   # 查询和增量索引均不隐式访问模型仓库；请在安装阶段准备模型缓存。
   local_files_only: true
   chunk_lines: 30

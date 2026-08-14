@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "model": "deepseek-chat",
+  "tasks": 20,
+  "conditions": 40,
+  "max_agent_iterations": 10,
+  "raw_strict": {
+    "hybrid_success": 7,
+    "rerank_success": 8
+  },
+  "adjusted_for_confirmed_harness_false_negative": {
+    "hybrid_success": 8,
+    "hybrid_rate": 0.40,
+    "rerank_success": 9,
+    "rerank_rate": 0.45,
+    "adjustment": "A03 in both conditions restored the exact mutation; only the harness CODEPILOT_MODEL_CACHE override failed an unrelated cache-path assertion. Raw JSON is retained."
+  },
+  "paired_adjusted": {
+    "both_succeeded": 5,
+    "hybrid_only": 3,
+    "rerank_only": 4,
+    "neither": 8
+  },
+  "agent_wall_seconds": {
+    "hybrid_avg": 22.8770,
+    "hybrid_p95": 29.8696,
+    "hybrid_max": 33.1886,
+    "rerank_avg": 30.6631,
+    "rerank_p95": 42.2424,
+    "rerank_max": 62.4441
+  },
+  "isolated_process_wall_seconds_from_runner": {
+    "hybrid_total": 1252.2,
+    "hybrid_avg": 62.61,
+    "hybrid_p95": 75.0,
+    "hybrid_max": 90.7,
+    "rerank_total": 1410.7,
+    "rerank_avg": 70.535,
+    "rerank_p95": 107.4,
+    "rerank_max": 114.0,
+    "combined_total": 2662.9,
+    "precision_note": "Runner times were printed to 0.1 seconds and transcribed after the run."
+  },
+  "tool_usage": {
+    "hybrid_semantic_search_calls": 15,
+    "hybrid_total_tool_calls": 260,
+    "rerank_semantic_search_calls": 16,
+    "rerank_total_tool_calls": 282
+  },
+  "failure_causes_raw": {
+    "hybrid": {"target_not_modified": 10, "mutation_not_restored": 2, "tests_failed_after_restore": 1},
+    "rerank": {"target_not_modified": 7, "mutation_not_restored": 4, "tests_failed_after_restore": 1}
+  },
+  "scope_exceptions": [
+    "A06-rerank also modified rag/reranker.py",
+    "A11-rerank created _verify_events.py"
+  ],
+  "api_errors": 0
+}

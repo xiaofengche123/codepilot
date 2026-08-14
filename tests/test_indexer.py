@@ -88,6 +88,9 @@ def test_embedding_model_load_is_local_only(monkeypatch):
     monkeypatch.setattr(indexer, "_embedding_model", None)
     indexer._get_model()
     assert captured["local_files_only"] is True
+    assert Path(captured["cache_folder"]).resolve() == (
+        Path(__file__).parent.parent / ".codepilot" / "model-cache"
+    ).resolve()
 
 
 def test_incremental_index_skips_unchanged_and_cleans_deleted_file(

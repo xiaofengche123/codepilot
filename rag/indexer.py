@@ -55,10 +55,17 @@ def _has_skipped_part(parts: set[str]) -> bool:
 def _get_model() -> SentenceTransformer:
     global _embedding_model
     if _embedding_model is None:
-        from config import config
+        from config import PROJECT_ROOT, config
         model_name = config.get("rag.model_name", "all-MiniLM-L6-v2")
+        configured_cache = os.getenv("CODEPILOT_MODEL_CACHE") or str(
+            config.get("rag.cache_folder", ".codepilot/model-cache")
+        )
+        cache_path = Path(configured_cache)
+        if not cache_path.is_absolute():
+            cache_path = PROJECT_ROOT / cache_path
         _embedding_model = SentenceTransformer(
             model_name,
+            cache_folder=str(cache_path),
             local_files_only=bool(config.get("rag.local_files_only", True)),
         )
     return _embedding_model

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "A01", "category": "configuration", "prompt": "max_iterations 默认值被误改了。请先用语义检索定位配置来源，恢复项目约定的默认值，并运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "  max_iterations: 10\n", "new": "  max_iterations: 3\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py"
+  },
+  {
+    "id": "A02", "category": "configuration", "prompt": "RAG 默认意外把说明文档纳入检索。请先用语义检索定位配置，恢复默认只搜索源码的行为，并运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "  include_docs: false\n", "new": "  include_docs: true\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py"
+  },
+  {
+    "id": "A03", "category": "configuration", "prompt": "在线查询配置被改成允许隐式联网下载模型。请先语义检索定位并恢复离线安全默认值，然后运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "  # 查询和增量索引均不隐式访问模型仓库；请在安装阶段准备模型缓存。\n  local_files_only: true\n", "new": "  # 查询和增量索引均不隐式访问模型仓库；请在安装阶段准备模型缓存。\n  local_files_only: false\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py tests/test_indexer.py"
+  },
+  {
+    "id": "A04", "category": "configuration", "prompt": "Weighted RRF 的 rrf_k 被误改，导致当前产品配置偏离已确认参数。先语义检索定位并修复，再运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "  rrf_k: 10\n", "new": "  rrf_k: 60\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py tests/test_retriever.py"
+  },
+  {
+    "id": "A05", "category": "configuration", "prompt": "BM25 的融合权重被错误降到 1.0。先语义检索找到正式配置并恢复，再运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "  bm25_weight: 2.0\n", "new": "  bm25_weight: 1.0\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py tests/test_retriever.py"
+  },
+  {
+    "id": "A06", "category": "configuration", "prompt": "CPU 环境的 Cross-Encoder 被错误改成默认启用。先语义检索确认产品默认策略，修复并运行相关测试。",
+    "mutations": [{"file": "config/settings.yaml", "old": "    enabled: false\n", "new": "    enabled: true\n"}],
+    "expected_files": ["config/settings.yaml"], "test_command": "pytest -q tests/test_config.py"
+  },
+  {
+    "id": "A07", "category": "memory", "prompt": "session id 清理规则不再过滤路径分隔符，可能造成路径穿越。请先语义检索定位并修复，补充或运行相关测试。",
+    "mutations": [{"file": "memory.py", "old": "    safe = re.sub(r\"[^a-zA-Z0-9_.-]\", \"_\", session_id)\n", "new": "    safe = session_id\n"}],
+    "expected_files": ["memory.py"], "test_command": "pytest -q tests/test_memory.py"
+  },
+  {
+    "id": "A08", "category": "context", "prompt": "上下文裁剪后会保留开头的孤儿 ToolMessage，模型 API 可能报 400。先语义检索定位配对保护逻辑，修复并运行测试。",
+    "mutations": [{"file": "context_mgr.py", "old": "        while kept and isinstance(kept[0], ToolMessage):\n            kept.pop(0)\n", "new": "        while False and kept and isinstance(kept[0], ToolMessage):\n            kept.pop(0)\n"}],
+    "expected_files": ["context_mgr.py"], "test_command": "pytest -q tests/test_context.py"
+  },
+  {
+    "id": "A09", "category": "context", "prompt": "上下文 token 估算被误改得过于乐观，容易超出模型窗口。先语义检索找到估算公式并恢复，然后运行测试。",
+    "mutations": [{"file": "context_mgr.py", "old": "    return int(total / 3 * 1.2)\n", "new": "    return int(total / 30 * 1.2)\n"}],
+    "expected_files": ["context_mgr.py"], "test_command": "pytest -q tests/test_context.py tests/test_config.py"
+  },
+  {
+    "id": "A10", "category": "events", "prompt": "事件 sequence 从 0 开始且不再单调符合现有游标协议。先用语义检索定位事件递增逻辑，修复并运行测试。",
+    "mutations": [{"file": "events.py", "old": "            next_sequence = self._next_sequence.get(event.task_id, 0) + 1\n", "new": "            next_sequence = self._next_sequence.get(event.task_id, 0)\n"}],
+    "expected_files": ["events.py"], "test_command": "pytest -q tests/test_events.py"
+  },
+  {
+    "id": "A11", "category": "events", "prompt": "清空任务事件后 sequence 没有重置，重用 task_id 会导致游标异常。先语义检索定位清理链路，修复并测试。",
+    "mutations": [{"file": "events.py", "old": "            self._next_sequence.pop(task_id, None)\n", "new": "            self._next_sequence.get(task_id, None)\n"}],
+    "expected_files": ["events.py"], "test_command": "pytest -q tests/test_events.py"
+  },
+  {
+    "id": "A12", "category": "tools", "prompt": "LLM 现在能通过参数覆盖 Agent 注入的 workdir，存在越界写风险。先语义检索定位工具分发器并修复，运行相关测试。",
+    "mutations": [{"file": "tools/__init__.py", "old": "        clean_args = {k: v for k, v in args.items() if v is not None and k != \"workdir\"}\n", "new": "        clean_args = {k: v for k, v in args.items() if v is not None}\n"}],
+    "expected_files": ["tools/__init__.py"], "test_command": "pytest -q tests/test_tools.py"
+  },
+  {
+    "id": "A13", "category": "tools", "prompt": "危险 shell 命令拦截规则失效，rm -rf / 不再被识别。先语义检索定位命令安全检查，修复并运行测试。",
+    "mutations": [{"file": "tools/core_tools.py", "old": "        \"rm -rf\", \"rm -fr\", \"rm -r -f\", \"rm -f -r\",\n", "new": "        \"rm-never\", \"rm -fr\", \"rm -r -f\", \"rm -f -r\",\n"}],
+    "expected_files": ["tools/core_tools.py"], "test_command": "pytest -q tests/test_tools.py"
+  },
+  {
+    "id": "A14", "category": "retrieval", "prompt": "默认检索不再给 Chroma 加 content_type=code 过滤，README 会压过源码。先语义检索定位过滤函数，修复并测试。",
+    "mutations": [{"file": "rag/retriever.py", "old": "    return None if include_docs else {\"content_type\": \"code\"}\n", "new": "    return None\n"}],
+    "expected_files": ["rag/retriever.py"], "test_command": "pytest -q tests/test_retriever.py"
+  },
+  {
+    "id": "A15", "category": "retrieval", "prompt": "Rerank 候选数被硬编码成最终 top-k，Top-30 精排链路失效。先语义检索调用链，修复并运行检索测试。",
+    "mutations": [{"file": "rag/retriever.py", "old": "        max(n, int(config.get(\"rag.reranker.candidate_count\", 30))),\n", "new": "        n,\n"}],
+    "expected_files": ["rag/retriever.py"], "test_command": "pytest -q tests/test_retriever.py tests/test_reranker.py"
+  },
+  {
+    "id": "A16", "category": "reranker", "prompt": "Cross-Encoder 被误改成只对 chunk 打分而没有构造 (query, chunk) 对。先语义检索精排实现，修复并测试。",
+    "mutations": [{"file": "rag/reranker.py", "old": "    pairs = [(query, _candidate_text(hit)) for hit in candidates]\n", "new": "    pairs = [_candidate_text(hit) for hit in candidates]\n"}],
+    "expected_files": ["rag/reranker.py"], "test_command": "pytest -q tests/test_reranker.py"
+  },
+  {
+    "id": "A17", "category": "reranker", "prompt": "精排结果不再保存原始 RRF 名次，难以审计排序变化。先语义检索定位元数据保存逻辑，修复并测试。",
+    "mutations": [{"file": "rag/reranker.py", "old": "        if hit.rrf_rank is None:\n            hit.rrf_rank = rank\n", "new": "        if False and hit.rrf_rank is None:\n            hit.rrf_rank = rank\n"}],
+    "expected_files": ["rag/reranker.py"], "test_command": "pytest -q tests/test_reranker.py"
+  },
+  {
+    "id": "A18", "category": "indexing", "prompt": "索引器不再排除 .rag-eval，冻结答案可能进入检索库造成评测泄漏。先语义检索排除规则，修复并测试。",
+    "mutations": [{"file": "rag/indexer.py", "old": "    \".vscode\", \".codepilot\", \".rag-eval\", \".pytest_cache\", \".agents\",\n", "new": "    \".vscode\", \".codepilot\", \".pytest_cache\", \".agents\",\n"}],
+    "expected_files": ["rag/indexer.py"], "test_command": "pytest -q tests/test_indexer.py"
+  },
+  {
+    "id": "A19", "category": "indexing", "prompt": "Chunk ID 在 Windows 上重新使用反斜杠，导致跨平台标签不一致。先语义检索路径规范化逻辑，修复并测试。",
+    "mutations": [{"file": "rag/indexer.py", "old": "        rel = filepath.relative_to(root).as_posix()\n", "new": "        rel = str(filepath.relative_to(root))\n"}],
+    "expected_files": ["rag/indexer.py"], "test_command": "pytest -q tests/test_indexer.py"
+  },
+  {
+    "id": "A20", "category": "indexing", "prompt": "索引 schema 版本被降回旧版，老索引可能跳过 content_type 迁移。先语义检索迁移逻辑，恢复版本并运行测试。",
+    "mutations": [{"file": "rag/indexer.py", "old": "INDEX_SCHEMA_VERSION = 2\n", "new": "INDEX_SCHEMA_VERSION = 1\n"}],
+    "expected_files": ["rag/indexer.py"], "test_command": "pytest -q tests/test_indexer.py"
+  }
+]
