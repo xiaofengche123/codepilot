@@ -56,7 +56,7 @@
 
 ### 回归
 
-- [x] `TEST-001` `DONE`：当前全量测试89 passed、3 skipped。
+- [x] `TEST-001` `DONE`：当前 Windows 本地116 passed、4 skipped；Linux CI 117 passed、3 skipped。
 - [x] `TEST-002` `DONE`：`git diff --check` 通过。
 - [x] `TEST-003` `DONE`：冻结集 SHA 评测后复核一致。
 - [x] `TEST-004` `DONE`：确认 `install.py` 未被本轮修改。
@@ -110,7 +110,7 @@
 
 - [x] `EDIT-007` `DONE`：补齐事务编辑测试。
   - 依赖：EDIT-002–EDIT-006。
-  - 验收结果：新增22个通过测试；Windows 符号链接用例因权限跳过并交由 Ubuntu CI 实跑。
+  - 验收结果：新增22个本地通过测试；Windows 因权限跳过的符号链接用例已在 Ubuntu CI 实际通过。
 
 - [x] `EDIT-008` `DONE`：在端到端任务中加入编辑阶段指标。
   - 依赖：EDIT-006。

@@ -70,6 +70,14 @@ GitHub Actions 基线：
 - Docker：镜像构建与 Compose 配置校验通过。
 - 矩阵使用 `fail-fast: false`，确保不同 Python 版本均产生独立结果。
 
+事务编辑功能分支验收：
+
+- 提交：`fac8de0`；运行：`31778063773`。
+- Ubuntu / Python 3.11：117 passed、3 skipped；`test_symlink_escape_is_rejected` 实际通过；导入校验通过。
+- Ubuntu / Python 3.12：测试与导入校验通过。
+- Docker：镜像构建与 Compose 配置校验通过。
+- Windows 本地：116 passed、4 skipped；额外的一个 skip 是当前账户无符号链接创建权限，不是功能失败。
+
 ### Diff 检查
 
 ```powershell

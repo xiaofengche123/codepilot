@@ -202,6 +202,14 @@
 - `git diff --check`：通过。
 - Windows skip：创建符号链接需要额外权限；Ubuntu CI 应实际运行该用例。
 
+### Git 与 CI
+
+- 功能提交：`fac8de0983f08ae53edad92acd2994e684828beb`。
+- 远端分支：`origin/feat/transactional-edit`。
+- GitHub Actions：`31778063773`，Python 3.11、Python 3.12、Docker 三个作业全部成功。
+- Linux Python 3.11：117 passed、3 skipped；符号链接逃逸用例实际通过。
+- Windows 本地：116 passed、4 skipped；差异仅为本地符号链接权限。
+
 ### 风险与遗留
 
 - 单文件事务不等于跨文件事务；多文件任务由未来 Agent 状态机编排。
