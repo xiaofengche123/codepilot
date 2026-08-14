@@ -128,6 +128,39 @@
 
 ---
 
+## 2026-08-14：RAG 评测基线提交 dev
+
+### 本轮任务
+
+- 任务 ID：`BASE-001`、`BASE-003`、`BASE-004`。
+- 目标：复核有意的未提交改动，把可复现基线安全提交到 `dev` 并验证 CI。
+
+### 审查与复现
+
+- 47 个 `.rag-eval` JSON 文件均可解析，结果文件约 1.34 MB。
+- 冻结集 SHA 与 manifest 一致，密钥扫描通过。
+- `.env`、模型缓存、外部数据、临时 worktree 均未纳入提交。
+- `install.py` 未修改、未暂存。
+- 全量测试：89 passed、3 skipped；`git diff --check` 通过。
+
+### 修改
+
+- 将 RAG 实现、冻结集、正式评测结果和项目管理文档提交到 `dev`。
+- 发现 `.github/workflows/test.yml` 仅监听 `master/main`，因此 `dev` 推送不会触发 CI；补充 `dev` push/PR 触发条件。
+
+### Git
+
+- 分支：`dev`。
+- 基线提交：`f80a8fd35a2ed1d3a572e010e2c6797719c8391c`。
+- 是否推送：是，已推送到 `origin/dev`。
+
+### 下一步
+
+- 完成 `BASE-004`：确认 GitHub Actions 的 Python 3.11/3.12 与 Docker 作业结果。
+- CI 通过后创建 `feat/transactional-edit`，从 `EDIT-001` 开始。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

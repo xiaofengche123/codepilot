@@ -14,7 +14,7 @@
 
 | 里程碑 | 状态 | 当前结论 |
 |---|---|---|
-| M0 当前基线固化 | `IN_PROGRESS` | 管理文档已完成，等待代码审查和提交 dev |
+| M0 当前基线固化 | `IN_PROGRESS` | 基线已提交 dev，正在验证 GitHub Actions |
 | M1 事务式代码编辑 | `NEXT` | 当前最高优先级 |
 | M2 Agent 状态机 | `PLANNED` | 依赖事务编辑接口稳定 |
 | M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
@@ -74,12 +74,13 @@
   - 依赖：无。
   - 验收结果：9个 Markdown 文档齐全，内部链接0个缺失，密钥扫描通过。
 
-- [ ] `BASE-003` `IN_PROGRESS`：准备当前阶段提交。
+- [x] `BASE-003` `DONE`：准备当前阶段提交。
   - 依赖：BASE-001、BASE-002。
-  - 验收：用户审查后提交到 `dev`；不提交 `.env`、模型缓存、外部数据和临时目录。
+  - 验收结果：提交 `f80a8fd` 已推送到 `origin/dev`；未提交 `.env`、`install.py`、模型缓存、外部数据或临时目录。
 
-- [ ] `BASE-004` `PLANNED`：验证 GitHub Actions。
+- [ ] `BASE-004` `IN_PROGRESS`：验证 GitHub Actions。
   - 依赖：BASE-003。
+  - 当前发现：原工作流只监听 `master/main`，已补充 `dev` push/PR 触发条件。
   - 验收：Python 3.11/3.12 矩阵结果可访问，并把实际数量写入测试文档。
 
 ## 5. 下一阶段：事务式编辑
