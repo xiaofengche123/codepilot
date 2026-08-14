@@ -59,7 +59,7 @@
 当前已验证：
 
 ```text
-116 passed, 4 skipped
+127 passed, 4 skipped
 ```
 
 GitHub Actions 基线：

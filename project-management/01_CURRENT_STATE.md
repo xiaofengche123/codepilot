@@ -158,7 +158,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：116 passed，4 skipped。
+- 全量 pytest：127 passed，4 skipped。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent 原始结果：40个 JSON 文件齐全。

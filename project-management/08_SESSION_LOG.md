@@ -225,6 +225,37 @@
 
 ---
 
+## 2026-08-14：EDIT-009 付费复测准备
+
+### 本轮任务
+
+- 用户已明确授权使用真实模型 API。
+- 正式计划：20个冻结任务 × Hybrid/Rerank，共40次 DeepSeek Agent 调用。
+- 新 run-id：`agent-v2-transactional`；旧 `agent-v1` 结果禁止覆盖。
+
+### 评测器增强
+
+- 增加安全 run-id 校验，结果目录相互隔离。
+- 默认拒绝覆盖已有结果；`--resume` 支持中断恢复，`--overwrite` 必须显式提供且不能与 resume 共用。
+- manifest 记录冻结任务 SHA、代码提交、分支、模型、条件、预期/完成数量和 worker failure。
+- 每个任务完成后原子更新 manifest，全部结束后自动生成 condition 与 paired 汇总。
+- 运行结束再次校验冻结任务 SHA；变化时拒绝生成正式汇总。
+
+### 计费前验证
+
+- 冻结任务：20条，SHA-256 `71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09`。
+- DeepSeek Key：已配置，未输出内容。
+- Cross-Encoder：D盘本地缓存加载成功，19.5秒，无下载。
+- harness 定向测试：16 passed。
+- 全量回归：127 passed、4 skipped。
+- 计划模式：40 runs。
+
+### 下一步
+
+- 提交并推送 harness，随后执行 `agent-v2-transactional` 正式复测。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

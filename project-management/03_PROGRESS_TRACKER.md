@@ -15,7 +15,7 @@
 | 里程碑 | 状态 | 当前结论 |
 |---|---|---|
 | M0 当前基线固化 | `DONE` | dev 基线、测试矩阵与 Docker 均已验证 |
-| M1 事务式代码编辑 | `IN_PROGRESS` | 实现与采集完成，EDIT-009 等待付费授权 |
+| M1 事务式代码编辑 | `IN_PROGRESS` | EDIT-009 已获授权，正在正式复测 |
 | M2 Agent 状态机 | `PLANNED` | 依赖事务编辑接口稳定 |
 | M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
 | M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
@@ -116,9 +116,10 @@
   - 依赖：EDIT-006。
   - 验收结果：报告 schema v2 记录事务/旧写入次数、成功、前置失败、写入失败、回滚、错误码、目标路径及其与 changed/expected files 的交集；新增5个测试。
 
-- [ ] `EDIT-009` `WAITING_APPROVAL`：复测20个 Agent 任务。
+- [ ] `EDIT-009` `IN_PROGRESS`：复测20个 Agent 任务。
   - 依赖：EDIT-007、EDIT-008。
-  - 授权：会产生真实模型 API 费用，未获得用户本轮明确确认前不得执行。
+  - 授权：用户已在2026-08-14本轮明确授权真实模型 API 费用。
+  - 运行方案：`agent-v2-transactional`，20个冻结任务 × Hybrid/Rerank，共40次；旧 `agent-v1` 永不覆盖。
   - 验收：任务和答案不变；报告目标文件修改率、任务成功率和范围外修改率。
 
 ## 6. Agent 状态机任务
