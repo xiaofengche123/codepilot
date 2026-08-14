@@ -61,6 +61,14 @@
 89 passed, 3 skipped
 ```
 
+GitHub Actions 基线：
+
+- 运行：`31776231906`（提交 `32e778e`）。
+- Ubuntu / Python 3.11：测试与导入校验通过。
+- Ubuntu / Python 3.12：测试与导入校验通过。
+- Docker：镜像构建与 Compose 配置校验通过。
+- 矩阵使用 `fail-fast: false`，确保不同 Python 版本均产生独立结果。
+
 ### Diff 检查
 
 ```powershell

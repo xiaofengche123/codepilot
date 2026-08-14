@@ -154,12 +154,18 @@
 
 - 分支：`dev`。
 - 基线提交：`f80a8fd35a2ed1d3a572e010e2c6797719c8391c`。
+- CI 触发修复提交：`83c5011b5411f0ed7942c39b92de81c05ecaf63f`。
+- 跨平台测试修复提交：`32e778e18a0c167e7c1bb709aa033d61494e6355`。
 - 是否推送：是，已推送到 `origin/dev`。
+
+### CI 结果
+
+- 首次运行 `31775936026`：Docker 成功；Python 3.11 因非跨平台路径断言失败；Python 3.12 被 fail-fast 取消。
+- 修复后运行 `31776231906`：Python 3.11、Python 3.12、Docker 全部成功；两个 Python 作业的测试和导入校验均通过。
 
 ### 下一步
 
-- 完成 `BASE-004`：确认 GitHub Actions 的 Python 3.11/3.12 与 Docker 作业结果。
-- CI 通过后创建 `feat/transactional-edit`，从 `EDIT-001` 开始。
+- `BASE-004` 已完成；创建 `feat/transactional-edit`，从 `EDIT-001` 开始。
 
 ---
 
