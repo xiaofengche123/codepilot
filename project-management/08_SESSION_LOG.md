@@ -147,6 +147,8 @@
 
 - 将 RAG 实现、冻结集、正式评测结果和项目管理文档提交到 `dev`。
 - 发现 `.github/workflows/test.yml` 仅监听 `master/main`，因此 `dev` 推送不会触发 CI；补充 `dev` push/PR 触发条件。
+- 首次 dev CI 暴露一个跨平台测试缺陷：测试在 Linux 上使用 Windows `D:/...` 路径并按 Windows 语义断言。改为使用 pytest 的绝对临时目录，继续验证环境覆盖不被重写。
+- CI 矩阵设置 `fail-fast: false`，确保一个 Python 版本失败时仍能得到另一个版本的独立结果。
 
 ### Git
 

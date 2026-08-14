@@ -95,11 +95,13 @@ def test_load_model_uses_local_files_only_for_online_queries(monkeypatch):
     reranker.reset_for_tests()
 
 
-def test_model_cache_environment_override_stays_on_requested_drive(monkeypatch):
-    monkeypatch.setenv("CODEPILOT_MODEL_CACHE", "D:/codepilot/.codepilot/model-cache")
-    assert reranker._settings()["cache_folder"].replace("\\", "/") == (
-        "D:/codepilot/.codepilot/model-cache"
-    )
+def test_model_cache_environment_override_preserves_absolute_path(
+    monkeypatch, tmp_path
+):
+    requested_cache = tmp_path / "model-cache"
+    monkeypatch.setenv("CODEPILOT_MODEL_CACHE", str(requested_cache))
+
+    assert reranker._settings()["cache_folder"] == str(requested_cache)
 
 
 def test_predict_calls_are_serialized(monkeypatch):
