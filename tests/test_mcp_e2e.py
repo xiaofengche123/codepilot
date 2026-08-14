@@ -35,11 +35,12 @@ def mgr(tmp_path):
 
 
 def test_tools_registered_with_prefix(mgr):
-    """15 个内置工具全部以 mcp_self_ 前缀注册。"""
-    assert len(mgr.tool_definitions) == 15
+    """16 个内置工具全部以 mcp_self_ 前缀注册。"""
+    assert len(mgr.tool_definitions) == 16
     names = {t["function"]["name"] for t in mgr.tool_definitions}
     assert "mcp_self_list_files" in names
     assert "mcp_self_run_shell" in names
+    assert "mcp_self_edit_file_transaction" in names
 
 
 def test_call_tool_through_stdio(mgr):

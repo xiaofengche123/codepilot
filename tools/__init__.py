@@ -19,12 +19,16 @@ from tools.web_tools import (
 from tools.rag_tools import (
     RAG_TOOLS, RAG_TOOL_DEFINITIONS, RAG_DANGEROUS_TOOLS,
 )
+from tools.edit_tools import (
+    EDIT_TOOLS, EDIT_TOOL_DEFINITIONS, EDIT_DANGEROUS_TOOLS,
+)
 
 registry = ToolRegistry()
 registry.register_group(CORE_TOOLS, CORE_TOOL_DEFINITIONS, CORE_DANGEROUS_TOOLS)
 registry.register_group(GIT_TOOLS, GIT_TOOL_DEFINITIONS, GIT_DANGEROUS_TOOLS)
 registry.register_group(WEB_TOOLS, WEB_TOOL_DEFINITIONS, WEB_DANGEROUS_TOOLS)
 registry.register_group(RAG_TOOLS, RAG_TOOL_DEFINITIONS, RAG_DANGEROUS_TOOLS)
+registry.register_group(EDIT_TOOLS, EDIT_TOOL_DEFINITIONS, EDIT_DANGEROUS_TOOLS)
 
 TOOLS_REGISTRY = registry.functions
 TOOL_DEFINITIONS = registry.definitions

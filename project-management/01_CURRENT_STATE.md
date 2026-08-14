@@ -23,11 +23,13 @@ CodePilot 是一个本地代码智能体与 Agent 工程平台，当前已覆盖
 ### 2.1 Agent 与工具系统
 
 - Agent 主循环支持模型工具调用。
-- 目前注册15个文件、Git、Web、RAG工具。
+- 目前注册16个文件、事务编辑、Git、Web、RAG工具。
 - 工具通过函数、JSON Schema 和风险等级注册。
 - Agent 工作目录由系统注入，LLM 不能覆盖 `workdir`。
 - 危险工具支持 CLI 人工确认、API 默认拒绝、MCP 配置禁用。
 - 工具调用支持流式优先、失败后 invoke 回退。
+- `edit_file_transaction` 支持 SHA 乐观并发控制、全量匹配预检、Python AST 校验、同目录原子替换、回读验证和失败恢复。
+- 事务编辑限制在系统注入的 workdir 内，保留 UTF-8 BOM 与 CRLF/LF，并按文件路径串行化进程内并发。
 
 ### 2.2 MCP
 
@@ -156,7 +158,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：89 passed，3 skipped。
+- 全量 pytest：116 passed，4 skipped。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent 原始结果：40个 JSON 文件齐全。
@@ -187,4 +189,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-事务式代码编辑工具，目标是解决“找到了但没有安全修改”的瓶颈。详细任务见 `02_ROADMAP.md` 的 M1，以及 `03_PROGRESS_TRACKER.md` 的 `EDIT-*` 任务。
+当前决策点是 `EDIT-009`：是否授权使用真实模型 API，对冻结的20个任务分别运行 Hybrid/Rerank。未授权前不得执行；如果暂不付费，可先提交功能分支并等待 CI，再进入 M2 状态机设计。

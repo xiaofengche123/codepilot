@@ -15,7 +15,7 @@
 | 里程碑 | 状态 | 当前结论 |
 |---|---|---|
 | M0 当前基线固化 | `DONE` | dev 基线、测试矩阵与 Docker 均已验证 |
-| M1 事务式代码编辑 | `IN_PROGRESS` | 当前最高优先级，从 EDIT-001 开始 |
+| M1 事务式代码编辑 | `IN_PROGRESS` | 实现与采集完成，EDIT-009 等待付费授权 |
 | M2 Agent 状态机 | `PLANNED` | 依赖事务编辑接口稳定 |
 | M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
 | M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
@@ -84,40 +84,41 @@
 
 ## 5. 下一阶段：事务式编辑
 
-- [ ] `EDIT-001` `IN_PROGRESS`：设计编辑请求和结果数据结构。
+- [x] `EDIT-001` `DONE`：设计编辑请求和结果数据结构。
   - 输出：`EditOperation`、`EditRequest`、`EditResult`。
-  - 验收：错误码覆盖路径、匹配、冲突、语法和写入失败。
+  - 验收结果：结构已落地，结果包含前后 SHA、替换数、diff、回滚状态、错误码和消息。
 
-- [ ] `EDIT-002` `PLANNED`：实现路径与文件安全检查。
+- [x] `EDIT-002` `DONE`：实现路径与文件安全检查。
   - 依赖：EDIT-001。
-  - 验收：拒绝 workdir 外路径、符号链接逃逸、目录、二进制和超大文件。
+  - 验收结果：拒绝 workdir 外路径、符号链接逃逸、目录、二进制、非 UTF-8 和超大文件。
 
-- [ ] `EDIT-003` `PLANNED`：实现匹配和事务预检查。
+- [x] `EDIT-003` `DONE`：实现匹配和事务预检查。
   - 依赖：EDIT-001。
-  - 验收：所有 edit 在写入前完成 expected_count、重叠区域和 SHA 检查。
+  - 验收结果：所有 edit 基于原文完成 expected_count、重叠区域、可选 SHA 和写入前字节检查。
 
-- [ ] `EDIT-004` `PLANNED`：实现原子写入和失败回滚。
+- [x] `EDIT-004` `DONE`：实现原子写入和失败回滚。
   - 依赖：EDIT-002、EDIT-003。
-  - 验收：任一阶段失败时原文件字节不变；临时文件不残留。
+  - 验收结果：同目录临时文件 + fsync + `os.replace`；失败清理临时文件，回读异常时恢复原始字节。
 
-- [ ] `EDIT-005` `PLANNED`：实现语法验证和 diff 返回。
+- [x] `EDIT-005` `DONE`：实现语法验证和 diff 返回。
   - 依赖：EDIT-003。
-  - 验收：Python 语法错误拒绝写入；diff 包含正确行但受长度限制。
+  - 验收结果：Python 使用 `ast.parse`；返回 unified diff，并受 `tools.diff_max_chars` 限制。
 
-- [ ] `EDIT-006` `PLANNED`：注册工具并定义 JSON Schema 与风险等级。
+- [x] `EDIT-006` `DONE`：注册工具并定义 JSON Schema 与风险等级。
   - 依赖：EDIT-004、EDIT-005。
-  - 验收：无需修改 Agent 核心循环即可使用；LLM 不能覆盖 workdir。
+  - 验收结果：作为第16个工具注册，Agent/MCP 核心循环零修改；LLM 不能覆盖 workdir。
 
-- [ ] `EDIT-007` `PLANNED`：补齐事务编辑测试。
+- [x] `EDIT-007` `DONE`：补齐事务编辑测试。
   - 依赖：EDIT-002–EDIT-006。
-  - 验收：至少覆盖路线图 M1 中列出的全部边界。
+  - 验收结果：新增22个通过测试；Windows 符号链接用例因权限跳过并交由 Ubuntu CI 实跑。
 
-- [ ] `EDIT-008` `PLANNED`：在端到端任务中加入编辑阶段指标。
+- [x] `EDIT-008` `DONE`：在端到端任务中加入编辑阶段指标。
   - 依赖：EDIT-006。
-  - 验收：记录 edit attempted、precondition failure、rollback 和 changed files。
+  - 验收结果：报告 schema v2 记录事务/旧写入次数、成功、前置失败、写入失败、回滚、错误码、目标路径及其与 changed/expected files 的交集；新增5个测试。
 
-- [ ] `EDIT-009` `PLANNED`：复测20个 Agent 任务。
+- [ ] `EDIT-009` `WAITING_APPROVAL`：复测20个 Agent 任务。
   - 依赖：EDIT-007、EDIT-008。
+  - 授权：会产生真实模型 API 费用，未获得用户本轮明确确认前不得执行。
   - 验收：任务和答案不变；报告目标文件修改率、任务成功率和范围外修改率。
 
 ## 6. Agent 状态机任务

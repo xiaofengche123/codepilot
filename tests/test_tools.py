@@ -70,10 +70,11 @@ class TestToolDispatcher:
         assert "main.py" in result
 
     def test_all_tools_registered(self):
-        assert len(TOOLS_REGISTRY) == 15
+        assert len(TOOLS_REGISTRY) == 16
         for name in ["read_file", "write_file", "list_files", "search_code", "run_shell",
                       "git_status", "git_diff", "git_log", "git_branch", "git_add", "git_commit",
-                      "web_search", "web_fetch", "search_semantic", "index_project"]:
+                      "web_search", "web_fetch", "search_semantic", "index_project",
+                      "edit_file_transaction"]:
             assert name in TOOLS_REGISTRY, f"Missing tool: {name}"
 
     def test_dangerous_tools(self):

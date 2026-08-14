@@ -5,6 +5,7 @@ on:
     branches: [master, main, dev]
   pull_request:
     branches: [master, main, dev]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -49,8 +50,8 @@ jobs:
           from task_queue import Task, TaskQueue, TaskStatus
           from worktree_manager import WorktreeManager
           from server import app
-          assert len(TOOL_DEFINITIONS) == 15, f'Expected 15 tools, got {len(TOOL_DEFINITIONS)}'
-          assert len(TOOLS_REGISTRY) == 15
+          assert len(TOOL_DEFINITIONS) == 16, f'Expected 16 tools, got {len(TOOL_DEFINITIONS)}'
+          assert len(TOOLS_REGISTRY) == 16
           print(f'All imports OK, {len(TOOL_DEFINITIONS)} tools registered')
           "
 

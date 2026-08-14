@@ -18,6 +18,8 @@ tools:
   output_max_chars: 4000
   diff_max_chars: 3000
   fetch_max_chars: 4000
+  # 事务式编辑拒绝超大文件，避免一次工具调用占用过多内存或生成巨型 diff。
+  edit_max_bytes: 2000000
 
 # RAG 参数
 rag:

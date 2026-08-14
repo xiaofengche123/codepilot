@@ -9,10 +9,11 @@
 ## 特性
 
 - **多模型路由** — DeepSeek / Claude / OpenAI 自动检测可用性，手动 `/model` 热切换
-- **15 个内置工具** — 文件读写、代码搜索、Shell 执行、Git 操作、Web 搜索/抓取、混合检索
+- **16 个内置工具** — 文件读写、事务式局部编辑、代码搜索、Shell、Git、Web 与混合检索
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
 - **MCP Tools 双端** — Server 供 Claude Desktop 调用，Client 消费外部 MCP Server 工具
 - **RAG 混合检索与精排** — BM25 + ChromaDB 向量召回、RRF 融合，并可用多语言 Cross-Encoder 精排
+- **事务式代码编辑** — SHA 乐观并发控制、全量预检、Python AST 校验、同目录临时文件与原子替换
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
 - **任务服务化** — FastAPI + asyncio 并发调度，Git Worktree 隔离任务工作区
@@ -26,7 +27,7 @@ flowchart LR
     A --> TR["声明式工具注册中心<br/>Schema + Risk Level"]
     A --> MEM["会话记忆<br/>Token 预算裁剪"]
 
-    TR --> BUILTIN["15 个内置工具<br/>File / Git / Web / RAG"]
+    TR --> BUILTIN["16 个内置工具<br/>File / Edit / Git / Web / RAG"]
     TR --> MC["MCP Client<br/>外部 MCP Server"]
     MS["Claude Desktop 等客户端"] -->|"JSON-RPC 2.0 / stdio"| MPS["MCP Server"]
     MPS --> BUILTIN
@@ -92,6 +93,7 @@ python main.py -d /path/to/project  # 指定工作目录
 |------|------|------|
 | 核心 | `read_file` | 读取文件内容 |
 | 核心 | `write_file` | 写入/覆盖文件 |
+| 编辑 | `edit_file_transaction` | 精确局部编辑；SHA、语法、原子写入与失败回滚 |
 | 核心 | `list_files` | 列出目录内容 |
 | 核心 | `search_code` | 正则搜索代码 |
 | 核心 | `run_shell` | 执行终端命令（需确认） |
@@ -110,7 +112,7 @@ python main.py -d /path/to/project  # 指定工作目录
 
 ### 作为 MCP Server
 
-在 Claude Desktop 配置中添加，即可在 Claude Desktop 中使用 CodePilot 的 15 个工具：
+在 Claude Desktop 配置中添加，即可在 Claude Desktop 中使用 CodePilot 的 16 个工具：
 
 ```json
 {

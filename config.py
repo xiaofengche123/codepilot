@@ -26,6 +26,7 @@ DEFAULTS = {
         "output_max_chars": 4000,
         "diff_max_chars": 3000,
         "fetch_max_chars": 4000,
+        "edit_max_bytes": 2000000,
     },
     "rag": {
         "model_name": "all-MiniLM-L6-v2",

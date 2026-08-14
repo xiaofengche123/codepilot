@@ -27,6 +27,8 @@ def main() -> None:
 
     root = Path.cwd()
     sys.path.insert(0, str(root))
+    from rag.agent_eval_metrics import record_tool_call, summarize_edit_metrics
+
     tasks = json.loads(
         Path(__file__).with_name("agent-tasks-v1.json").read_text(encoding="utf-8")
     )
@@ -77,9 +79,9 @@ def main() -> None:
         )
         answer = session.run(
             task["prompt"],
-            on_tool_call=lambda name, arguments, result: tool_calls.append({
-                "name": name, "arguments": arguments, "result_preview": str(result)[:300],
-            }),
+            on_tool_call=lambda name, arguments, result: record_tool_call(
+                tool_calls, name, arguments, result
+            ),
         )
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
@@ -111,7 +113,11 @@ def main() -> None:
         and mutation["new"] not in (root / mutation["file"]).read_text(encoding="utf-8")
         for mutation in task["mutations"]
     )
+    edit_metrics = summarize_edit_metrics(
+        tool_calls, changed_by_agent, expected_files, workdir=root
+    )
     report = {
+        "schema_version": 2,
         "task_id": task["id"], "condition": args.condition, "model": args.model,
         "success": (
             error is None and test.returncode == 0
@@ -127,6 +133,7 @@ def main() -> None:
         "test_returncode": test.returncode, "test_output": (test.stdout + test.stderr)[-4000:],
         "agent_error": error, "answer": answer[-4000:], "tool_calls": tool_calls,
         "index_message": index_message,
+        **edit_metrics,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
