@@ -53,7 +53,7 @@ def _remove_tree(target: Path) -> None:
     last_error = None
     for attempt in range(5):
         try:
-            shutil.rmtree(resolved, onexc=make_writable)
+            shutil.rmtree(resolved, onerror=make_writable)
             return
         except PermissionError as exc:
             last_error = exc
