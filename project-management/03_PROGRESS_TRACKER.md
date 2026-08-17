@@ -56,7 +56,7 @@
 
 ### 回归
 
-- [x] `TEST-001` `DONE`：当前 Windows 本地133 passed、4 skipped；提交 `daee3cc` 的 Linux CI 127 passed、3 skipped，新增修复待推送后复核 CI。
+- [x] `TEST-001` `DONE`：当前 Windows 本地133 passed、4 skipped；提交 `568ff57` 的 CI run `31990221352` 中 Python 3.11、3.12 与 Docker 全部通过。
 - [x] `TEST-002` `DONE`：`git diff --check` 通过。
 - [x] `TEST-003` `DONE`：冻结集 SHA 评测后复核一致。
 - [x] `TEST-004` `DONE`：确认 `install.py` 未被本轮修改。

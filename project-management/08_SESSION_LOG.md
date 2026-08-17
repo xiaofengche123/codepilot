@@ -41,7 +41,7 @@
 
 - 定向测试：28 passed。
 - 全量回归：133 passed、4 skipped。
-- 首次手动 CI 中 Python 3.12 与 Docker 通过，Python 3.11 暴露 `shutil.rmtree(onexc=...)` 版本兼容问题；已改用兼容3.11/3.12的 `onerror` 并准备复跑。
+- 首次手动 CI 中 Python 3.12 与 Docker 通过，Python 3.11 暴露 `shutil.rmtree(onexc=...)` 版本兼容问题；改用兼容3.11/3.12的 `onerror` 后，CI run `31990221352` 的 Python 3.11、3.12 与 Docker 全部通过。
 - `install.py` 未修改；密钥、模型缓存和临时目录不提交。
 - `EDIT-009` 标记完成但 M1 记录为 `DONE_WITH_GAP`；下一项为 M2 状态机，重点解决定位后未编辑、平台命令浪费步数和测试恢复。
 

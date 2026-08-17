@@ -102,10 +102,10 @@
 ### RISK-012：Shell 超时遗留子进程
 
 - 级别：P1
-- 状态：`MITIGATED_PENDING_CI`
+- 状态：`MITIGATED`
 - 证据：A16-Hybrid 的 `python -m pip install sentence-transformers` 在内层30秒超时后仍存活，持有 Chroma 文件并使 worker 达到900秒外层超时。
 - 修复：`run_shell` 和评测 runner 均创建独立进程组，超时时终止完整进程树；清理 Windows 文件锁时有界重试。
-- 验证：新增 timeout/失败报告/清理重试测试；仍需推送后由 Linux CI 复核 POSIX process-group 分支。
+- 验证：新增 timeout/失败报告/清理重试测试；CI run `31990221352` 的 Python 3.11、3.12 与 Docker 全部通过。
 
 ### RISK-013：Agent 评测解释器与平台提示偏差
 

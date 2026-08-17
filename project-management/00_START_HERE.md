@@ -30,8 +30,8 @@ CodePilot 的目标不是做一个简单的聊天壳或只会向量检索的 RAG
 ## 3. 当前工作区基线
 
 - 分支：`feat/transactional-edit`
-- 被测基线 HEAD：`daee3cc1f4c7c8226d173fd7b295c32d1b2d5c1f`
-- 工作区：有意保留未提交的评测结果、超时修复、测试和文档，不得清理、reset 或覆盖。
+- 被测基线 HEAD：`daee3cc1f4c7c8226d173fd7b295c32d1b2d5c1f`；评测与恢复修复已提交至 `568ff57`。
+- 工作区：正式评测结果与超时修复已提交到功能分支；仍不得清理、reset 或覆盖用户后续未提交内容。
 - `install.py`：用户已有内容，当前任务不得修改、回退或格式化。
 - `.env`：被 Git 忽略，包含本地模型服务配置；任何文档、日志、测试报告和提交都不得记录密钥。
 - 模型缓存：`D:\codepilot\.codepilot\model-cache`
