@@ -1,6 +1,6 @@
 # CodePilot 进度跟踪表
 
-更新时间：2026-08-14
+更新时间：2026-08-17
 
 ## 1. 使用方法
 
@@ -15,8 +15,8 @@
 | 里程碑 | 状态 | 当前结论 |
 |---|---|---|
 | M0 当前基线固化 | `DONE` | dev 基线、测试矩阵与 Docker 均已验证 |
-| M1 事务式代码编辑 | `IN_PROGRESS` | EDIT-009 已获授权，正在正式复测 |
-| M2 Agent 状态机 | `PLANNED` | 依赖事务编辑接口稳定 |
+| M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
+| M2 Agent 状态机 | `NEXT` | 解决已定位后未编辑、平台命令错误和步数耗尽 |
 | M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
 | M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
@@ -56,7 +56,7 @@
 
 ### 回归
 
-- [x] `TEST-001` `DONE`：当前 Windows 本地116 passed、4 skipped；Linux CI 117 passed、3 skipped。
+- [x] `TEST-001` `DONE`：当前 Windows 本地133 passed、4 skipped；提交 `daee3cc` 的 Linux CI 127 passed、3 skipped，新增修复待推送后复核 CI。
 - [x] `TEST-002` `DONE`：`git diff --check` 通过。
 - [x] `TEST-003` `DONE`：冻结集 SHA 评测后复核一致。
 - [x] `TEST-004` `DONE`：确认 `install.py` 未被本轮修改。
@@ -116,11 +116,15 @@
   - 依赖：EDIT-006。
   - 验收结果：报告 schema v2 记录事务/旧写入次数、成功、前置失败、写入失败、回滚、错误码、目标路径及其与 changed/expected files 的交集；新增5个测试。
 
-- [ ] `EDIT-009` `IN_PROGRESS`：复测20个 Agent 任务。
+- [x] `EDIT-009` `DONE`：复测20个 Agent 任务。
   - 依赖：EDIT-007、EDIT-008。
   - 授权：用户已在2026-08-14本轮明确授权真实模型 API 费用。
   - 运行方案：`agent-v2-transactional`，20个冻结任务 × Hybrid/Rerank，共40次；旧 `agent-v1` 永不覆盖。
   - 验收：任务和答案不变；报告目标文件修改率、任务成功率和范围外修改率。
+  - 结果：40/40 报告齐全，冻结 SHA 一致；严格成功 Hybrid 11/20、Rerank 8/20；目标文件修改 Hybrid 14/20、Rerank 12/20。
+  - 编辑指标：有编辑的26个任务全部使用事务工具，旧写入0；事务调用 Hybrid 17/17、Rerank 15/15 成功。
+  - 异常：A16-Hybrid 在尝试 `pip install sentence-transformers` 后900秒超时，作为正式失败保留且没有重跑；已修复 shell/runner 子进程树清理和未来 worker 的 venv/offline 环境。
+  - 判定：EDIT-009 执行完成；M1 的80%目标未达成，不修改冻结 Oracle，差距转交 M2。
 
 ## 6. Agent 状态机任务
 

@@ -1,6 +1,6 @@
 # CodePilot 风险、技术债与候选需求
 
-更新时间：2026-08-14
+更新时间：2026-08-17
 
 ## 1. 风险分级
 
@@ -33,8 +33,8 @@
 
 - 级别：P1
 - 状态：`OPEN`
-- 证据：校正后 Hybrid 8/20，Rerank 9/20。
-- 主因：目标文件未修改、mutation 未恢复、测试失败后恢复不足。
+- 证据：事务式复测严格成功 Hybrid 11/20、Rerank 8/20；目标文件修改率70%/60%，仍低于80%目标。
+- 主因：目标文件未修改、已定位后未及时编辑、错误平台命令消耗步数、测试失败后恢复不足。
 - 计划：M1 事务式编辑、M2 状态机、M3 Trace。
 
 ### RISK-004：Rerank CPU 延迟过高
@@ -72,6 +72,7 @@
 - 级别：P2
 - 状态：`OPEN`
 - 影响：Hybrid/Rerank 单题翻转可能来自 LLM 随机性。
+- 新证据：v2 严格结果中仅 Hybrid 6题、仅 Rerank 3题；但实际调用语义检索的任务分别只有11题和14题，不能做纯排序因果推断。
 - 计划：重大功能完成后每个条件重复3次，报告 pass@1/pass@3。
 
 ### RISK-009：Reranker predict 全局串行
@@ -98,6 +99,22 @@
 - 影响：主要是日志噪声，尚未影响 Git 命令结果。
 - 计划：单独排查用户级 Git 配置，不在业务改动中混修。
 
+### RISK-012：Shell 超时遗留子进程
+
+- 级别：P1
+- 状态：`MITIGATED_PENDING_CI`
+- 证据：A16-Hybrid 的 `python -m pip install sentence-transformers` 在内层30秒超时后仍存活，持有 Chroma 文件并使 worker 达到900秒外层超时。
+- 修复：`run_shell` 和评测 runner 均创建独立进程组，超时时终止完整进程树；清理 Windows 文件锁时有界重试。
+- 验证：新增 timeout/失败报告/清理重试测试；仍需推送后由 Linux CI 复核 POSIX process-group 分支。
+
+### RISK-013：Agent 评测解释器与平台提示偏差
+
+- 级别：P1
+- 状态：`MITIGATED_FOR_FUTURE_RUNS`
+- 证据：worker 由项目 venv 启动，但 Agent 的 `python` 命令曾解析到系统 Python；多个轨迹还尝试 `pwd`、`ls`、`head` 等 POSIX 命令，消耗10步预算。
+- 修复：未来 runner 将项目 venv 放到 PATH 首位，设置 `VIRTUAL_ENV`，并强制 Hugging Face/PIP 离线；当前40份结果保持原样，不事后重跑。
+- 遗留：M2 应向 Agent 暴露结构化平台能力，避免依赖模型猜测 shell 方言。
+
 ## 3. 技术债
 
 ### DEBT-001：Agent 循环职责过多
@@ -114,11 +131,13 @@ LLM 需要文本，但内部评测和状态机需要结构化结果。建议逐�
 
 ### DEBT-004：端到端进程总耗时最初只打印未结构化保存
 
-当前汇总中的进程时间由 runner 输出转录到 summary，精度0.1秒。后续执行器应直接写入 `process_elapsed_seconds`。
+正常进程总耗时仍只由 runner 输出，Agent 报告保存的是 `AgentSession.run` 时间；A16 synthetic 报告保存了 `worker_elapsed_seconds`。后续应为每个正常样本也结构化保存 `worker_elapsed_seconds`，并禁止混合 timing scope 聚合。
 
 ### DEBT-005：Agent 任务 Oracle 以精确恢复基线为主
 
 优点是可自动判定，缺点是可能拒绝功能等价修复。未来可增加语义 Oracle：测试、静态属性和安全不变量，但不能放宽现有 v1 结果。
+
+v2 实例包括 A10 的等价 sequence 实现、A18 的集合内等价插入，以及 A07 的更严格清洗实现。它们继续按冻结 v1 严格失败报告；如需改进，只能创建新版本并预先定义 `allowed_files` 与语义不变量。
 
 ## 4. 候选需求池
 

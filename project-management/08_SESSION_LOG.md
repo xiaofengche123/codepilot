@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-08-17：EDIT-009 正式复测完成与超时进程树修复
+
+### 正式运行
+
+- 从 `agent-v2-transactional` 的31/40断点恢复，完成剩余9个 DeepSeek Agent 样本。
+- 20个冻结任务 × Hybrid/Rerank 共40份报告齐全；manifest 状态为 `completed_with_worker_failures`。
+- 冻结任务 SHA-256 仍为 `71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09`，被测提交仍为 `daee3cc1f4c7c8226d173fd7b295c32d1b2d5c1f`。
+- A16-Hybrid 的900秒超时作为正式失败保留，没有选择性重跑；旧 `agent-v1` 未覆盖。
+
+### 结果
+
+- 严格成功：Hybrid 11/20（55%），Rerank 8/20（40%）。
+- 目标文件修改：Hybrid 14/20（70%），Rerank 12/20（60%），未达到 M1 的80%目标。
+- 事务编辑采用率：有编辑的26/26个任务均使用 `edit_file_transaction`；旧 `write_file` 为0。
+- 事务调用结果：Hybrid 17/17、Rerank 15/15成功；没有前置失败、写入失败或回滚。
+- 可比 Agent 延迟：Hybrid Avg/P95/Max 26.2/42.6/42.6秒；Rerank 31.0/43.5/72.4秒。A16 的900.1秒是不同 timing scope 的 worker 异常，单独报告。
+- 成对严格结果：两边成功5、仅 Hybrid 6、仅 Rerank 3、两边失败6。
+
+### 可信度限制
+
+- 实际调用语义检索的任务只有 Hybrid 11/20、Rerank 14/20，所以这不是纯 RAG 排序 A/B。
+- 每个条件单次运行，LLM 轨迹非确定，不能宣称15个百分点差异具有因果性或统计显著性。
+- A07/A10/A18 出现功能等价但未逐字恢复 Oracle 的修复；严格结果保留，不修改冻结答案。
+- v1 没有 `allowed_files`，部分测试文件修改被标为 unexpected，不能直接等同于越权。
+
+### A16 故障与修复
+
+- Agent 的 `python` 命中了缺少依赖的系统解释器，随后执行 `python -m pip install sentence-transformers`。
+- 原 `run_shell` 超时只终止外层 shell，遗留 pip 子进程并持有 Chroma 文件；外层 runner 最终在900秒终止。
+- 已确认系统 Python 没有成功安装该包，项目 venv 正常，评测/安装残留进程为0。
+- 修复 `run_shell` 与 runner：独立进程组、超时终止整棵进程树、Windows 文件锁清理重试、worker failure synthetic 报告和可恢复 manifest。
+- 未来 worker 强制项目 venv 位于 PATH 首位，并设置 PIP/Hugging Face 离线变量；本次原始结果不回写、不重跑。
+
+### 验证与下一步
+
+- 定向测试：27 passed。
+- 全量回归：133 passed、4 skipped。
+- `install.py` 未修改；密钥、模型缓存和临时目录不提交。
+- `EDIT-009` 标记完成但 M1 记录为 `DONE_WITH_GAP`；下一项为 M2 状态机，重点解决定位后未编辑、平台命令浪费步数和测试恢复。
+
+---
+
 ## 2026-08-14：项目管理文档中心
 
 ### 本轮目标

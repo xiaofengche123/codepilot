@@ -3,13 +3,14 @@
 """
 
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 
 import pytest
 
 from tools.core_tools import search_code, list_files, write_file, read_file, run_shell, _resolve
-from tools import execute_tool, TOOLS_REGISTRY, DANGEROUS_TOOLS
+from tools import execute_tool, TOOLS_REGISTRY, TOOL_DEFINITIONS, DANGEROUS_TOOLS
 
 
 class TestCoreTools:
@@ -45,6 +46,41 @@ class TestCoreTools:
     def test_run_shell_dangerous_blocked(self):
         result = run_shell("rm -rf /")
         assert "拦截" in result
+
+    def test_run_shell_timeout_terminates_process_tree(self, monkeypatch):
+        import tools.core_tools as core_tools
+
+        class FakeProcess:
+            returncode = None
+
+            def communicate(self, timeout):
+                raise subprocess.TimeoutExpired("worker", timeout)
+
+        process = FakeProcess()
+        terminated = []
+        monkeypatch.setattr(core_tools.subprocess, "Popen", lambda *a, **kw: process)
+        monkeypatch.setattr(
+            core_tools,
+            "_terminate_process_tree",
+            lambda candidate: terminated.append(candidate),
+        )
+
+        result = run_shell("python long_running_worker.py")
+
+        assert "超时" in result
+        assert terminated == [process]
+
+    def test_run_shell_schema_identifies_platform_shell(self):
+        definition = next(
+            item for item in TOOL_DEFINITIONS if item["function"]["name"] == "run_shell"
+        )
+        description = definition["function"]["description"]
+
+        if os.name == "nt":
+            assert "Windows cmd" in description
+            assert "不要使用 pwd" in description
+        else:
+            assert "POSIX shell" in description
 
     def test_resolve_relative_path(self):
         result = _resolve("setup.py")

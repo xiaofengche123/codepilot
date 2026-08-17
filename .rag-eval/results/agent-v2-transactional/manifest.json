@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "agent-v2-transactional",
+  "status": "completed_with_worker_failures",
+  "started_at": "2026-08-14T07:13:39.218742+00:00",
+  "completed_at": "2026-08-17T02:17:05.835731+00:00",
+  "model": "deepseek-chat",
+  "conditions": [
+    "hybrid",
+    "rerank"
+  ],
+  "task_ids": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "A14",
+    "A15",
+    "A16",
+    "A17",
+    "A18",
+    "A19",
+    "A20"
+  ],
+  "task_dataset": ".rag-eval/agent-tasks-v1.json",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "code_commit": "daee3cc1f4c7c8226d173fd7b295c32d1b2d5c1f",
+  "branch": "feat/transactional-edit",
+  "expected_runs": 40,
+  "completed_runs": 40,
+  "worker_failures": [
+    {
+      "task_id": "A16",
+      "condition": "hybrid",
+      "returncode": 124,
+      "error": "worker_timeout_after_900_seconds",
+      "elapsed_seconds": 900.1,
+      "external_process_observed": "python -m pip install sentence-transformers"
+    }
+  ],
+  "cleanup_failures": [
+    {
+      "task_id": "A16",
+      "condition": "hybrid",
+      "error": "PermissionError: Chroma data_level0.bin was held by an orphaned pip process",
+      "recovered": true
+    }
+  ]
+}

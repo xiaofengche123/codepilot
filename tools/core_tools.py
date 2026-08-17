@@ -5,9 +5,61 @@ read_file / write_file / list_files / search_code / run_shell
 
 import os
 import re
+import signal
 import subprocess
 from pathlib import Path
 from typing import Optional
+
+
+def _terminate_process_tree(process: subprocess.Popen) -> None:
+    """Terminate a timed-out shell and every child process it started."""
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            result = subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                timeout=10,
+            )
+            if result.returncode != 0 and process.poll() is None:
+                process.kill()
+        except (OSError, subprocess.SubprocessError):
+            if process.poll() is None:
+                process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
+def _run_shell_process(command: str, cwd: str, timeout: float) -> tuple[str, str, int]:
+    options = {
+        "shell": True,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.PIPE,
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+        "cwd": cwd,
+    }
+    if os.name == "nt":
+        options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        options["start_new_session"] = True
+    process = subprocess.Popen(command, **options)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _terminate_process_tree(process)
+        raise
+    return stdout, stderr, process.returncode
 
 
 def _resolve(path: str, workdir: Optional[str] = None) -> Path:
@@ -136,15 +188,16 @@ def run_shell(command: str, workdir: Optional[str] = None) -> str:
     try:
         from config import config
         _timeout = config.get("tools.shell_timeout", 30)
-        result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=_timeout, cwd=workdir or os.getcwd(),
+        stdout, stderr, returncode = _run_shell_process(
+            command,
+            workdir or os.getcwd(),
+            _timeout,
         )
-        output = result.stdout
-        if result.stderr:
-            output += "\n[stderr]\n" + result.stderr
+        output = stdout
+        if stderr:
+            output += "\n[stderr]\n" + stderr
         if not output.strip():
-            output = f"[完成] 命令执行成功（无输出），返回码: {result.returncode}"
+            output = f"[完成] 命令执行成功（无输出），返回码: {returncode}"
         _max_chars = config.get("tools.output_max_chars", 4000)
         return output[:_max_chars]
     except subprocess.TimeoutExpired:
@@ -160,6 +213,12 @@ CORE_TOOLS = {
     "search_code": search_code,
     "run_shell": run_shell,
 }
+
+_SHELL_GUIDANCE = (
+    "当前环境是 Windows cmd，请使用 dir、findstr 等 Windows 命令；不要使用 pwd、ls、head、tail。"
+    if os.name == "nt"
+    else "当前环境是 POSIX shell，请使用 POSIX 命令。"
+)
 
 CORE_TOOL_DEFINITIONS = [
     {
@@ -226,7 +285,10 @@ CORE_TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "run_shell",
-            "description": "执行终端命令。危险命令会被自动拦截。执行前会向用户请求确认。",
+            "description": (
+                "执行终端命令。危险命令会被自动拦截，执行前会向用户请求确认。"
+                + _SHELL_GUIDANCE
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {

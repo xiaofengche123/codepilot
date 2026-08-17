@@ -73,7 +73,7 @@ search_semantic
 
 - 状态：`ACCEPTED`
 - 决策：Rerank 作为显式高质量模式和未来条件式能力。
-- 原因：内部 Recall@10 提升到0.9254，但 CPU P95 为6.85秒；端到端单次成功率只增加5个百分点。
+- 原因：内部 Recall@10 提升到0.9254，但 CPU P95 为6.85秒；两轮单次端到端评测分别表现为 Rerank +5个百分点和 -15个百分点，且不少任务未实际调用语义检索，不能证明稳定任务收益。
 - 回退：加载或推理失败返回原始 RRF，并标记原因。
 
 ### ADR-003：默认排除文档
@@ -137,6 +137,16 @@ search_semantic
 - 回退：任何预检失败不落盘；临时写入/替换失败保留原文件并清理临时文件；回读验证失败尝试恢复原始字节并报告 `rolled_back`。
 - 选择理由：比让 Agent 生成整文件更可验证，同时避免多文件锁顺序、日志和恢复协议尚未成熟时过早引入分布式事务式复杂度。
 - 验证：新增路径、匹配、SHA、重叠、并发、BOM/CRLF、语法、dry-run、写入失败和回滚测试；本地全量116 passed、4 skipped。
+
+### ADR-012：Shell 超时以完整进程树为隔离边界
+
+- 日期：2026-08-17
+- 状态：`ACCEPTED`
+- 背景：A16-Hybrid 中 `subprocess.run(..., shell=True, timeout=30)` 只结束外层 shell，遗留 pip 子进程持有输出管道和 Chroma 文件，最终触发900秒 worker 超时。
+- 决策：`run_shell` 与付费评测 runner 都在独立进程组中启动命令；超时后 Windows 使用 `taskkill /T /F`，POSIX 使用 process-group signal，随后有界等待和单进程兜底。
+- 评测隔离：未来 Agent worker 把项目 venv 放在 PATH 首位，设置 `VIRTUAL_ENV`，并启用 PIP/Hugging Face 离线模式；正式 API 调用不受影响。
+- 代价与风险：依赖操作系统进程组语义；Windows `taskkill` 和 POSIX 分支均需 CI/平台测试，强杀无法保证第三方程序自身事务回滚。
+- 验证：新增 runner timeout、synthetic failure、清理重试、worker 环境和 `run_shell` timeout 测试；A16 原始失败保留，不通过重跑隐藏事故。
 
 ## 4. 复杂度准入标准
 
