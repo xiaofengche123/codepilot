@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-08-17：STATE-001～STATE-004 执行状态基础
+
+### 本轮任务
+
+- 从未合并的 `feat/transactional-edit` 提交 `810cc26` 创建 `feat/agent-state-machine`，未合并或修改 `dev/master`。
+- 审查 `AgentSession.run`、工具分发、TaskEvent、CLI/API/MCP 和评测错误传播；确认一轮模型响应可含多个顺序工具调用，`max_iterations` 按模型调用计数。
+- 实现可靠、可测试、非侵入式的 M2 第一批状态基础，不重写整个 Agent 循环。
+
+### 修改
+
+- 新增 `execution_state.py`：定义 INIT、DISCOVER、INSPECT、PLAN、EDIT、VERIFY、RECOVER、REVIEW、COMPLETE、FAILED 和显式合法转移。
+- 新增 `TaskExecutionState`、`TransitionRecord`、`PhaseBudgets`、`TaskMode` 与预算决策；每个 Agent 用户轮次状态隔离，转移历史最多500条。
+- 真实 search/read/edit/test 工具结果驱动计数和阶段；事务编辑失败、测试失败进入 RECOVER，恢复后可重新 EDIT/VERIFY。
+- `run_shell` 在截断输出之外稳定追加 `[returncode] N`；只有真实 pytest 命令返回码0才记录验证成功。
+- `mutation_required` 必须有成功编辑和验证证据才能 COMPLETE；`read_only` 不强制编辑；默认 `auto` 保持既有调用方兼容。
+- 多 tool call 仍保持一条 AIMessage 后跟全部对应 ToolMessage，不在消息链中插入状态对象。
+
+### 测试
+
+- 新增状态机测试：17 passed。
+- 上下文、事件、执行器、工具回归：33 passed。
+- 全量：151 passed、4 skipped（基线133 passed、4 skipped，新增18个通过用例）。
+- `git diff --check`：通过，仅有既有 Windows LF/CRLF 提示。
+- 使用 fake model、fake tool result 和确定性事件序列；未调用真实模型或付费 API。
+
+### 兼容性与保护
+
+- CLI、API、MCP 的既有调用方式保持兼容；API 创建状态时补充真实 task_id。
+- 对外可见的唯一工具文本变化是 `run_shell` 末尾稳定返回码标记。
+- 未修改 `.rag-eval/codepilot-test-v1.json`、`.rag-eval/agent-tasks-v1.json`、`install.py` 或 `.env`；未运行冻结评测，未下载模型。
+
+### 风险与下一步
+
+- 当前预算是统计和明确决策接口，尚未在执行前强制阻止超预算工具调用；不能据此宣称端到端成功率提高。
+- 下一项：`STATE-005`，把 RECOVER 从可观察阶段推进为测试失败后的结构化恢复策略；随后 `STATE-006` 完成前强制 diff review。
+- 完成 STATE-005～008 后再评估付费重复复测；任何真实 API 调用仍需新授权。
+
+---
+
 ## 2026-08-17：EDIT-009 正式复测完成与超时进程树修复
 
 ### 正式运行

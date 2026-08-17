@@ -182,3 +182,10 @@ class TestWorkdirInjection:
             workdir=str(tmp_path),
         )
         assert str(tmp_path).replace("\\", "/").lower() in result.replace("\\", "/").lower()
+
+    def test_run_shell_always_exposes_objective_returncode(self, tmp_path):
+        success = run_shell('python -c "print(123)"', workdir=str(tmp_path))
+        failure = run_shell('python -c "import sys; print(456); sys.exit(7)"', workdir=str(tmp_path))
+
+        assert "[returncode] 0" in success
+        assert "[returncode] 7" in failure

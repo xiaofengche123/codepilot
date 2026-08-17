@@ -197,9 +197,13 @@ def run_shell(command: str, workdir: Optional[str] = None) -> str:
         if stderr:
             output += "\n[stderr]\n" + stderr
         if not output.strip():
-            output = f"[完成] 命令执行成功（无输出），返回码: {returncode}"
+            output = "[完成] 命令执行完成（无输出）"
         _max_chars = config.get("tools.output_max_chars", 4000)
-        return output[:_max_chars]
+        # Keep the objective exit status outside the truncated body so Agent
+        # execution state can distinguish a passing test from a failing one.
+        suffix = f"\n[returncode] {returncode}"
+        body_limit = max(0, _max_chars - len(suffix))
+        return output[:body_limit] + suffix
     except subprocess.TimeoutExpired:
         return f"[超时] 命令 '{command}' 执行超过 {_timeout} 秒，已终止"
     except Exception as e:

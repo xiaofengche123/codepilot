@@ -111,8 +111,16 @@ search_semantic
 
 ### ADR-008：Agent 使用可回环状态机而非完全固定流水线
 
-- 状态：`PLANNED`
-- 原因：完全自由循环缺少约束，完全固定流程又无法处理测试失败和重新定位；可回环状态机兼顾控制和适应性。
+- 日期：2026-08-17
+- 状态：`ACCEPTED`
+- 决策：使用独立、实例级的 `TaskExecutionState` 旁路观察现有 Agent 循环；主链为 INIT → DISCOVER → INSPECT → PLAN → EDIT → VERIFY → REVIEW → COMPLETE，编辑/测试失败进入 RECOVER，RECOVER 可回到 INSPECT、EDIT 或 VERIFY。为兼容真实自由循环和只读任务，允许有客观工具证据的快速入口，例如 INIT → INSPECT/EDIT/VERIFY，以及 read-only 的 DISCOVER/INSPECT → COMPLETE；其他跳转显式拒绝。
+- 任务模式：提供 `auto`、`read_only`、`mutation_required`。默认 `auto` 保持调用方兼容，并根据是否出现编辑尝试采用确定性规则，不增加第二个 LLM 分类器。
+- 客观证据：状态只由真实工具结果更新；事务编辑解析 JSON，shell 测试解析稳定返回码。mutation 任务必须同时有成功编辑和返回码0的测试证据才能 COMPLETE，模型最终文字本身不是完成证据。
+- 隔离：每个 `AgentSession.run` 用户轮次创建新状态；会话历史和模型连接仍可复用，状态计数与转移不跨任务污染。
+- 预算：discovery/inspect/edit/verify/recovery 分预算可配置，当前提供统计与耗尽决策接口，总 `max_iterations` 保持硬上限；强制阻止和动作重规划留给后续 STATE 任务。
+- 安全：状态仅保存阶段、计数、路径、错误码、返回码和最多500条转移，不保存工具参数、源码、模型上下文或 shell 输出。
+- 代价与风险：初版是非侵入式控制基础，尚不能主动阻止重复搜索，也不会自行选择恢复动作；这些能力必须在保持 ToolMessage 配对的前提下增量接入。
+- 验证：确定性 fake tool/model 测试覆盖合法/非法转移、隔离、恢复、预算、证据门槛、脱敏、并发和多 tool call 配对；全量151 passed、4 skipped。
 
 ### ADR-009：结构图只做检索后扩展
 

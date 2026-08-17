@@ -16,7 +16,7 @@
 |---|---|---|
 | M0 当前基线固化 | `DONE` | dev 基线、测试矩阵与 Docker 均已验证 |
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
-| M2 Agent 状态机 | `NEXT` | 解决已定位后未编辑、平台命令错误和步数耗尽 |
+| M2 Agent 状态机 | `IN_PROGRESS` | STATE-001～004 状态基础完成；强制预算与恢复策略待实施 |
 | M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
 | M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
@@ -128,14 +128,28 @@
 
 ## 6. Agent 状态机任务
 
-- [ ] `STATE-001` `PLANNED`：定义 `AgentPhase` 和合法转移表。
-- [ ] `STATE-002` `PLANNED`：定义 `TaskExecutionState`。
-- [ ] `STATE-003` `PLANNED`：用工具事件驱动客观状态更新。
-- [ ] `STATE-004` `PLANNED`：按检索、阅读、编辑、测试划分预算。
+- [x] `STATE-001` `DONE`：定义 `AgentPhase` 和合法转移表。
+  - 验收结果：独立 `execution_state.py` 定义 INIT、DISCOVER、INSPECT、PLAN、EDIT、VERIFY、RECOVER、REVIEW、COMPLETE、FAILED；终态不可离开，非法转移返回 `invalid_phase_transition`。
+- [x] `STATE-002` `DONE`：定义 `TaskExecutionState`。
+  - 验收结果：每个 Agent 用户轮次创建独立状态，记录 session/task、迭代、计数、修改文件、错误码、测试返回码、有限转移历史、时间和终态原因；不保存源码、模型上下文或 shell 输出。
+- [x] `STATE-003` `DONE`：用工具事件驱动客观状态更新。
+  - 验收结果：search/read/edit/test 的真实完成事件更新状态；事务编辑仅 `success=true` 且非 dry-run 计为成功，失败进入 RECOVER；pytest 返回码为0才产生验证成功证据。模型最终文字不能让缺少编辑/验证证据的 mutation 任务进入 COMPLETE。
+- [x] `STATE-004` `DONE`：按检索、阅读、编辑、测试划分预算。
+  - 验收结果：新增 discovery/inspect/edit/verify/recovery 可配置预算、计数、剩余额度和 `enforce_budget` 决策接口；`max_iterations` 仍是硬上限。复杂强制调度策略尚未启用。
 - [ ] `STATE-005` `PLANNED`：实现测试失败后的 RECOVER。
 - [ ] `STATE-006` `PLANNED`：完成前强制 Diff 审核。
 - [ ] `STATE-007` `PLANNED`：保持 CLI、Server 和 MCP 兼容。
 - [ ] `STATE-008` `PLANNED`：状态机单元测试和端到端复测。
+
+### STATE-001～STATE-004 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-17
+- 修改文件：`execution_state.py`、`agent.py`、`tools/core_tools.py`、`server.py`、配置、测试和项目管理文档。
+- 对外行为：CLI/API/MCP 调用方式不变；`run_shell` 文本末尾新增稳定的 `[returncode] N`，供状态机客观判断测试结果。
+- 测试结果：新增状态测试17 passed；全量151 passed、4 skipped；未调用真实模型。
+- 遗留问题：本轮不强制阻止超预算工具调用，不自动选择恢复动作，也未进行付费端到端复测。
+- 下一任务：`STATE-005`。
 
 ## 7. Trace 与失败分析任务
 

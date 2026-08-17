@@ -60,6 +60,7 @@ async def test_executor_uses_isolated_model_memory_and_stream_events(
     assert FakeSession.created_with["working_dir"] == str(worktree)
     assert FakeSession.created_with["memory_dir"] == str(project)
     assert FakeSession.created_with["session_id"] == "session-1"
+    assert FakeSession.created_with["task_id"] == task.id
     assert FakeSession.created_with["model_name"] == "deepseek-chat"
     assert manager.cleaned is True
 

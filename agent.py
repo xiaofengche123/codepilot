@@ -23,6 +23,7 @@ from tools import TOOL_DEFINITIONS, execute_tool, DANGEROUS_TOOLS
 from model_router import get_llm as router_get_llm
 from memory import load_history, save_turn
 from context_mgr import ContextManager
+from execution_state import PhaseBudgets, TaskExecutionState, TaskMode
 
 console = Console()
 
@@ -67,7 +68,9 @@ class AgentSession:
 
     def __init__(self, working_dir: str, max_context_tokens: int = None,
                  model_name: str = None, confirm=None, max_iterations: int = None,
-                 memory_dir: str = None, session_id: str = None):
+                 memory_dir: str = None, session_id: str = None,
+                 task_id: str = None, task_mode: str | TaskMode = TaskMode.AUTO,
+                 phase_budgets: PhaseBudgets | dict | None = None):
         if max_context_tokens is None:
             max_context_tokens = config.get("agent.max_context_tokens", 8000)
         self.working_dir = os.path.abspath(working_dir)
@@ -75,6 +78,16 @@ class AgentSession:
         self.session_id = session_id
         self.context_mgr = ContextManager(max_tokens=max_context_tokens)
         self.max_iterations = max_iterations or DEFAULT_MAX_ITERATIONS
+        if phase_budgets is None:
+            phase_budgets = PhaseBudgets.from_mapping(
+                config.get("agent.phase_budgets", {})
+            )
+        elif isinstance(phase_budgets, dict):
+            phase_budgets = PhaseBudgets.from_mapping(phase_budgets)
+        self._task_id = task_id or session_id
+        self._task_mode = TaskMode(task_mode)
+        self._phase_budgets = phase_budgets
+        self.execution_state = self._new_execution_state()
         self._confirm = confirm or _confirm_dangerous
         self._llm = None
         self.model_unavailable = False
@@ -84,6 +97,15 @@ class AgentSession:
             self.model_unavailable = self._llm is None
         self.mcp_client = None
         self._init_mcp()
+
+    def _new_execution_state(self) -> TaskExecutionState:
+        return TaskExecutionState(
+            session_id=self.session_id,
+            task_id=self._task_id,
+            task_mode=self._task_mode,
+            max_iterations=self.max_iterations,
+            budgets=self._phase_budgets,
+        )
 
     def _init_mcp(self):
         """加载 MCP 服务器配置并连接。"""
@@ -121,6 +143,9 @@ class AgentSession:
         on_tool_call(tool_name, args, result) — 工具调用时回调
         on_stream(chunk_text) — 流式输出每段文本时回调
         """
+        # Interactive sessions reuse history and model connections, but every
+        # user turn receives independent task execution evidence.
+        self.execution_state = self._new_execution_state()
         llm = self._llm or router_get_llm()
         llm_with_tools = llm.bind_tools(self._get_all_tools())
 
@@ -129,6 +154,7 @@ class AgentSession:
         messages.append(HumanMessage(content=user_input))
 
         for _iteration in range(self.max_iterations):
+            self.execution_state.begin_iteration(_iteration + 1)
             # 每轮迭代前裁剪：循环中累积的工具结果会持续占用上下文
             messages = self.context_mgr.trim(messages)
             response, tool_calls = self._stream_llm(
@@ -139,6 +165,7 @@ class AgentSession:
 
             if not tool_calls:
                 answer = response.content or ""
+                self.execution_state.request_completion("model_response_finished")
                 if answer:
                     save_turn(
                         self.memory_dir, user_input, answer,
@@ -153,11 +180,18 @@ class AgentSession:
 
                 result = self._execute_tool(tool_name, tool_args)
 
+                self.execution_state.observe_tool_result(
+                    tool_name, tool_args, result,
+                )
+
+                # Preserve the AIMessage/tool-call protocol pairing before any
+                # optional observer code runs.
+                messages.append(ToolMessage(content=result, tool_call_id=tc_id))
+
                 if on_tool_call:
                     on_tool_call(tool_name, tool_args, result)
 
-                messages.append(ToolMessage(content=result, tool_call_id=tc_id))
-
+        self.execution_state.fail("max_iterations_exhausted")
         return f"已达到最大执行步数（{self.max_iterations}步），任务可能未完成。请拆分任务后重试。"
 
     def _stream_llm(self, llm_with_tools, messages, on_stream):

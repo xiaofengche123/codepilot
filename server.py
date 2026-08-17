@@ -85,6 +85,7 @@ async def _executor(task: Task):
             working_dir=wd,
             memory_dir=task.project_dir,
             session_id=task.session_id,
+            task_id=task.id,
             model_name=model_name,
             confirm=confirm_dangerous,
         )

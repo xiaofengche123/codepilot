@@ -16,6 +16,13 @@ DEFAULTS = {
     "agent": {
         "max_iterations": 10,
         "max_context_tokens": 8000,
+        "phase_budgets": {
+            "discovery_budget": 3,
+            "inspect_budget": 8,
+            "edit_budget": 3,
+            "verify_budget": 4,
+            "recovery_budget": 2,
+        },
     },
     "model": {
         "temperature": 0.3,
