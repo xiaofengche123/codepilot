@@ -48,6 +48,15 @@ DEFAULT_MODELS = [
         display_name="DeepSeek Reasoner (R1)",
     ),
     ModelInfo(
+        name="qwen3.7-flash",
+        provider="qwen",
+        cost_tier="budget",
+        env_key="DASHSCOPE_API_KEY",
+        base_url_env="DASHSCOPE_BASE_URL",
+        model_id="qwen3.7-flash",
+        display_name="Qwen 3.7 Flash",
+    ),
+    ModelInfo(
         name="claude-sonnet-4-6",
         provider="anthropic",
         cost_tier="premium",
@@ -94,7 +103,11 @@ class ModelRouter:
                 max_tokens=config.get("model.max_tokens", 4096),
             )
 
-        default_base = "https://api.deepseek.com" if info.provider == "deepseek" else "https://api.openai.com"
+        default_bases = {
+            "deepseek": "https://api.deepseek.com",
+            "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        }
+        default_base = default_bases.get(info.provider, "https://api.openai.com")
         return ChatOpenAI(
             model=info.model_id,
             api_key=key,

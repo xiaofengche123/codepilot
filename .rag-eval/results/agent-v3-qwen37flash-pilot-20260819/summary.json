@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "report_count": 1,
+  "conditions": {
+    "hybrid": {
+      "run_count": 1,
+      "success_count": 1,
+      "success_rate": 1.0,
+      "modified_expected_file_count": 1,
+      "modified_expected_file_rate": 1.0,
+      "mutation_restored_count": 1,
+      "tasks_with_unexpected_files": 0,
+      "edit_attempted_task_count": 1,
+      "transactional_edit_task_count": 1,
+      "legacy_write_task_count": 0,
+      "edit_attempt_count": 1,
+      "edit_success_count": 1,
+      "edit_precondition_failure_count": 0,
+      "edit_write_failure_count": 0,
+      "edit_rollback_count": 0,
+      "edit_error_codes": {},
+      "semantic_search_calls": 1,
+      "tool_call_count": 11,
+      "elapsed_seconds": {
+        "average": 22.341348099987954,
+        "median": 22.341348099987954,
+        "p95": 22.341348099987954,
+        "maximum": 22.341348099987954,
+        "total": 22.341348099987954
+      },
+      "failures": []
+    }
+  },
+  "paired": {
+    "complete_pair_count": 0,
+    "both_success": 0,
+    "both_failed": 0,
+    "hybrid_only_success": 0,
+    "rerank_only_success": 0
+  },
+  "run_id": "agent-v3-qwen37flash-pilot-20260819",
+  "model": "qwen3.7-flash",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "code_commit": "305d52ef1f3ed26acd8f46017b26045a1d7be58c",
+  "generated_at": "2026-08-19T07:13:06.648516+00:00"
+}
