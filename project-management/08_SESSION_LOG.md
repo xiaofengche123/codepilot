@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-08-19：STATE-005～STATE-008 状态机控制闭环
+
+### 本轮任务
+
+- 在 `feat/agent-state-machine` 的 `305d52e` 干净基线上完成结构化恢复、最新证据门槛、Diff Review 和外部接口兼容验证。
+- 保持增量设计，不重写 Agent 主循环，不增加 LLM 分类器，不放宽 API/MCP 危险工具策略。
+
+### 审查与实现
+
+- 新增 `RecoveryAction`、`RecoveryDecision` 和纯函数错误映射：SHA/并发冲突重读，匹配失败重新定位，Python 语法失败修订编辑，测试失败分析，超时有限重试，拒绝验证请求批准，不可恢复写入/安全错误终止。
+- recovery budget 在每次进入 RECOVER 前实际生效；恢复与缺证据 directive 使用固定模板、最长500字符，只临时注入下一次模型请求。
+- 新增 `CompletionDecision`；模型提前回答若缺少编辑、最新测试或 review，不立即 FAILED，而是继续到 EDIT/VERIFY/REVIEW，最终只在迭代/预算耗尽、不可恢复错误或验证不可用时失败。
+- 每次真实字节变化推进 `mutation_revision` 并作废旧测试/review；dry-run、no-op、失败、rollback 和预算拒绝不推进。旧 `write_file` 保持兼容并记录 legacy mutation。
+- pytest 返回码0绑定当前 `verified_revision`；其后的实际非空 `git_diff` 才绑定 `reviewed_revision`，记录有界 reviewed paths 并检查明显路径不相交。
+- 工具执行前启用阶段预算；同一 AIMessage 中每个调用无论执行、失败、超预算或终态拒绝都生成匹配 ToolMessage。
+- `agent.run` 增加末尾可选 `task_mode`，不破坏旧位置参数；FastAPI `SubmitRequest` 增加默认 `auto` 的可选字段；冻结缺陷评测 worker 显式使用 `mutation_required`。
+- API 继续自动拒绝 `run_shell`；显式 mutation 无验证通道时以 `verification_unavailable` failed 事件结束。MCP 危险工具默认仍为 `isError=true`。
+
+### 测试
+
+- 状态机定向：`tests/test_execution_state.py` + `tests/test_agent_state_machine.py`，35 passed。
+- CLI/API/MCP、上下文、事件、执行器、工具、Worktree 和评测器兼容回归：通过。
+- 全量：182 passed、4 skipped（前一基线151 passed、4 skipped，新增31个通过用例）。
+- `git diff --check`：通过，仅有既有 Windows LF/CRLF 与用户级 ignore 权限警告。
+- 冻结 `codepilot-test-v1` 与 `agent-tasks-v1` SHA 复核不变；`install.py` 未修改。
+
+### 评测与保护
+
+- 未调用 DeepSeek 或任何付费/真实模型 API，未下载模型，未运行冻结正式评测，未生成或覆盖正式结果。
+- 未修改 `.rag-eval/codepilot-test-v1.json`、`.rag-eval/agent-tasks-v1.json`、冻结 Oracle、`install.py` 或 `.env`。
+- 未 push、未触发 CI；本轮实现与确定性验证完成，真实重复评测待用户新授权。
+
+### 风险与下一步
+
+- `auto` 无法可靠识别“模型完全没有尝试编辑”的修改请求；已知 mutation 调用方应显式声明模式。
+- API 缺少安全 TestRunner，不能通过放开通用 shell 解决。
+- 当前没有统一 `allowed_files`，完整 diff 范围判定留给 M3 Trace/新版任务协议。
+- 下一项：`TRACE-001`。
+
+---
+
 ## 2026-08-17：STATE-001～STATE-004 执行状态基础
 
 ### 本轮任务
@@ -335,6 +376,88 @@
 ### 下一步
 
 - 提交并推送 harness，随后执行 `agent-v2-transactional` 正式复测。
+
+---
+
+## 2026-08-19：Qwen 3.7 Flash 接入与付费 Pilot
+
+### 本轮任务
+
+- 用户授权配置阿里云百炼免费额度 Key，并执行真实模型测试。
+- 新增 `qwen3.7-flash` OpenAI-compatible 路由，保留现有模型自动选择优先级。
+
+### 修改与验证
+
+- `.env` 配置 `DASHSCOPE_API_KEY` 与北京共享兼容端点；文件继续被 `.gitignore` 忽略，密钥未回显。
+- 新增 ModelRouter 路由测试；最小连通调用成功，共 206 tokens。
+- A01 Hybrid 第一次 pilot 暴露评测 Git 基线导致修复后空 diff；worker 改为提交注入缺陷作为隔离 review 基线，并增加确定性 Git 测试。
+- 第二次 pilot 取得成功编辑、测试与非空 diff，但 Qwen 在第 10 次响应才执行 review，最终按 max-iterations 返回。
+- 两次 Oracle 均成功，冻结任务与 Oracle 未修改；没有扩大到完整付费重复评测。
+
+### Git 与下一步
+
+- 分支：`feat/agent-state-machine`；未提交、未推送、未运行 CI。
+- 下一项：`TRACE-001`，优先观测最后一次工具后的证据与 completion decision；解决 RISK-017 后再决定扩大付费评测。
+
+---
+
+## 2026-08-19：TRACE-001 任务级结构化执行轨迹
+
+### 本轮任务
+
+- 任务 ID：`TRACE-001`。
+- 目标：定义并接入 Phase/Retrieval/Edit/Test Trace，解释真实 Agent 失败发生前的客观执行轨迹。
+
+### 修改
+
+- 新增 `task_trace.py`：`TaskTrace`、`PhaseEvent`、`RetrievalTrace`、`EditTrace`、`TestTrace` 和 schema version。
+- 每轮模型调用记录 iteration；合法阶段转移、Diff Review、completion decision 均记录稳定事件。
+- 检索只记录工具名与成功/error code；读取只记录安全路径；编辑记录 byte change、rollback、revision；测试记录 returncode 与 revision。
+- `execution_state.snapshot()`、Server completed/failed 事件和评测 schema v2 可选携带独立 Trace；旧回调和响应字段不变。
+- `failure_stage` 暂不推断，留给 TRACE-004；没有改变 max_iterations 或增加模型调用。
+
+### 测试与安全
+
+- 定向兼容：79 passed、3 skipped。
+- 全量：191 passed、4 skipped；`git diff --check` 通过。
+- Trace 不保存 query、源码、diff、shell 输出或模型上下文；`.env` 路径使用占位符。
+- 冻结任务与 Oracle 未修改；本轮未调用付费 API、未生成新评测结果。
+
+### Git 与下一步
+
+- 分支：`feat/agent-state-machine`；未提交、未推送、未运行 CI。
+- 下一项：`TRACE-002`，集中实现 Trace 脱敏和长度限制策略。
+
+---
+
+## 2026-08-19：完成 TRACE-002～TRACE-006 与 M3
+
+### 本轮任务
+
+- 完成 Trace 脱敏/长度、阶段漏斗、主失败分类、环境/代码区分及 Dashboard/metrics 聚合。
+- 保持现有 Agent、API、MCP 和评测报告必填字段向后兼容；不调用真实模型。
+
+### 修改
+
+- `task_trace.py`：统一标识符/路径/字符串脱敏，检索只提取有界文件路径，所有列表和字符串有硬边界。
+- 新增 `trace_analysis.py`：十级评测漏斗、十类唯一失败阶段、次要原因、失败域和在线 Trace 聚合。
+- `execution_state.py`：终态时立即写入确定性失败分类；最后一轮 review 与 completion decision 继续可区分。
+- Agent worker/runner：新报告写入 expected files、Agent 终态和失败分析；synthetic worker failure 也有 environment 分类。
+- Server/TaskQueue：每个任务保存隔离 Trace；Worktree/模型/Server 失败生成环境 Trace；Prometheus 暴露漏斗和失败标签。
+- Dashboard：新增 Trace 执行漏斗卡片，不读取原始工具输出或 Trace 内容。
+
+### 验证
+
+- 定向 Trace/评测/API：92 passed、3 skipped。
+- 全量：211 passed、4 skipped。
+- 旧40份正式报告只读兼容汇总成功，21个既有失败获得主分类；未覆盖历史结果文件。
+- `git diff --check`、密钥扫描通过；冻结任务和 Oracle 零差异。
+
+### Git 与下一步
+
+- 分支：`feat/agent-state-machine`；未提交、未推送、未运行 CI。
+- 本轮未调用付费 API，未生成新正式结果。
+- M3 完成；下一任务 `ROUTE-001`。
 
 ---
 

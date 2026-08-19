@@ -1,6 +1,6 @@
 # CodePilot 当前状态
 
-更新时间：2026-08-17
+更新时间：2026-08-19
 
 ## 1. 项目定位
 
@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：133 passed，4 skipped。
+- 全量 pytest：182 passed，4 skipped。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-进入 M2 Agent 状态机设计：为检索、阅读、编辑、测试分配阶段预算，避免 Agent 已定位缺陷后仍在搜索或因平台错误命令耗尽10步；同时把 shell/测试解释器、工具超时和失败恢复纳入结构化状态。Rerank 继续保持可选高质量模式，CPU 默认仍使用 Weighted RRF。
+M2 STATE-001～008 与 M3 TRACE-001～006 已完成确定性实现和本地验证。任务 Trace 采用统一脱敏与有界记录，评测报告自动生成十级阶段漏斗、唯一主失败阶段、次要原因和 code/environment/control 域；Server Prometheus 与 Dashboard 暴露在线检索→读取→编辑→测试→review→complete 聚合。Oracle 成功与 Agent COMPLETE 分开统计，环境失败不计入代码能力失败。下一项进入 `ROUTE-001`；完整付费重复评测尚未执行。Rerank 继续保持可选高质量模式，CPU 默认仍使用 Weighted RRF。

@@ -255,7 +255,7 @@ max_recoveries = 2
 
 ## M3：阶段化 Trace 与失败分析
 
-状态：`PLANNED`
+状态：`DONE`
 
 依赖：M2
 

@@ -1,6 +1,6 @@
 # CodePilot 测试与评测规范
 
-更新时间：2026-08-17
+更新时间：2026-08-19
 
 ## 1. 目的
 
@@ -56,11 +56,13 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
-当前已验证：
+STATE-005～008 当前已验证：
 
 ```text
-127 passed, 4 skipped
+182 passed, 4 skipped
 ```
+
+本轮使用 fake model、fake tool executor、临时目录和临时 Git 仓库；未调用真实模型、未运行付费 Agent 评测、未生成新的正式结果文件。新增覆盖结构化恢复、recovery budget、revision 证据失效、强制 Diff Review、多 tool call 拒绝配对、CLI/API/MCP 兼容、并发隔离和状态脱敏。
 
 GitHub Actions 基线：
 
@@ -294,7 +296,25 @@ A03 的两个原始失败只来自 harness 注入的绝对 D 盘模型缓存路�
 7. 不泄漏密钥、冻结集和缓存的测试。
 8. 与现有行为的回归测试。
 
-## 9. 最终简历指标规则
+## 9. Qwen 3.7 Flash 付费 Pilot（2026-08-19）
+
+- 用户明确授权真实 API 调用；凭据只写入被 Git 忽略的 `.env`，未写入报告或日志。
+- 模型：`qwen3.7-flash`；冻结任务：`A01`；条件：Hybrid；未修改冻结任务或 Oracle。
+- 第一次诊断运行 `agent-v3-qwen37flash-pilot-20260819`：Oracle 成功、8 tests passed，但修复回到原 Git 基线后 diff 为空，状态机正确拒绝 COMPLETE。
+- 评测 worker 随后把注入后的缺陷提交为隔离工作树 review 基线；产品侧非空 diff 门槛未放宽。
+- 第二次运行 `agent-v3-qwen37flash-pilot2-20260819`：Oracle 成功、测试通过、非空 `git_diff` 已执行，但模型在第 10 次响应才请求最后的 review，没有第 11 次响应生成最终答案，因此返回 max-iterations。
+- 结论：API 兼容和客观修复能力已得到单任务证据；固定 10 步下的状态机终态收尾尚未得到真实模型成功证据。不得据此宣称完整评测或成功率提升。
+
+## 10. M3 Trace 与失败分析验证（2026-08-19）
+
+- 新评测报告自动保存 `execution_trace`、`agent_final_status`、`agent_completed`、唯一 `failure_stage`、次要原因和失败域。
+- 条件汇总生成十级漏斗：任务、required 命中、正确文件读取、相关测试读取、编辑尝试、目标修改、Oracle、测试执行、测试通过、无范围外修改。
+- 原 Oracle `success` 与 Agent `COMPLETE` 分开：代码恢复但状态机因硬上限失败时，Oracle 可保持成功，控制失败仍被计数。
+- 环境失败优先于代码症状；worker timeout、Worktree 创建、模型/验证通道不可用不会进入代码能力失败计数。
+- 40份 `agent-v2-transactional` 历史报告只读兼容汇总成功；历史报告没有逐轮 Trace，因此兼容漏斗的早期阶段可能为0，不能与新运行直接逐字段比较。
+- 定向92 passed、3 skipped；全量211 passed、4 skipped；未调用真实模型。
+
+## 11. 最终简历指标规则
 
 - 只使用冻结或外部评测结果。
 - 指标必须说明数据集和 K。

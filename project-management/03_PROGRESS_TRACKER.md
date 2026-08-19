@@ -1,6 +1,6 @@
 # CodePilot 进度跟踪表
 
-更新时间：2026-08-17
+更新时间：2026-08-19
 
 ## 1. 使用方法
 
@@ -16,8 +16,8 @@
 |---|---|---|
 | M0 当前基线固化 | `DONE` | dev 基线、测试矩阵与 Docker 均已验证 |
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
-| M2 Agent 状态机 | `IN_PROGRESS` | STATE-001～004 状态基础完成；强制预算与恢复策略待实施 |
-| M3 Trace 与失败分析 | `PLANNED` | 可与状态机同步设计 |
+| M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
+| M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
@@ -136,10 +136,22 @@
   - 验收结果：search/read/edit/test 的真实完成事件更新状态；事务编辑仅 `success=true` 且非 dry-run 计为成功，失败进入 RECOVER；pytest 返回码为0才产生验证成功证据。模型最终文字不能让缺少编辑/验证证据的 mutation 任务进入 COMPLETE。
 - [x] `STATE-004` `DONE`：按检索、阅读、编辑、测试划分预算。
   - 验收结果：新增 discovery/inspect/edit/verify/recovery 可配置预算、计数、剩余额度和 `enforce_budget` 决策接口；`max_iterations` 仍是硬上限。复杂强制调度策略尚未启用。
-- [ ] `STATE-005` `PLANNED`：实现测试失败后的 RECOVER。
-- [ ] `STATE-006` `PLANNED`：完成前强制 Diff 审核。
-- [ ] `STATE-007` `PLANNED`：保持 CLI、Server 和 MCP 兼容。
-- [ ] `STATE-008` `PLANNED`：状态机单元测试和端到端复测。
+- [x] `STATE-005` `DONE`：实现结构化 RECOVER、确定性错误映射、有界临时指令和真正生效的 recovery budget。
+- [x] `STATE-006` `DONE`：引入 mutation/verified/reviewed revision，强制最新测试与非空 `git_diff` review 后才允许 mutation COMPLETE。
+- [x] `STATE-007` `DONE`：保持 CLI、Server、MCP 与评测回调兼容；API 危险 shell 仍默认拒绝并明确返回 `verification_unavailable`。
+- [x] `STATE-008` `DONE`：使用 fake model/fake tool 和临时目录覆盖正常、恢复、证据失效、预算拒绝、多 tool call、并发与脱敏轨迹。
+
+### STATE-005～STATE-008 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 设计：`RecoveryAction`/`RecoveryDecision` 纯映射失败；`CompletionDecision` 在证据不足时继续下一轮而非立即失败；控制指令仅临时插入下一次模型请求。
+- 完成门槛：每次真实字节编辑推进 revision 并作废旧证据；pytest 返回码0绑定当前 revision；最后一次测试后实际执行的非空 `git_diff` 绑定 review revision。
+- 协议：每个 tool call 无论成功、失败、预算拒绝或终态拒绝均生成对应 `ToolMessage`；API/MCP 危险工具策略未放宽。
+- 测试：状态机定向35 passed；CLI/API/MCP 兼容回归通过；全量182 passed、4 skipped；`git diff --check` 通过。
+- 评测：仅确定性测试，未调用真实模型、未生成正式结果；付费重复评测待新授权。
+- 限制：`auto` 在完全没有编辑尝试时无法可靠识别修改请求；API 默认拒绝 shell，显式 mutation 当前可能以 `verification_unavailable` 结束，等待未来安全 TestRunner。
+- 下一任务：`TRACE-001`。
 
 ### STATE-001～STATE-004 完成记录
 
@@ -153,12 +165,22 @@
 
 ## 7. Trace 与失败分析任务
 
-- [ ] `TRACE-001` `PLANNED`：定义 Phase/Retrieval/Edit/Test Trace。
-- [ ] `TRACE-002` `PLANNED`：Trace 脱敏和长度限制。
-- [ ] `TRACE-003` `PLANNED`：实现阶段漏斗统计。
-- [ ] `TRACE-004` `PLANNED`：实现主失败阶段分类。
-- [ ] `TRACE-005` `PLANNED`：区分环境失败和代码失败。
-- [ ] `TRACE-006` `PLANNED`：在 Dashboard 和 metrics 暴露聚合指标。
+- [x] `TRACE-001` `DONE`：定义并接入 Phase/Retrieval/Edit/Test Trace；记录迭代、review 和 completion decision，API snapshot/评测报告向后兼容暴露。
+- [x] `TRACE-002` `DONE`：统一标识符、路径和字符串脱敏；事件、路径、检索文件及失败原因全部有界。
+- [x] `TRACE-003` `DONE`：评测汇总自动生成检索命中、正确读取、测试读取、编辑、Oracle、测试和范围漏斗。
+- [x] `TRACE-004` `DONE`：十类失败按稳定优先级产生唯一主阶段和有界次要原因。
+- [x] `TRACE-005` `DONE`：稳定错误码、worker 状态和有限错误模式区分 code/environment/control；环境失败优先于代码症状。
+- [x] `TRACE-006` `DONE`：TaskQueue 聚合运行时 Trace，Prometheus 和 Dashboard 暴露八级在线执行漏斗及失败标签。
+
+### TRACE-001～TRACE-006 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 设计：采集层 `task_trace.py` 不保存 query、源码、diff、shell 输出或模型上下文；分析层 `trace_analysis.py` 只消费安全 Trace、稳定错误码和 Oracle 字段。
+- 评测：新报告保留原 Oracle `success`，同时增加 `agent_completed`、`failure_stage`、`secondary_failure_reasons`、`failure_domain` 和十级漏斗；Oracle 成功但状态机失败不会被误报为 COMPLETE。
+- 在线：Server 的任务对象保存独立 Trace；Worktree、模型和 worker 级失败归入 environment；Prometheus/Dashboard 展示检索、读取、编辑、测试、review 和完成计数。
+- 验证：Trace/评测/API 定向92 passed、3 skipped；全量211 passed、4 skipped；旧40份正式报告只读兼容汇总成功；冻结数据、密钥扫描与 `git diff --check` 通过。
+- 遗留：旧报告没有逐轮 Trace，只能从兼容字段做失败分类；环境文本模式是保守规则而非根因证明。下一任务 `ROUTE-001`。
 
 ## 8. 自适应检索任务
 
