@@ -12,6 +12,7 @@ import re
 
 
 MAX_ANALYZED_CHARS = 16_384
+MAX_EXTRACTED_IDENTIFIERS = 256
 
 _TOKEN_RE = re.compile(
     r"[A-Za-z_][A-Za-z0-9_]*|\d+|[\u3400-\u4dbf\u4e00-\u9fff]+|[^\W\d_]+",
@@ -129,6 +130,46 @@ def _length_bucket(content_length: int) -> str:
 
 def _inside_any(start: int, end: int, spans: list[tuple[int, int]]) -> bool:
     return any(span_start <= start and end <= span_end for span_start, span_end in spans)
+
+
+def extract_query_identifiers(query: str) -> tuple[str, ...]:
+    """Return bounded, normalized code identifiers for transient scoring.
+
+    The original query is not retained.  Results are deduplicated in encounter
+    order and capped so downstream confidence calculation has a stable memory
+    bound.  Callers should use the identifiers transiently and avoid logging them.
+    """
+    if not isinstance(query, str):
+        raise TypeError("query must be a string")
+
+    text = query[:MAX_ANALYZED_CHARS]
+    code_spans = [
+        match.span()
+        for pattern in (
+            _PATH_RE,
+            _FILE_REFERENCE_RE,
+            _DOTTED_IDENTIFIER_RE,
+            _FUNCTION_CALL_RE,
+        )
+        for match in pattern.finditer(text)
+    ]
+    identifiers: list[str] = []
+    seen: set[str] = set()
+    for token in _TOKEN_RE.finditer(text):
+        value = token.group(0)
+        if not (
+            _inside_any(token.start(), token.end(), code_spans)
+            or _OBVIOUS_IDENTIFIER_RE.fullmatch(value)
+        ):
+            continue
+        normalized = value.casefold()
+        if normalized in seen:
+            continue
+        identifiers.append(normalized)
+        seen.add(normalized)
+        if len(identifiers) >= MAX_EXTRACTED_IDENTIFIERS:
+            break
+    return tuple(identifiers)
 
 
 def extract_query_features(query: str) -> QueryFeatures:
