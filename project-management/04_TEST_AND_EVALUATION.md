@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-002 当前已验证：
+
+```text
+299 passed, 4 skipped
+```
+
+其中 RetrievalPlan 定向56 passed，QueryFeatures/RAG/配置/工具相关回归152 passed；计划模块未接入运行时，没有运行冻结集正式评测、模型或付费 API。
+
 ROUTE-001 当前已验证：
 
 ```text

@@ -494,6 +494,38 @@
 
 ---
 
+## 2026-08-19：ROUTE-002 RetrievalPlan 数据契约
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-002`。
+- 目标：定义确定性、不可变、可解释、可序列化的检索计划，只建立计划契约，不提前实现置信信号、路由器或 RerankPolicy。
+- 基线：`feat/adaptive-retrieval` 的 `e2b33a3aad655612fa45af2c7eda7edc3747615e`；开工时工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改
+
+- 新增 `rag/retrieval_plan.py`：`RetrievalPlan`、schema version、安全上限、JSON-ready `to_dict()` 和固定 RRF 兼容基线计划。
+- 权重只接受有限非负数且不能双零；`rrf_k` 限制1～10,000，候选数限制1～100；文档/Rerank 标志只接受真正的 bool。
+- 原因必须非空、单行且不超过500字符；reason codes 最多16个、唯一并使用稳定小写标识符。
+- 基线计划与 `config.DEFAULTS` 当前参数完全一致并由测试锁定，但 `rag.retriever` 未导入或消费计划，运行时行为不变。
+- 新增 `tests/test_retrieval_plan.py`，覆盖正常计划、纯 BM25/Vector 权重边界、NaN/无穷、类型混淆、上限、不可变性、序列化、解释边界、默认同步和禁止运行时依赖。
+
+### 测试与安全
+
+- RetrievalPlan 定向：56 passed。
+- QueryFeatures/Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：152 passed。
+- 全量：299 passed、4 skipped；`git diff --check` 通过。
+- 未加载模型、未联网、未调用付费 API；未运行正式 RAG 评测或读取 test-v1 结果调参。
+- 冻结数据、Oracle、正式结果和 `install.py` 未修改；`resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- `reason` 的硬边界可以阻止无限文本，但无法判断调用方是否语义上复制 query；未来路由器必须只使用固定解释模板和 reason codes。
+- 本轮没有计算两路排名重合、Top-1 一致性、标识符覆盖、向量 margin 或文件多样性，也没有改变检索选择。
+- 下一任务：`ROUTE-003`。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

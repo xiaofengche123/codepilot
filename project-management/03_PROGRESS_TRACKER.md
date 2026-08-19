@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001 已完成；下一项 ROUTE-002，不得使用 test-v1 调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～002 已完成；下一项 ROUTE-003，不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -185,7 +185,7 @@
 ## 8. 自适应检索任务
 
 - [x] `ROUTE-001` `DONE`：实现 QueryFeatures。
-- [ ] `ROUTE-002` `PLANNED`：实现 RetrievalPlan。
+- [x] `ROUTE-002` `DONE`：实现 RetrievalPlan。
 - [ ] `ROUTE-003` `PLANNED`：实现检索置信信号。
 - [ ] `ROUTE-004` `PLANNED`：实现规则式路由器。
 - [ ] `ROUTE-005` `PLANNED`：实现 RerankPolicy 和延迟预算。
@@ -205,6 +205,20 @@
 - 限制：中英文统计分别限定 CJK 基本区/扩展A和 ASCII 字母；路径、错误、堆栈及跨模块判断是保守词法启发式，存在误报/漏报，不代表语义真值。
 - 评测：未读取冻结 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
 - 下一任务：`ROUTE-002`。
+
+### ROUTE-002 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/retrieval_plan.py`、`tests/test_retrieval_plan.py` 和项目管理文档。
+- 设计：不可变 `RetrievalPlan` 定义 BM25/Vector 权重、`rrf_k`、候选数、文档/Rerank 开关、有界人类可读原因和稳定 reason codes；`to_dict()` 输出显式 schema version 和 JSON-ready 基础类型。
+- 约束：权重必须是有限非负数且不能同时为0；`rrf_k` 限制为1～10,000，候选数限制为1～100；布尔字段拒绝整数替代；原因最多500字符且单行，reason codes 最多16个、唯一且使用有界小写标识符。
+- 兼容计划：`BASELINE_RETRIEVAL_PLAN` 精确对应当前 `config.DEFAULTS` 的固定 Weighted RRF 参数，并由测试防止漂移；它没有接入 `retrieve`，不改变当前配置或运行时行为。
+- 隐私与依赖：结构没有 query、hits 或 results 字段；原因契约禁止复制原始 query并有硬长度边界。模块只依赖标准库，不加载 config、Chroma、Embedding 或 Reranker。
+- 测试：RetrievalPlan 定向56 passed；QueryFeatures/RAG/配置/工具相关回归152 passed；全量299 passed、4 skipped；`git diff --check` 通过。
+- 评测：未读取 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
+- 限制：ROUTE-002 只定义计划契约；尚未计算排名一致性、标识符覆盖率等置信信号，也没有规则路由器或 RerankPolicy。
+- 下一任务：`ROUTE-003`。
 
 ## 9. 结构图任务
 

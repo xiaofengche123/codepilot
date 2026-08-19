@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：243 passed，4 skipped（包含 ROUTE-001 新增的32个确定性特征测试）。
+- 全量 pytest：299 passed，4 skipped（包含 ROUTE-001 的32个特征测试和 ROUTE-002 的56个计划契约测试）。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001` 已完成确定性实现和本地验证。查询特征层使用无模型、无 I/O 的有界词法启发式，不保存原始 query，也尚未接入运行时检索策略。下一项进入 `ROUTE-002`，定义可解释的 `RetrievalPlan`；完整付费重复评测尚未执行。Rerank 继续保持可选高质量模式，CPU 默认仍使用固定 Weighted RRF。
+M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-002` 已完成确定性实现和本地验证。查询特征层与 `RetrievalPlan` 都是无模型、无 I/O 的独立数据层；计划契约已有严格边界和当前固定配置的兼容快照，但尚未接入运行时检索。下一项进入 `ROUTE-003`，实现可解释检索置信信号；完整付费重复评测尚未执行。Rerank 继续保持可选高质量模式，CPU 默认仍使用固定 Weighted RRF。
