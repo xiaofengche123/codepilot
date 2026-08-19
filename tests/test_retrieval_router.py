@@ -7,15 +7,20 @@ import pytest
 from rag.query_features import extract_query_features
 from rag.retrieval_confidence import calculate_retrieval_confidence
 from rag.retrieval_router import (
-    BALANCED_BM25_WEIGHT,
-    BALANCED_VECTOR_WEIGHT,
     BASELINE_BM25_WEIGHT,
     BASELINE_VECTOR_WEIGHT,
+    CROSS_MODULE_BM25_WEIGHT,
+    CROSS_MODULE_CANDIDATE_COUNT,
+    CROSS_MODULE_VECTOR_WEIGHT,
     DEFAULT_CANDIDATE_COUNT,
-    EXPANDED_CANDIDATE_COUNT,
+    DISAGREEMENT_BM25_WEIGHT,
+    DISAGREEMENT_CANDIDATE_COUNT,
+    DISAGREEMENT_VECTOR_WEIGHT,
     EXACT_BM25_WEIGHT,
     EXACT_VECTOR_WEIGHT,
     MIXED_CANDIDATE_COUNT,
+    MIXED_LANGUAGE_BM25_WEIGHT,
+    MIXED_LANGUAGE_VECTOR_WEIGHT,
     NATURAL_LANGUAGE_BM25_WEIGHT,
     NATURAL_LANGUAGE_VECTOR_WEIGHT,
     route_retrieval,
@@ -72,17 +77,17 @@ def test_exact_code_queries_favor_bm25(query):
     "query",
     ["where is authentication handled", "登录认证逻辑在哪里"],
 )
-def test_natural_language_queries_favor_vector_recall(query):
+def test_natural_language_queries_use_development_tuned_code_prior(query):
     plan = _route(query)
     assert plan.bm25_weight == NATURAL_LANGUAGE_BM25_WEIGHT
     assert plan.vector_weight == NATURAL_LANGUAGE_VECTOR_WEIGHT
     assert "query_natural_language" in plan.reason_codes
 
 
-def test_mixed_language_query_uses_balanced_fusion():
+def test_mixed_language_query_adds_bounded_vector_weight():
     plan = _route("登录流程 authentication handler")
-    assert plan.bm25_weight == BALANCED_BM25_WEIGHT
-    assert plan.vector_weight == BALANCED_VECTOR_WEIGHT
+    assert plan.bm25_weight == MIXED_LANGUAGE_BM25_WEIGHT
+    assert plan.vector_weight == MIXED_LANGUAGE_VECTOR_WEIGHT
     assert plan.candidate_count == MIXED_CANDIDATE_COUNT
     assert "query_mixed_language" in plan.reason_codes
 
@@ -96,11 +101,11 @@ def test_mixed_language_query_uses_balanced_fusion():
 )
 def test_cross_module_query_has_highest_query_rule_precedence(query):
     plan = _route(query)
-    assert plan.bm25_weight == BALANCED_BM25_WEIGHT
-    assert plan.vector_weight == BALANCED_VECTOR_WEIGHT
-    assert plan.candidate_count == EXPANDED_CANDIDATE_COUNT
+    assert plan.bm25_weight == CROSS_MODULE_BM25_WEIGHT
+    assert plan.vector_weight == CROSS_MODULE_VECTOR_WEIGHT
+    assert plan.candidate_count == CROSS_MODULE_CANDIDATE_COUNT
     assert "query_cross_module" in plan.reason_codes
-    assert "candidate_pool_expanded" in plan.reason_codes
+    assert "candidate_pool_expanded" not in plan.reason_codes
 
 
 @pytest.mark.parametrize(
@@ -125,7 +130,7 @@ def test_regular_explanation_query_does_not_enable_docs():
     assert plan.include_docs is False
 
 
-def test_low_overlap_top1_disagreement_balances_and_expands():
+def test_low_overlap_top1_disagreement_adds_vector_weight_and_candidates():
     confidence = calculate_retrieval_confidence(
         "AgentSession.run",
         [_hit("vector-a", document="AgentSession"), _hit("shared")],
@@ -135,9 +140,9 @@ def test_low_overlap_top1_disagreement_balances_and_expands():
     plan = _route("AgentSession.run", confidence)
     assert confidence.top1_agreement is False
     assert confidence.overlap_ratio == 0.1
-    assert plan.bm25_weight == BALANCED_BM25_WEIGHT
-    assert plan.vector_weight == BALANCED_VECTOR_WEIGHT
-    assert plan.candidate_count == EXPANDED_CANDIDATE_COUNT
+    assert plan.bm25_weight == DISAGREEMENT_BM25_WEIGHT
+    assert plan.vector_weight == DISAGREEMENT_VECTOR_WEIGHT
+    assert plan.candidate_count == DISAGREEMENT_CANDIDATE_COUNT
     assert "ranking_disagreement" in plan.reason_codes
 
 

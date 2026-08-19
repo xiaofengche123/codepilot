@@ -75,7 +75,8 @@ def test_exact_budget_boundary_is_allowed():
 
 def test_enabled_plan_caps_candidate_count_without_mutating_source():
     plan, features, evidence = _inputs()
-    assert plan.candidate_count == 50
+    assert plan.candidate_count > MAX_RERANK_CANDIDATE_COUNT
+    original_candidate_count = plan.candidate_count
     decision = decide_rerank(
         plan,
         features,
@@ -87,7 +88,7 @@ def test_enabled_plan_caps_candidate_count_without_mutating_source():
     )
     assert decision.plan.candidate_count == MAX_RERANK_CANDIDATE_COUNT
     assert decision.selected_candidate_count == MAX_RERANK_CANDIDATE_COUNT
-    assert plan.candidate_count == 50 and plan.rerank is False
+    assert plan.candidate_count == original_candidate_count and plan.rerank is False
     assert "rerank_candidate_cap_applied" in decision.reason_codes
     assert "rerank_deferred_to_policy" not in decision.plan.reason_codes
 

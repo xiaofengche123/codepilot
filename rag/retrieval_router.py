@@ -1,8 +1,8 @@
 """Deterministic v1 rules mapping query/ranking signals to retrieval plans.
 
-The constants are conservative, pre-tuning defaults.  They were not selected on
-the frozen test set and are intentionally isolated for later development-set
-calibration.  ROUTE-004 does not execute plans or enable reranking.
+The constants are conservative ROUTE-006 development-set selections.  The
+frozen test set and formal results were not read during selection.  This module
+still does not execute plans or enable reranking.
 """
 
 from __future__ import annotations
@@ -18,15 +18,20 @@ BASELINE_BM25_WEIGHT = 2.0
 BASELINE_VECTOR_WEIGHT = 0.25
 EXACT_BM25_WEIGHT = 2.5
 EXACT_VECTOR_WEIGHT = 0.25
-NATURAL_LANGUAGE_BM25_WEIGHT = 0.75
-NATURAL_LANGUAGE_VECTOR_WEIGHT = 1.5
-BALANCED_BM25_WEIGHT = 1.0
-BALANCED_VECTOR_WEIGHT = 1.0
+NATURAL_LANGUAGE_BM25_WEIGHT = 2.5
+NATURAL_LANGUAGE_VECTOR_WEIGHT = 0.25
+MIXED_LANGUAGE_BM25_WEIGHT = 1.5
+MIXED_LANGUAGE_VECTOR_WEIGHT = 0.5
+CROSS_MODULE_BM25_WEIGHT = 2.5
+CROSS_MODULE_VECTOR_WEIGHT = 0.25
+DISAGREEMENT_BM25_WEIGHT = 2.0
+DISAGREEMENT_VECTOR_WEIGHT = 0.5
 
 DEFAULT_RRF_K = 10
 DEFAULT_CANDIDATE_COUNT = 30
-MIXED_CANDIDATE_COUNT = 40
-EXPANDED_CANDIDATE_COUNT = 50
+MIXED_CANDIDATE_COUNT = 30
+CROSS_MODULE_CANDIDATE_COUNT = 30
+DISAGREEMENT_CANDIDATE_COUNT = 40
 
 IDENTIFIER_DOMINANT_RATIO = 0.5
 NATURAL_LANGUAGE_DOMINANT_RATIO = 0.75
@@ -38,10 +43,10 @@ _REASON_TEXT = {
     "query_empty": "empty query uses compatibility defaults",
     "query_baseline": "ambiguous query uses compatibility defaults",
     "query_exact_code": "exact code evidence favors BM25",
-    "query_natural_language": "natural-language intent favors vector recall",
-    "query_mixed_language": "mixed-language query uses balanced fusion",
-    "query_cross_module": "cross-module intent uses balanced expanded recall",
-    "ranking_disagreement": "low-overlap Top-1 disagreement uses balanced expanded recall",
+    "query_natural_language": "natural-language query uses the development-tuned code-search prior",
+    "query_mixed_language": "mixed-language query adds bounded vector weight",
+    "query_cross_module": "cross-module query uses the conservative code-search prior",
+    "ranking_disagreement": "low-overlap Top-1 disagreement adds bounded vector weight and candidates",
     "ranking_agreement": "both retrievers agree on Top-1",
     "identifiers_fully_covered": "candidate union covers all query identifiers",
     "bm25_only_available": "only BM25 results are available",
@@ -78,13 +83,13 @@ def route_retrieval(
     if features.token_count == 0:
         reasons.append("query_empty")
     elif features.has_cross_module_intent:
-        bm25_weight = BALANCED_BM25_WEIGHT
-        vector_weight = BALANCED_VECTOR_WEIGHT
-        candidate_count = EXPANDED_CANDIDATE_COUNT
-        reasons.extend(("query_cross_module", "candidate_pool_expanded"))
+        bm25_weight = CROSS_MODULE_BM25_WEIGHT
+        vector_weight = CROSS_MODULE_VECTOR_WEIGHT
+        candidate_count = CROSS_MODULE_CANDIDATE_COUNT
+        reasons.append("query_cross_module")
     elif features.is_mixed_language:
-        bm25_weight = BALANCED_BM25_WEIGHT
-        vector_weight = BALANCED_VECTOR_WEIGHT
+        bm25_weight = MIXED_LANGUAGE_BM25_WEIGHT
+        vector_weight = MIXED_LANGUAGE_VECTOR_WEIGHT
         candidate_count = MIXED_CANDIDATE_COUNT
         reasons.append("query_mixed_language")
     elif _is_natural_language(features):
@@ -121,10 +126,10 @@ def route_retrieval(
                 confidence.top1_agreement is False
                 and confidence.overlap_ratio <= LOW_RANKING_OVERLAP_RATIO
             ):
-                bm25_weight = BALANCED_BM25_WEIGHT
-                vector_weight = BALANCED_VECTOR_WEIGHT
+                bm25_weight = DISAGREEMENT_BM25_WEIGHT
+                vector_weight = DISAGREEMENT_VECTOR_WEIGHT
                 candidate_count = max(
-                    candidate_count, EXPANDED_CANDIDATE_COUNT
+                    candidate_count, DISAGREEMENT_CANDIDATE_COUNT
                 )
                 reasons.append("ranking_disagreement")
                 if "candidate_pool_expanded" not in reasons:
