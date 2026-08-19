@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-003 当前已验证：
+
+```text
+339 passed, 4 skipped
+```
+
+其中检索置信信号定向40 passed，QueryFeatures/Plan/RAG/配置/工具相关回归192 passed；信号是纯本地排名计算，不是概率，没有执行真实检索、模型、冻结集正式评测或付费 API。
+
 ROUTE-002 当前已验证：
 
 ```text

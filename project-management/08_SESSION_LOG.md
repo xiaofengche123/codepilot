@@ -526,6 +526,39 @@
 
 ---
 
+## 2026-08-19：ROUTE-003 可解释检索置信信号
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-003`。
+- 目标：从调用方提供的 Vector/BM25 排名计算确定性信号，不执行检索、不生成概率，也不提前实现规则路由器。
+- 基线：`feat/adaptive-retrieval` 的 `b60fd92beeb6da179e7350bf0ca2b2d344f91e54`；开工时工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改
+
+- `rag/query_features.py` 新增有界、去重、大小写折叠的瞬时查询标识符提取，最多256个；QueryFeatures 结构及既有输出不变。
+- 新增 `rag/retrieval_confidence.py`：不可变 `RetrievalConfidenceSignals`、JSON-ready schema 和纯函数 `calculate_retrieval_confidence`。
+- 重合率使用双路 Top-K 唯一 UID 交集除以固定K；Top-1 缺一路时为 `None`；候选并集用于标识符覆盖和文件多样性。
+- Vector margin 保留原始 higher-is-better 分数差，不归一化、不称为概率；NaN、无穷、类型错误、超大整数或不足两项时返回 `None`，逆序分数显式标记。
+- K限制1～100；query 分析沿用16,384码点上限；候选文件名/文档字段各最多扫描20,000字符。输出不保存 query、标识符内容、文档、hits 或 UID列表。
+
+### 测试与安全
+
+- 检索置信信号定向：40 passed；连同 QueryFeatures 定向：72 passed。
+- QueryFeatures/Plan/Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：192 passed。
+- 全量：339 passed、4 skipped；`git diff --check` 通过。
+- 未执行真实检索、未加载模型、未联网、未调用付费 API；未运行正式 RAG 评测或读取 test-v1 结果调参。
+- 冻结数据、Oracle、正式结果和 `install.py` 未修改；`resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- 标识符覆盖只做精确代码词元匹配，不进行 camel/snake 互转、同义词或语义匹配。
+- 原始 Vector margin 的尺度依赖具体模型和索引，ROUTE-004 只能把它作为可解释输入，不能宣称概率或跨模型统一阈值。
+- 本轮未生成或执行 `RetrievalPlan`，没有 RerankPolicy 或延迟预算。
+- 下一任务：`ROUTE-004`。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

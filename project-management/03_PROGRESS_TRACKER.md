@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～002 已完成；下一项 ROUTE-003，不得使用 test-v1 调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～003 已完成；下一项 ROUTE-004，不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -186,7 +186,7 @@
 
 - [x] `ROUTE-001` `DONE`：实现 QueryFeatures。
 - [x] `ROUTE-002` `DONE`：实现 RetrievalPlan。
-- [ ] `ROUTE-003` `PLANNED`：实现检索置信信号。
+- [x] `ROUTE-003` `DONE`：实现检索置信信号。
 - [ ] `ROUTE-004` `PLANNED`：实现规则式路由器。
 - [ ] `ROUTE-005` `PLANNED`：实现 RerankPolicy 和延迟预算。
 - [ ] `ROUTE-006` `PLANNED`：在开发集调参，不读取 test-v1 结果。
@@ -219,6 +219,21 @@
 - 评测：未读取 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
 - 限制：ROUTE-002 只定义计划契约；尚未计算排名一致性、标识符覆盖率等置信信号，也没有规则路由器或 RerankPolicy。
 - 下一任务：`ROUTE-003`。
+
+### ROUTE-003 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/query_features.py`、`rag/retrieval_confidence.py`、`tests/test_retrieval_confidence.py` 和项目管理文档。
+- 设计：不可变 `RetrievalConfidenceSignals` 保存 Top-K 两路结果数、重合数/率、可缺省 Top-1 一致性、查询标识符数/命中数/覆盖率、可缺省 Vector Top-1/Top-2 原始分数差、候选/文件计数、多样性比例及固定 reason codes。
+- 确定性定义：重合率为双路唯一 UID 交集数除以固定 `top_k`；标识符覆盖在两路 Top-K 唯一候选并集的有界文件名/文档词元上计算；文件多样性为唯一文件数除以唯一候选数；Vector margin 是 higher-is-better 的原始 `top1.score - top2.score`，逆序时钳制为0并显式标记。
+- 缺失语义：任一路无结果时 Top-1 一致性为 `None`；少于两个有限向量分数时 margin 为 `None`；所有空分母比例定义为0.0。没有生成聚合置信分或概率。
+- 有界与隐私：`top_k` 限制1～100，查询仍只分析前16,384码点且最多提取256个临时标识符，每个候选的文件名和文档字段各最多扫描20,000字符；输出不保存 query、标识符列表、文档或 hits。
+- 运行时：模块只消费调用方提供的排名，不执行检索、不读取 config、不加载模型，也不选择 `RetrievalPlan`；现有固定 RRF/Rerank 行为不变。
+- 测试：置信信号定向40 passed；QueryFeatures/Plan/RAG/配置/工具相关回归192 passed；全量339 passed、4 skipped；`git diff --check` 通过。
+- 评测：未读取 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
+- 限制：标识符覆盖是大小写折叠后的精确代码词元匹配，不做语义同义词或命名风格转换；Vector margin 保留模型原始尺度，不能跨模型直接比较。
+- 下一任务：`ROUTE-004`。
 
 ## 9. 结构图任务
 
