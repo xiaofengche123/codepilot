@@ -135,6 +135,18 @@ search_semantic
 - 代价：当前没有统一 `allowed_files`，仅记录有界 reviewed paths 并检测明显的 modified/reviewed 路径不相交；完整范围策略留给 M3 Trace/新版任务协议。
 - 验证：fake model/fake tool 集成轨迹、真实临时 Git 仓库 diff 格式、CLI/API/MCP 兼容与全量回归；未调用付费模型。
 
+### ADR-014：QueryFeatures 使用有界确定性词法启发式
+
+- 日期：2026-08-19
+- 状态：`ACCEPTED`
+- 背景：M4 需要先客观描述查询形态，再由后续任务生成检索计划；本阶段不能提前引入路由、调权或第二个模型分类器。
+- 决策：新增独立不可变 `QueryFeatures` 和纯函数 `extract_query_features`。字段覆盖查询长度、词元数、标识符/自然语言比例、中英文比例、混合语言、路径、配置点号键、错误/异常、堆栈痕迹、跨模块意图和固定 reason codes。
+- 确定性规则：标识符来自点号标识符、路径/文件引用、函数调用、snake_case、camelCase、类名和大写常量；自然语言是未归为标识符的字母/CJK 词元；路径、配置键、异常名、错误词和常见 Python/Java 堆栈帧使用预编译正则；跨模块由显式关系短语、至少两个不同文件引用，或多个代码引用加关系词触发。
+- 语义边界：所有分类都是可解释启发式，不是语义真值或置信概率；跨模块、配置键和自然语言判断允许保守的误报/漏报。ROUTE-001 不产生 `RetrievalPlan`，也不改变固定 RRF 或 Rerank 默认值。
+- 隐私与有界性：结构不保存 query、检索结果、源码或模型内容。只分析前16,384个 Unicode 码点，保留完整字符数和截断 reason code；正则不作用于无限输入，比例空分母定义为0.0并统一限制到 `[0.0, 1.0]`。
+- 依赖：模块只使用 Python 标准库，不读文件系统、不联网、不调用 LLM、Embedding、Chroma 或 Reranker。
+- 验证：32个本地确定性测试覆盖任务样例、空白、Unicode、超长输入、序列化、不可变性、重复调用和禁止模型导入；全量243 passed、4 skipped。
+
 ### ADR-009：结构图只做检索后扩展
 
 - 状态：`PLANNED`

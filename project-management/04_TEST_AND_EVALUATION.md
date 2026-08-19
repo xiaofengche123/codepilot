@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-001 当前已验证：
+
+```text
+243 passed, 4 skipped
+```
+
+其中 QueryFeatures 定向32 passed，相关 RAG/配置/工具回归64 passed；全部使用纯本地确定性输入，未加载模型、未调用网络或付费 API，也未运行冻结集正式评测。
+
 STATE-005～008 当前已验证：
 
 ```text

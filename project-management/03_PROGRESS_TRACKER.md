@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `PLANNED` | 不得使用 test-v1 调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001 已完成；下一项 ROUTE-002，不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -184,7 +184,7 @@
 
 ## 8. 自适应检索任务
 
-- [ ] `ROUTE-001` `PLANNED`：实现 QueryFeatures。
+- [x] `ROUTE-001` `DONE`：实现 QueryFeatures。
 - [ ] `ROUTE-002` `PLANNED`：实现 RetrievalPlan。
 - [ ] `ROUTE-003` `PLANNED`：实现检索置信信号。
 - [ ] `ROUTE-004` `PLANNED`：实现规则式路由器。
@@ -192,6 +192,19 @@
 - [ ] `ROUTE-006` `PLANNED`：在开发集调参，不读取 test-v1 结果。
 - [ ] `ROUTE-007` `PLANNED`：建立新独立验证集。
 - [ ] `ROUTE-008` `PLANNED`：对比固定 RRF、纯 Vector 和自适应策略。
+
+### ROUTE-001 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/query_features.py`、`tests/test_query_features.py` 和项目管理文档。
+- 设计：不可变 `QueryFeatures` 仅保存原始字符数、有界分析长度/长度桶、词元数、标识符/自然语言/中英文比例、混合语言及路径、配置键、错误、堆栈和跨模块启发式布尔值，并附固定 reason codes；不保存原始 query。
+- 有界与隐私：最多分析前16,384个 Unicode 码点；所有正则只作用于该窗口，空分母为0.0，比例限制在 `[0.0, 1.0]`，超长输入保留精确字符数并标记 `analysis_truncated`。
+- 运行时：模块只依赖 Python 标准库，不读文件、不联网、不加载 Embedding/Reranker/LLM；未接入 `retrieve` 或调整 BM25/Vector/RRF/Rerank 行为。
+- 测试：QueryFeatures 定向32 passed；检索/精排/评测/索引/配置/工具相关回归64 passed；全量243 passed、4 skipped；`git diff --check` 通过。
+- 限制：中英文统计分别限定 CJK 基本区/扩展A和 ASCII 字母；路径、错误、堆栈及跨模块判断是保守词法启发式，存在误报/漏报，不代表语义真值。
+- 评测：未读取冻结 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
+- 下一任务：`ROUTE-002`。
 
 ## 9. 结构图任务
 

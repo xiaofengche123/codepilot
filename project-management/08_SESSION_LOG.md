@@ -461,6 +461,39 @@
 
 ---
 
+## 2026-08-19：ROUTE-001 确定性查询特征层
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-001`。
+- 目标：实现确定性、可解释、可测试的 `QueryFeatures`，只回答“查询是什么样”，不实现检索路由或动态调权。
+- 基线：从 `7c3f0265609983b0aa5b28a741c3297fc517ff3e` 创建本地 `feat/adaptive-retrieval`；开工时上游差异0/0，工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改
+
+- 新增 `rag/query_features.py`：不可变、可序列化的 `QueryFeatures` 与纯函数 `extract_query_features`。
+- 字段包括完整字符数、有界分析长度/长度桶、词元数、标识符/自然语言比例、中英文字符比例、混合语言，以及路径、配置键、错误、堆栈和跨模块启发式与固定 reason codes。
+- 标识符由点号符号、文件/路径、函数调用、snake_case、camelCase、类名和大写常量确定；跨模块由显式短语、多文件引用或多个代码引用加关系词确定。
+- 最多分析前16,384个 Unicode 码点；空分母为0.0，比例限制在 `[0.0, 1.0]`；结果不保存原始 query，超长输入仅保存精确长度和截断标记。
+- 新模块只依赖标准库，未接入 `rag.retriever`，没有改变 BM25、Vector、Weighted RRF 或 Rerank 的运行时行为。
+
+### 测试与安全
+
+- QueryFeatures 定向：32 passed。
+- Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：64 passed。
+- 全量：243 passed、4 skipped；`git diff --check` 通过。
+- 覆盖空白、标识符、点号键、POSIX/Windows 路径、文件行号、Python traceback、异常、纯中/英文、中英混合、代码命名、跨模块、超长、Unicode、比例边界、不可变/无原文、重复调用和禁止模型导入。
+- 未读取 test-v1 结果设计阈值，未修改冻结数据或正式结果；未下载/加载模型，未联网，未调用付费 API。
+- `resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- CJK/英文比例使用显式字符范围；路径、错误、堆栈和跨模块均为词法启发式，不是语义真值，可能存在误报或漏报。
+- 本轮未实现 `RetrievalPlan`、动态权重、RerankPolicy、置信信号或评测调参。
+- 下一任务：`ROUTE-002`。
+
+---
+
 ## 新会话日志模板
 
 ```markdown
