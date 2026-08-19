@@ -592,6 +592,38 @@
 
 ---
 
+## 2026-08-19：ROUTE-005 RerankPolicy 与延迟预算
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-005`。
+- 目标：实现独立、确定性、可解释的 Rerank 资格策略和结构化延迟预算，不接入运行时。
+- 基线：`feat/adaptive-retrieval` 的 `19fdc4d2b73632ef50950d0fb5b353909e54f6f4`；开工时工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改
+
+- 新增 `rag/rerank_policy.py`：不可变、JSON-ready 的 `LatencyBudget`、`RerankCostEstimate`、`RerankDecision` 和纯函数 `decide_rerank`。
+- 启用需要调用方显式允许、模型可用、跨模块意图、双路候选、Top-1 分歧、重合率不高于0.2且估计成本落在剩余预算内；高置信精确匹配优先跳过。
+- 剩余预算按总预算减已消耗和预留时间计算并钳制为0；成本由调用方提供固定项与每候选项，策略不读时钟或硬编码本机 P95。
+- 启用时精排候选最多30；拒绝时保持原候选数。所有结果使用固定解释，不保存 query、hits、文档或模型输出。
+- Retriever 未导入该模块，当前固定 Weighted RRF、现有检索模式和默认关闭 Rerank 的运行时行为不变。
+
+### 测试与安全
+
+- RerankPolicy 定向：52 passed。
+- QueryFeatures/Plan/信号/Router/Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：274 passed。
+- 全量：421 passed、4 skipped；`git diff --check` 通过。
+- 未执行真实检索、未加载/下载模型、未联网、未调用付费 API；未运行正式 RAG 评测或读取 test-v1 结果调参。
+- 冻结数据、Oracle、正式结果和 `install.py` 未修改；`resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- 当前只证明策略和数据契约；尚未接入 Retriever，未验证质量、400ms P95或 Rerank 调用比例。
+- 成本估计的准确性由调用方负责；0.2分歧阈值和30候选上限仍需仅在开发集校准。
+- 下一任务：`ROUTE-006`。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

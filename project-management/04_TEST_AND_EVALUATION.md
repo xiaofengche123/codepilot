@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-005 当前已验证：
+
+```text
+421 passed, 4 skipped
+```
+
+其中 RerankPolicy 定向52 passed，QueryFeatures/Plan/信号/Router/RAG/配置/工具相关回归274 passed；策略未接入 Retriever，延迟预算与成本估计均由调用方显式提供，未运行真实模型、正式评测或付费 API。400ms P95与 Rerank 调用比例仍待运行时接线和独立验证，不能由单元测试宣称达成。
+
 ROUTE-004 当前已验证：
 
 ```text

@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～004 已完成；下一项 ROUTE-005，不得使用 test-v1 调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～005 已完成；下一项 ROUTE-006，仅用开发集调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -188,7 +188,7 @@
 - [x] `ROUTE-002` `DONE`：实现 RetrievalPlan。
 - [x] `ROUTE-003` `DONE`：实现检索置信信号。
 - [x] `ROUTE-004` `DONE`：实现规则式路由器。
-- [ ] `ROUTE-005` `PLANNED`：实现 RerankPolicy 和延迟预算。
+- [x] `ROUTE-005` `DONE`：实现 RerankPolicy 和延迟预算。
 - [ ] `ROUTE-006` `PLANNED`：在开发集调参，不读取 test-v1 结果。
 - [ ] `ROUTE-007` `PLANNED`：建立新独立验证集。
 - [ ] `ROUTE-008` `PLANNED`：对比固定 RRF、纯 Vector 和自适应策略。
@@ -250,6 +250,20 @@
 - 评测：未运行真实检索、正式 RAG 或付费 Agent 评测；冻结数据未修改。
 - 限制：尚无 RerankPolicy、延迟预算或运行时接线；v1 常量只证明确定性和协议正确，不证明质量最优。
 - 下一任务：`ROUTE-005`。
+
+### ROUTE-005 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/rerank_policy.py`、`tests/test_rerank_policy.py` 和项目管理文档。
+- 数据契约：不可变 `LatencyBudget` 明确总预算、已消耗时间、预留时间和钳制为非负的剩余预算；不可变 `RerankCostEstimate` 使用调用方提供的固定成本和每候选成本；不可变 `RerankDecision` 返回新计划、开关、候选数、预算/估计值和固定 reason codes，均可 JSON 序列化。
+- 策略：只有调用方显式允许、模型可用、查询具有跨模块意图、Vector/BM25 双路都有结果、Top-1 不同且固定-K重合率不高于0.2，并且估计成本不超过剩余预算时启用 Rerank。高置信精确匹配、缺信号、单路缺失、证据不足或预算不足均确定性关闭。
+- 有界与隐私：实际精排候选最多30；数值拒绝布尔、NaN、无穷和负值；解释使用固定模板，不保存 query、hits、文档或模型内容。延迟值由调用方提供，未把本机历史 P95 硬编码成通用阈值。
+- 运行时：策略不读时钟、config 或文件，不执行检索、不加载模型；`rag.retriever` 未导入策略，当前固定 Weighted RRF、四种模式和默认关闭 Rerank 的行为不变。
+- 测试：RerankPolicy 定向52 passed；特征/Plan/信号/Router/RAG/配置/工具相关回归274 passed；全量421 passed、4 skipped；`git diff --check` 通过。
+- 评测：未读取 test-v1 或正式结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
+- 限制：v1 资格规则、0.2分歧阈值和30候选上限尚未经开发集校准；调用方必须提供可信的机器/模型成本估计；尚未验证 P95、质量收益或 Rerank 调用比例。
+- 下一任务：`ROUTE-006`。
 
 ## 9. 结构图任务
 
