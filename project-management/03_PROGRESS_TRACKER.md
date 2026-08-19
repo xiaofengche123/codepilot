@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～003 已完成；下一项 ROUTE-004，不得使用 test-v1 调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～004 已完成；下一项 ROUTE-005，不得使用 test-v1 调参 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -187,7 +187,7 @@
 - [x] `ROUTE-001` `DONE`：实现 QueryFeatures。
 - [x] `ROUTE-002` `DONE`：实现 RetrievalPlan。
 - [x] `ROUTE-003` `DONE`：实现检索置信信号。
-- [ ] `ROUTE-004` `PLANNED`：实现规则式路由器。
+- [x] `ROUTE-004` `DONE`：实现规则式路由器。
 - [ ] `ROUTE-005` `PLANNED`：实现 RerankPolicy 和延迟预算。
 - [ ] `ROUTE-006` `PLANNED`：在开发集调参，不读取 test-v1 结果。
 - [ ] `ROUTE-007` `PLANNED`：建立新独立验证集。
@@ -234,6 +234,22 @@
 - 评测：未读取 test-v1 结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
 - 限制：标识符覆盖是大小写折叠后的精确代码词元匹配，不做语义同义词或命名风格转换；Vector margin 保留模型原始尺度，不能跨模型直接比较。
 - 下一任务：`ROUTE-004`。
+
+### ROUTE-004 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/query_features.py`、`rag/retrieval_router.py`、`tests/test_retrieval_router.py` 和项目管理文档。
+- 输入输出：纯函数 `route_retrieval(QueryFeatures, RetrievalConfidenceSignals | None) -> RetrievalPlan`；严格要求已验证的结构化输入，不读取 query、config、文件或模型。
+- 查询规则：精确代码使用 BM25/Vector `2.5/0.25`；自然语言使用 `0.75/1.5`；中英混合和跨模块使用 `1.0/1.0`；不明确/空查询保持当前 `2.0/0.25`。跨模块候选扩到50，中英混合为40，其余为30，`rrf_k` 保持10。
+- 置信规则：只有 BM25/Vector 有结果时分别退化为 `1/0` 或 `0/1`；两路都无候选回到兼容默认；Top-1 不同且固定-K重合率不高于0.2时使用平衡权重并把候选扩到50。Top-1 一致和标识符全覆盖只记录解释，不伪造概率。
+- 文档与 Rerank：QueryFeatures 增加显式 documentation/README/guide/文档意图，命中时 `include_docs=true`；所有 ROUTE-004 计划均强制 `rerank=false` 并写入延后策略 reason code，等待 ROUTE-005。
+- 调参纪律：上述权重、阈值和候选数是代码审查可见的 v1 保守常量，未读取 test-v1 或正式结果选择；必须到 ROUTE-006 才能使用开发集调参。
+- 运行时：`rag.retriever` 未导入路由器，当前固定配置、四种检索模式和默认关闭 Rerank 的行为不变。
+- 测试：路由定向30 passed；特征/Plan/信号/RAG/配置/工具相关回归222 passed；全量369 passed、4 skipped；`git diff --check` 通过。
+- 评测：未运行真实检索、正式 RAG 或付费 Agent 评测；冻结数据未修改。
+- 限制：尚无 RerankPolicy、延迟预算或运行时接线；v1 常量只证明确定性和协议正确，不证明质量最优。
+- 下一任务：`ROUTE-005`。
 
 ## 9. 结构图任务
 

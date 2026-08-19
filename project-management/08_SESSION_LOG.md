@@ -559,6 +559,39 @@
 
 ---
 
+## 2026-08-19：ROUTE-004 确定性规则路由器
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-004`。
+- 目标：把 QueryFeatures 和可选 RetrievalConfidenceSignals 映射为可解释 RetrievalPlan，不接入运行时，也不提前实现 RerankPolicy。
+- 基线：`feat/adaptive-retrieval` 的 `3a663984dd012f35c4e1f89e59db97bcaef5d57a`；开工时工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改
+
+- `rag/query_features.py` 增加显式文档意图布尔特征和 `documentation_intent` reason code，不保存 query。
+- 新增 `rag/retrieval_router.py`：固定 v1 规则、优先级、权重、候选数、阈值和纯函数 `route_retrieval`。
+- 精确代码偏 BM25，自然语言偏 Vector，混合/跨模块/低重合分歧使用平衡融合；单路无结果时退化为可用检索器，双路皆空回到兼容默认。
+- 显式 documentation/README/guide/文档意图打开 `include_docs`；一般功能解释不打开。
+- 所有计划均固定 `rrf_k=10`、`rerank=false`，解释由固定模板生成；Retriever 未导入路由器，运行时行为不变。
+- 权重和阈值未读取 test-v1 或正式结果，属于 ROUTE-006 前的预声明 v1 常量，不宣称最优。
+
+### 测试与安全
+
+- 规则路由器定向：30 passed；四层特征/Plan/信号/Router 定向：158 passed。
+- QueryFeatures/Plan/信号/Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：222 passed。
+- 全量：369 passed、4 skipped；`git diff --check` 通过。
+- 未执行真实检索、未加载模型、未联网、未调用付费 API；未运行正式 RAG 评测或读取 test-v1 结果调参。
+- 冻结数据、Oracle、正式结果和 `install.py` 未修改；`resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- 路由器目前只生成计划，尚未接入 Retriever；因此本轮证明规则和契约正确，不证明召回或端到端收益。
+- Rerank 始终关闭；跨模块分歧只扩大候选，等待独立延迟预算和策略。
+- 下一任务：`ROUTE-005`。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

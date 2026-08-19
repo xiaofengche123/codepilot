@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-004 当前已验证：
+
+```text
+369 passed, 4 skipped
+```
+
+其中规则路由器定向30 passed，QueryFeatures/Plan/信号/RAG/配置/工具相关回归222 passed；规则参数未使用 test-v1 或正式结果调参，路由器未接入运行时且所有计划保持 `rerank=false`。
+
 ROUTE-003 当前已验证：
 
 ```text

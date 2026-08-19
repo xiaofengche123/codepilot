@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：339 passed，4 skipped（包含 ROUTE-001 的32个特征测试、ROUTE-002 的56个计划契约测试和 ROUTE-003 的40个置信信号测试）。
+- 全量 pytest：369 passed，4 skipped（包含 ROUTE-001～003 的特征/计划/信号测试和 ROUTE-004 的30个规则路由测试）。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-003` 已完成确定性实现和本地验证。查询特征、`RetrievalPlan` 和排名置信信号都是无模型、无 I/O 的独立纯数据/计算层；信号覆盖双路重合、Top-1 一致性、标识符覆盖、原始向量 margin 和文件多样性，但尚未接入运行时检索。下一项进入 `ROUTE-004`，实现可解释规则路由器；完整付费重复评测尚未执行。Rerank 继续保持可选高质量模式，CPU 默认仍使用固定 Weighted RRF。
+M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-004` 已完成确定性实现和本地验证。规则路由器现在能按查询形态、双路一致性和单路可用性生成经过校验的 `RetrievalPlan`，并支持显式文档意图；所有规则仍是未调参的纯函数，尚未接入运行时检索且始终关闭 Rerank。下一项进入 `ROUTE-005`，实现独立 RerankPolicy 和延迟预算；完整付费重复评测尚未执行。CPU 默认仍使用固定 Weighted RRF。
