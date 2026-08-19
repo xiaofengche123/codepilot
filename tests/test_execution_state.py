@@ -8,8 +8,10 @@ from agent import AgentSession
 from execution_state import (
     AgentPhase,
     PhaseBudgets,
+    RecoveryAction,
     TaskExecutionState,
     TaskMode,
+    recovery_decision_for_edit,
 )
 
 
@@ -19,6 +21,8 @@ def _edit_result(success=True, error_code=None, path="src/app.py", **extra):
         "path": path,
         "error_code": error_code,
         "rolled_back": extra.get("rolled_back", False),
+        "before_sha256": extra.get("before_sha256", "a" * 64),
+        "after_sha256": extra.get("after_sha256", "b" * 64 if success else None),
     })
 
 
@@ -88,9 +92,7 @@ def test_search_read_edit_and_verify_events_update_objective_evidence():
     assert state.current_phase is AgentPhase.REVIEW
 
 
-@pytest.mark.parametrize(
-    "error_code", ["sha_mismatch", "match_count_mismatch", "write_failed", "rollback_failed"]
-)
+@pytest.mark.parametrize("error_code", ["sha_mismatch", "match_count_mismatch"])
 def test_transactional_edit_failure_enters_recover(error_code):
     state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
     state.observe_tool_result(
@@ -101,6 +103,17 @@ def test_transactional_edit_failure_enters_recover(error_code):
     assert state.current_phase is AgentPhase.RECOVER
     assert state.recovery_count == 1
     assert state.last_error_code == error_code
+
+
+@pytest.mark.parametrize("error_code", ["write_failed", "rollback_failed", "symlink_escape"])
+def test_unrecoverable_transactional_edit_failure_fails(error_code):
+    state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
+    state.observe_tool_result(
+        "edit_file_transaction", {"path": "src/app.py"},
+        _edit_result(False, error_code, rolled_back=error_code == "rollback_failed"),
+    )
+    assert state.current_phase is AgentPhase.FAILED
+    assert state.terminal_reason == "unrecoverable_edit_failure"
 
 
 def test_failed_test_enters_recover_and_records_returncode():
@@ -145,8 +158,60 @@ def test_mutation_task_cannot_complete_without_edit_and_verification_evidence():
     result = state.request_completion()
     assert result.accepted is False
     assert result.error_code == "completion_evidence_missing"
-    assert state.current_phase is AgentPhase.FAILED
-    assert "successful_edit" in state.terminal_reason
+    assert state.current_phase is AgentPhase.EDIT
+    assert state.terminal_reason is None
+    assert state.pending_directive
+
+
+def test_recovery_mapping_is_deterministic_and_bounded():
+    decision = recovery_decision_for_edit("sha_mismatch")
+    assert decision.action is RecoveryAction.REREAD_TARGET
+    assert decision.target_phase is AgentPhase.INSPECT
+    assert decision.recoverable is True
+    assert len(decision.directive) <= 500
+    assert "source" not in decision.directive.lower()
+
+
+def test_noop_dry_run_and_rollback_do_not_advance_revision():
+    state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
+    state.observe_tool_result(
+        "edit_file_transaction", {"dry_run": True}, _edit_result()
+    )
+    state.observe_tool_result(
+        "edit_file_transaction", {},
+        _edit_result(True, before_sha256="a" * 64, after_sha256="a" * 64),
+    )
+    state.observe_tool_result(
+        "edit_file_transaction", {},
+        _edit_result(False, "write_verification_failed", rolled_back=True),
+    )
+    assert state.mutation_revision == 0
+    assert state.edit_success_count == 0
+
+
+def test_review_requires_nonempty_diff_after_latest_verification():
+    state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
+    state.observe_tool_result("edit_file_transaction", {}, _edit_result())
+    state.observe_tool_result("git_diff", {}, "diff --git a/src/app.py b/src/app.py\n+++ b/src/app.py")
+    assert state.reviewed_revision is None
+    assert state.last_error_code == "diff_review_before_verification"
+
+    state.observe_tool_result(
+        "run_shell", {"command": "pytest -q"}, "ok\n[returncode] 0"
+    )
+    state.observe_tool_result("git_diff", {}, "[完成] git diff 执行成功（无输出）")
+    assert state.reviewed_revision is None
+    assert state.last_error_code == "diff_review_empty"
+
+
+def test_legacy_write_is_compatible_but_recorded_as_legacy_mutation():
+    state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
+    state.observe_tool_result(
+        "write_file", {"path": "new.py"}, "[成功] 已写入 new.py"
+    )
+    assert state.mutation_revision == 1
+    assert state.legacy_mutation_count == 1
+    assert state.modified_files == ["new.py"]
 
 
 def test_read_only_task_can_complete_without_edit():
@@ -169,6 +234,21 @@ def test_snapshot_excludes_tool_content_secrets_and_shell_output():
     assert "secret-value" not in serialized
     assert "private-output" not in serialized
     assert "source" * 10 not in serialized
+
+
+def test_untrusted_edit_error_is_normalized_before_snapshot():
+    state = TaskExecutionState(task_mode=TaskMode.MUTATION_REQUIRED)
+    state.observe_tool_result(
+        "edit_file_transaction", {}, json.dumps({
+            "success": False,
+            "error_code": "API_KEY=secret-value",
+            "path": "x.py",
+            "rolled_back": False,
+        }),
+    )
+    serialized = json.dumps(state.snapshot())
+    assert "secret-value" not in serialized
+    assert state.last_error_code == "edit_failed"
 
 
 def test_concurrent_states_do_not_share_counters_or_history():

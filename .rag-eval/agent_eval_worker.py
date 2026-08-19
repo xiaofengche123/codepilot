@@ -17,6 +17,16 @@ def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _commit_injected_state(root: Path, task_id: str, condition: str) -> None:
+    """Make the injected defect the review baseline inside the isolated worker."""
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", f"injected defect {task_id} {condition}"],
+        cwd=root,
+        check=True,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", required=True)
@@ -50,6 +60,8 @@ def main() -> None:
             raise RuntimeError(f"{task['id']} mutation 不是唯一匹配: {mutation['file']}")
         path.write_text(source.replace(mutation["old"], mutation["new"], 1), encoding="utf-8", newline="\n")
 
+    _commit_injected_state(root, task["id"], args.condition)
+
     tracked = [
         path for path in root.rglob("*")
         if path.is_file()
@@ -71,11 +83,13 @@ def main() -> None:
     started = time.perf_counter()
     error = None
     answer = ""
+    session = None
     try:
         session = AgentSession(
             working_dir=str(root), memory_dir=str(root / ".codepilot/eval-memory"),
             session_id=f"{task['id']}-{args.condition}", model_name=args.model,
             confirm=lambda _name, _arguments: True, max_iterations=10,
+            task_mode="mutation_required",
         )
         answer = session.run(
             task["prompt"],
@@ -130,11 +144,25 @@ def main() -> None:
         "modified_expected_file": modified_expected_file,
         "mutation_restored": mutation_restored,
         "unexpected_files": sorted(set(changed_by_agent) - expected_files),
+        "expected_files": sorted(expected_files),
         "test_returncode": test.returncode, "test_output": (test.stdout + test.stderr)[-4000:],
         "agent_error": error, "answer": answer[-4000:], "tool_calls": tool_calls,
         "index_message": index_message,
+        "execution_trace": (
+            session.execution_state.trace_snapshot() if session is not None else None
+        ),
         **edit_metrics,
     }
+    report["agent_final_status"] = (
+        report["execution_trace"].get("final_status")
+        if isinstance(report.get("execution_trace"), dict) else None
+    )
+    report["agent_completed"] = report["agent_final_status"] == "complete"
+    from trace_analysis import analyze_report
+    classification = analyze_report(report)
+    report.update(classification)
+    if isinstance(report.get("execution_trace"), dict):
+        report["execution_trace"].update(classification)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 

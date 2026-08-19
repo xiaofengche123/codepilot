@@ -92,6 +92,10 @@
   .stat-item .val.r { color: var(--rose); }
   .stat-item .val.b { color: var(--blue); }
   .stat-item .lbl { font-size: 11px; color: var(--faint); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .trace-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .trace-step { background:var(--surface2); border-radius:8px; padding:12px; }
+  .trace-step .n { display:block; font-size:20px; font-weight:700; color:var(--cyan); }
+  .trace-step .t { font-size:10px; color:var(--faint); }
 
   /* input */
   .prompt-area { width: 100%; min-height: 88px; padding: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; line-height: 1.7; color: var(--text); resize: vertical; }
@@ -207,6 +211,20 @@
     <div class="stat-item"><span class="val c" id="s-done">0</span><span class="lbl">已完成</span></div>
     <div class="stat-item"><span class="val r" id="s-fail">0</span><span class="lbl">失败</span></div>
     <div class="stat-item"><span class="val b" id="s-tools">15</span><span class="lbl">工具</span></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">Trace 执行漏斗 <span class="badge-count" id="trace-total">0</span></div>
+    <div class="trace-grid">
+      <div class="trace-step"><span class="n" id="tr-retrieval">0</span><span class="t">检索</span></div>
+      <div class="trace-step"><span class="n" id="tr-inspected">0</span><span class="t">读取</span></div>
+      <div class="trace-step"><span class="n" id="tr-edit">0</span><span class="t">编辑尝试</span></div>
+      <div class="trace-step"><span class="n" id="tr-edit-ok">0</span><span class="t">编辑成功</span></div>
+      <div class="trace-step"><span class="n" id="tr-test">0</span><span class="t">执行测试</span></div>
+      <div class="trace-step"><span class="n" id="tr-test-ok">0</span><span class="t">测试通过</span></div>
+      <div class="trace-step"><span class="n" id="tr-review">0</span><span class="t">Review 通过</span></div>
+      <div class="trace-step"><span class="n" id="tr-complete">0</span><span class="t">完整完成</span></div>
+    </div>
   </div>
 
   <div class="dash-grid">
@@ -329,6 +347,15 @@ async function refresh(){
     document.getElementById('s-done').textContent=m.codepilot_tasks_completed||0;
     document.getElementById('s-fail').textContent=m.codepilot_tasks_failed||0;
     document.getElementById('s-running').textContent=m.codepilot_tasks_running||0;
+    document.getElementById('trace-total').textContent=m.codepilot_trace_tasks_total||0;
+    document.getElementById('tr-retrieval').textContent=m.codepilot_trace_retrieval_attempted||0;
+    document.getElementById('tr-inspected').textContent=m.codepilot_trace_inspected||0;
+    document.getElementById('tr-edit').textContent=m.codepilot_trace_edit_attempted||0;
+    document.getElementById('tr-edit-ok').textContent=m.codepilot_trace_edit_succeeded||0;
+    document.getElementById('tr-test').textContent=m.codepilot_trace_test_executed||0;
+    document.getElementById('tr-test-ok').textContent=m.codepilot_trace_test_passed||0;
+    document.getElementById('tr-review').textContent=m.codepilot_trace_review_passed||0;
+    document.getElementById('tr-complete').textContent=m.codepilot_trace_completed||0;
     const usage=Math.min(100,Math.round((m.codepilot_tasks_running||0)/5*100));
     document.getElementById('usage-bar').style.width=usage+'%';document.getElementById('usage-pct').textContent=usage;
     try{const hr=await fetch(A+'/health');const hd=await hr.json();document.getElementById('s-tools').textContent=hd.tools_count||15;}catch(e){}

@@ -9,6 +9,8 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable
 
+from trace_analysis import aggregate_trace_funnel, analyze_report
+
 
 RUN_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
@@ -41,7 +43,8 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
 
     failures = []
     for report in reports:
-        if report.get("success") is True:
+        analysis = analyze_report(report)
+        if report.get("success") is True and analysis["failure_stage"] is None:
             continue
         failures.append({
             "task_id": report.get("task_id"),
@@ -52,6 +55,7 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
             "edit_attempted": bool(report.get("edit_attempted")),
             "edit_error_codes": report.get("edit_error_codes", {}),
             "unexpected_files": report.get("unexpected_files", []),
+            **analysis,
         })
 
     count = len(reports)
@@ -59,10 +63,25 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
     modified_expected = sum(
         report.get("modified_expected_file") is True for report in reports
     )
+    analyzed = [analyze_report(report) for report in reports]
+    failure_stages = Counter(
+        item["failure_stage"] for item in analyzed if item["failure_stage"]
+    )
+    failure_domains = Counter(
+        item["failure_domain"] for item in analyzed if item["failure_domain"]
+    )
     return {
         "run_count": count,
         "success_count": success_count,
         "success_rate": success_count / count if count else 0.0,
+        "agent_completed_count": sum(
+            isinstance(report.get("execution_trace"), dict)
+            and report["execution_trace"].get("final_status") == "complete"
+            for report in reports
+        ),
+        "classified_failure_count": sum(
+            item["failure_stage"] is not None for item in analyzed
+        ),
         "modified_expected_file_count": modified_expected,
         "modified_expected_file_rate": modified_expected / count if count else 0.0,
         "mutation_restored_count": sum(
@@ -103,6 +122,9 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "tool_call_count": sum(
             int(report.get("tool_call_count", 0)) for report in reports
         ),
+        "trace_funnel": aggregate_trace_funnel(reports),
+        "failure_stages": dict(sorted(failure_stages.items())),
+        "failure_domains": dict(sorted(failure_domains.items())),
         "elapsed_seconds": {
             "average": mean(elapsed) if elapsed else 0.0,
             "median": median(elapsed) if elapsed else 0.0,

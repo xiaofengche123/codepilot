@@ -49,6 +49,16 @@ def _report(task_id, condition, success, *, elapsed=1.0, unexpected=None):
         "tool_call_count": 5,
         "test_returncode": 0 if success else 1,
         "agent_error": None,
+        "expected_files": ["src/app.py"],
+        "execution_trace": {
+            "retrieval_calls": [{"result_files": ["src/app.py"]}],
+            "inspected_files": ["src/app.py", "tests/test_app.py"],
+            "edit_attempts": [{"success": success}],
+            "test_runs": [{"success": success}],
+            "changed_files": ["src/app.py"] if success else [],
+            "phases": [],
+            "final_status": "complete" if success else "failed",
+        },
     }
 
 
@@ -70,6 +80,8 @@ def test_summary_reports_condition_metrics_failures_and_pairs():
     assert hybrid["run_count"] == 4
     assert hybrid["success_count"] == 2
     assert hybrid["success_rate"] == 0.5
+    assert hybrid["agent_completed_count"] == 2
+    assert hybrid["classified_failure_count"] == 2
     assert hybrid["edit_precondition_failure_count"] == 2
     assert hybrid["edit_error_codes"] == {"match_count_mismatch": 2}
     assert hybrid["tasks_with_unexpected_files"] == 1
@@ -81,6 +93,13 @@ def test_summary_reports_condition_metrics_failures_and_pairs():
         "total": 160.0,
     }
     assert [failure["task_id"] for failure in hybrid["failures"]] == ["A02", "A04"]
+    assert hybrid["trace_funnel"]["tasks_total"] == 4
+    assert hybrid["trace_funnel"]["retrieval_hit_required"] == 4
+    assert hybrid["failure_stages"] == {
+        "edit_precondition_failed": 1,
+        "unexpected_file_change": 1,
+    }
+    assert hybrid["failure_domains"] == {"code": 2}
     assert summary["paired"] == {
         "complete_pair_count": 4,
         "both_success": 1,

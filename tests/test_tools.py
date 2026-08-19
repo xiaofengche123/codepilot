@@ -146,6 +146,31 @@ class TestGitTools:
         result = git_commit("", path=str(Path(__file__).parent.parent))
         assert "不能为空" in result or "不是 git" in result
 
+    def test_git_command_failure_has_stable_error_prefix(self, monkeypatch):
+        from tools import git_tools
+
+        failed = subprocess.CompletedProcess(["git"], 7, stdout="", stderr="fatal: bad")
+        monkeypatch.setattr(git_tools.subprocess, "run", lambda *args, **kwargs: failed)
+        result = git_tools._run_git(["diff"], ".")
+        assert result.startswith("[错误] git diff 执行失败 (returncode 7)")
+
+    def test_git_diff_real_empty_and_nonempty_formats(self, tmp_path):
+        from tools.git_tools import git_diff
+
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "config", "user.name", "CodePilot Tests"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "config", "user.email", "tests@example.com"], cwd=tmp_path, check=True)
+        target = tmp_path / "app.py"
+        target.write_text("value = 1\n", encoding="utf-8")
+        subprocess.run(["git", "add", "app.py"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "base"], cwd=tmp_path, check=True)
+
+        assert "无输出" in git_diff(path=str(tmp_path))
+        target.write_text("value = 2\n", encoding="utf-8")
+        result = git_diff(path=str(tmp_path))
+        assert "diff --git a/app.py b/app.py" in result
+        assert "+++ b/app.py" in result
+
 
 class TestWorkdirInjection:
     """execute_tool 的 workdir 注入：相对路径基于 workdir 解析，且不改变进程 cwd。"""

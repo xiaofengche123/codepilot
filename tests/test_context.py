@@ -70,6 +70,24 @@ def test_trim_keeps_tool_pair_intact():
     assert body.index(tool_msgs[0]) == body.index(ai_with_tc[0]) + 1
 
 
+def test_trim_never_keeps_partial_multi_tool_response():
+    cm = ContextManager(max_tokens=55)
+    msgs = [
+        SystemMessage(content="sys"),
+        AIMessage(content="", tool_calls=[
+            {"name": "a", "args": {}, "id": "1"},
+            {"name": "b", "args": {}, "id": "2"},
+        ]),
+        ToolMessage(content="first result", tool_call_id="1"),
+        ToolMessage(content="second result", tool_call_id="2"),
+        HumanMessage(content="latest"),
+    ]
+    out = cm.trim(msgs)
+    body = _body(out)
+    assert not any(isinstance(item, ToolMessage) for item in body)
+    assert body[-1].content == "latest"
+
+
 def test_truncation_note_not_duplicated():
     """多轮 trim 不会累积多条截断提示。"""
     cm = ContextManager(max_tokens=50)

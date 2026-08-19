@@ -125,7 +125,7 @@ def _worker_failure_report(
     error: str,
     elapsed: float,
 ) -> dict:
-    return {
+    report = {
         "schema_version": 2,
         "task_id": task_id,
         "condition": condition,
@@ -162,6 +162,9 @@ def _worker_failure_report(
         "worker_failure": True,
         "worker_returncode": returncode,
     }
+    from trace_analysis import analyze_report
+    report.update(analyze_report(report))
+    return report
 
 
 def _worker_environment(temp_dir: Path) -> dict[str, str]:

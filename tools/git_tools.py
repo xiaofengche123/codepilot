@@ -28,10 +28,16 @@ def _run_git(args: list, cwd: str) -> str:
             timeout=30, cwd=cwd,
         )
         output = result.stdout + result.stderr
-        if not output.strip():
-            return f"[完成] git {' '.join(args)} 执行成功（无输出）"
         from config import config
         _max_chars = config.get("tools.diff_max_chars", 3000)
+        if result.returncode != 0:
+            detail = output[:_max_chars]
+            return (
+                f"[错误] git {' '.join(args)} 执行失败 "
+                f"(returncode {result.returncode})\n{detail}"
+            ).rstrip()
+        if not output.strip():
+            return f"[完成] git {' '.join(args)} 执行成功（无输出）"
         return output[:_max_chars]
     except subprocess.TimeoutExpired:
         return "[超时] 命令执行超时"

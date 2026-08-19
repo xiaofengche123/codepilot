@@ -8,6 +8,7 @@
 import asyncio
 import os
 import threading
+import time
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -21,6 +22,8 @@ from config import config
 from task_queue import Task, TaskQueue
 from worktree_manager import WorktreeManager
 from events import get_event_buffer, TaskEvent
+from trace_analysis import FAILURE_STAGES
+from task_trace import TaskTrace
 
 # ── 调度器封装 ────────────────────────────────────────────────
 
@@ -40,6 +43,32 @@ def _get_worktree_manager(project_dir: str) -> WorktreeManager:
         return manager
 
 
+def _state_trace_snapshot(state) -> dict | None:
+    if state is None:
+        return None
+    trace_snapshot = getattr(state, "trace_snapshot", None)
+    if callable(trace_snapshot):
+        return trace_snapshot()
+    snapshot = state.snapshot()
+    trace = snapshot.get("trace") if isinstance(snapshot, dict) else None
+    return trace if isinstance(trace, dict) else None
+
+
+def _environment_failure_trace(task: Task, reason_code: str) -> dict:
+    trace = TaskTrace(task_id=task.id, session_id=task.session_id)
+    trace.record_transition(
+        from_phase="init", to_phase="failed", reason=reason_code,
+        iteration=0, triggering_tool=None, timestamp=time.time(),
+    )
+    trace.set_failure_classification({
+        "failure_stage": "environment_failure",
+        "secondary_failure_reasons": [],
+        "failure_domain": "environment",
+        "failure_reason_code": reason_code,
+    })
+    return trace.snapshot()
+
+
 async def _executor(task: Task):
     """后台执行一个 Agent 任务（在独立 worktree 中）。"""
     from agent import AgentSession
@@ -54,6 +83,9 @@ async def _executor(task: Task):
     worktree_mgr = _get_worktree_manager(task.project_dir)
     worktree_path = worktree_mgr.create(task.id)
     if not worktree_path:
+        task.execution_trace = _environment_failure_trace(
+            task, "worktree_creation_failed"
+        )
         _event_buffer.append(TaskEvent(task.id, "failed", data={
             "error": f"无法创建 Git Worktree: {task.project_dir}",
         }))
@@ -77,6 +109,8 @@ async def _executor(task: Task):
     def on_stream(chunk: str):
         _event_buffer.append(TaskEvent(task.id, "stream", data={"content": chunk}))
 
+    state = None
+    server_failure_code = "server_execution_error"
     try:
         wd = worktree_path
         # 无论是否显式指定模型，每个任务都创建独立 LLM 实例。
@@ -88,9 +122,12 @@ async def _executor(task: Task):
             task_id=task.id,
             model_name=model_name,
             confirm=confirm_dangerous,
+            task_mode=task.task_mode,
         )
         if session.model_unavailable:
+            server_failure_code = "model_unavailable"
             raise RuntimeError(f"模型不可用或未配置 API Key: {model_name}")
+        state = session.execution_state
 
         # session.run 是同步阻塞调用，放到线程池执行，
         # 否则会卡住事件循环，所有并发任务和 HTTP 请求都被阻塞
@@ -101,15 +138,35 @@ async def _executor(task: Task):
             on_stream,
         )
 
+        state = getattr(session, "execution_state", None)
+        task.execution_trace = _state_trace_snapshot(state)
+        if state is not None and state.current_phase.value == "failed":
+            raise RuntimeError(state.terminal_reason or "agent_execution_failed")
+
         diff = worktree_mgr.collect_diff(worktree_path)
 
         _event_buffer.append(TaskEvent(task.id, "completed", data={
             "answer": answer[:200], "diff": diff,
+            "execution_state": state.snapshot() if state is not None else None,
         }))
         return {"answer": answer, "diff": diff}
 
     except Exception as e:
-        _event_buffer.append(TaskEvent(task.id, "failed", data={"error": str(e)}))
+        failure_data = {"error": str(e)}
+        if state is not None:
+            state_trace = _state_trace_snapshot(state)
+            if state_trace is not None and state_trace.get("final_status") == "failed":
+                task.execution_trace = state_trace
+            else:
+                task.execution_trace = _environment_failure_trace(
+                    task, server_failure_code
+                )
+            failure_data["execution_state"] = state.snapshot()
+        elif task.execution_trace is None:
+            task.execution_trace = _environment_failure_trace(
+                task, server_failure_code
+            )
+        _event_buffer.append(TaskEvent(task.id, "failed", data=failure_data))
         raise
     finally:
         if worktree_path and worktree_path != task.project_dir:
@@ -156,6 +213,11 @@ class SubmitRequest(BaseModel):
         default=None,
         description="会话标识；相同项目和 session_id 共享持久化对话历史",
     )
+    task_mode: str = Field(
+        default="auto",
+        pattern="^(auto|read_only|mutation_required)$",
+        description="任务模式；默认 auto 保持兼容",
+    )
 
 
 class SubmitResponse(BaseModel):
@@ -197,6 +259,7 @@ async def submit_task(req: SubmitRequest):
         project_dir=str(manager.repo_root),
         model=req.model,
         session_id=req.session_id,
+        task_mode=req.task_mode,
     )
     _event_buffer.append(TaskEvent(task.id, "created", data={
         "user_input": req.input, "project": req.project_dir,
@@ -259,11 +322,20 @@ async def health():
 async def metrics():
     """Prometheus 格式指标端点。"""
     if _task_queue is None:
-        return PlainTextResponse(
-            "codepilot_tasks_total 0\ncodepilot_tasks_completed 0\ncodepilot_tasks_failed 0\n",
-            media_type="text/plain",
-        )
-    stats = _task_queue.stats()
+        stats = {
+            "total": 0, "completed": 0, "failed": 0, "running": 0,
+            "pending": 0, "cancelled": 0,
+            "trace": {
+                "tasks_total": 0, "retrieval_attempted": 0, "inspected": 0,
+                "edit_attempted": 0, "edit_succeeded": 0,
+                "test_executed": 0, "test_passed": 0,
+                "review_passed": 0, "completed": 0,
+                "failure_stages": {}, "failure_domains": {},
+            },
+        }
+    else:
+        stats = _task_queue.stats()
+    trace = stats.get("trace", {})
     lines = [
         "# HELP codepilot_tasks_total Total tasks submitted",
         "# TYPE codepilot_tasks_total counter",
@@ -283,7 +355,40 @@ async def metrics():
         "# HELP codepilot_tasks_cancelled Total cancelled tasks",
         "# TYPE codepilot_tasks_cancelled counter",
         f"codepilot_tasks_cancelled {stats['cancelled']}",
+        "# HELP codepilot_trace_tasks_total Tasks with structured execution traces",
+        "# TYPE codepilot_trace_tasks_total gauge",
+        f"codepilot_trace_tasks_total {trace.get('tasks_total', 0)}",
     ]
+    for name in (
+        "retrieval_attempted", "inspected", "edit_attempted", "edit_succeeded",
+        "test_executed", "test_passed", "review_passed", "completed",
+    ):
+        metric = f"codepilot_trace_{name}"
+        lines.extend([
+            f"# HELP {metric} Traced tasks reaching {name}",
+            f"# TYPE {metric} gauge",
+            f"{metric} {trace.get(name, 0)}",
+        ])
+    lines.extend([
+        "# HELP codepilot_trace_failures_total Trace failures by primary stage",
+        "# TYPE codepilot_trace_failures_total gauge",
+    ])
+    failure_stages = trace.get("failure_stages", {})
+    for stage in FAILURE_STAGES:
+        lines.append(
+            f'codepilot_trace_failures_total{{stage="{stage}"}} '
+            f'{failure_stages.get(stage, 0)}'
+        )
+    lines.extend([
+        "# HELP codepilot_trace_failure_domains_total Trace failures by domain",
+        "# TYPE codepilot_trace_failure_domains_total gauge",
+    ])
+    failure_domains = trace.get("failure_domains", {})
+    for domain in ("code", "environment", "control"):
+        lines.append(
+            f'codepilot_trace_failure_domains_total{{domain="{domain}"}} '
+            f'{failure_domains.get(domain, 0)}'
+        )
     return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain")
 
 

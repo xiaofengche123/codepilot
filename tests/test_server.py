@@ -6,11 +6,12 @@ CI 上无 Key 时自动跳过。
 """
 
 import os
+from pathlib import Path
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
-from server import app
+from server import SubmitRequest, app
 
 needs_api_key = pytest.mark.skipif(
     os.getenv("CODEPILOT_RUN_LLM_TESTS") != "1"
@@ -43,6 +44,19 @@ async def test_metrics(client):
     response = await client.get("/metrics")
     assert response.status_code == 200
     assert "codepilot_tasks_total" in response.text
+    assert "codepilot_trace_tasks_total" in response.text
+    assert "codepilot_trace_review_passed" in response.text
+    assert "codepilot_trace_failures_total" in response.text
+
+
+def test_dashboard_exposes_trace_funnel_metrics():
+    dashboard = (Path(__file__).parents[1] / "static" / "dashboard.html").read_text(
+        encoding="utf-8"
+    )
+    assert "Trace 执行漏斗" in dashboard
+    assert "codepilot_trace_edit_attempted" in dashboard
+    assert "codepilot_trace_test_passed" in dashboard
+    assert "codepilot_trace_review_passed" in dashboard
 
 
 @needs_api_key
@@ -100,6 +114,13 @@ async def test_submit_rejects_non_git_project(client, tmp_path):
     })
     assert resp.status_code == 400
     assert "Git" in resp.json()["detail"]
+
+
+def test_submit_request_task_mode_is_optional_and_validated():
+    assert SubmitRequest(input="hello").task_mode == "auto"
+    assert SubmitRequest(input="fix", task_mode="mutation_required").task_mode == "mutation_required"
+    with pytest.raises(Exception):
+        SubmitRequest(input="bad", task_mode="unsafe")
 
 
 @needs_api_key

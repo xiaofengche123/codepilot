@@ -6,7 +6,7 @@
 agent:
   max_iterations: 10
   max_context_tokens: 8000
-  # M2 第一阶段只提供计数与决策接口；总迭代数仍是硬上限。
+  # M2 状态机在执行前强制各阶段预算；总迭代数仍是硬上限。
   phase_budgets:
     discovery_budget: 3
     inspect_budget: 8

@@ -9,6 +9,8 @@ import time
 from enum import Enum
 from typing import Optional
 
+from trace_analysis import aggregate_runtime_traces
+
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -27,6 +29,7 @@ class Task:
         project_dir: str,
         model: str = None,
         session_id: str = None,
+        task_mode: str = "auto",
     ):
         Task._id_counter += 1
         self.id = f"task-{Task._id_counter:06d}"
@@ -34,11 +37,13 @@ class Task:
         self.project_dir = project_dir
         self.model = model
         self.session_id = session_id or self.id
+        self.task_mode = task_mode
         self.status = TaskStatus.PENDING
         self.result: Optional[str] = None
         self.error: Optional[str] = None
         self.diff: Optional[str] = None
         self.created_at = time.time()
+        self.execution_trace: Optional[dict] = None
 
 
 class TaskQueue:
@@ -102,4 +107,9 @@ class TaskQueue:
         counts = {status.value: 0 for status in TaskStatus}
         for t in self._tasks.values():
             counts[t.status.value] += 1
-        return {"total": len(self._tasks), **counts}
+        trace_metrics = aggregate_runtime_traces(
+            task.execution_trace
+            for task in self._tasks.values()
+            if task.execution_trace is not None
+        )
+        return {"total": len(self._tasks), **counts, "trace": trace_metrics}

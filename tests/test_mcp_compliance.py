@@ -3,6 +3,7 @@ import sys
 
 from mcp.client import MCPClientConnection, MCPClientManager
 from mcp.protocol import JSONRPCNotification, JSONRPCRequest, JSONRPCError
+import mcp.server as mcp_server_module
 from mcp.server import MCPServer
 
 
@@ -31,6 +32,50 @@ def test_server_returns_protocol_error_for_unknown_tool():
     response = server._dispatch(request)
     assert isinstance(response, JSONRPCError)
     assert response.error["code"] == -32602
+
+
+def test_tools_list_schema_and_dangerous_call_error_shape():
+    server = MCPServer()
+    listed = server._dispatch(JSONRPCRequest(id=1, method="tools/list", params={}))
+    assert len(listed.result["tools"]) == 16
+    assert all("inputSchema" in tool for tool in listed.result["tools"])
+
+    rejected = server._dispatch(JSONRPCRequest(
+        id=2, method="tools/call",
+        params={"name": "run_shell", "arguments": {"command": "pytest -q"}},
+    ))
+    assert rejected.result["isError"] is True
+    assert rejected.result["content"][0]["type"] == "text"
+
+
+def test_structured_edit_json_is_not_double_encoded(monkeypatch):
+    payload = json.dumps({"success": True, "error_code": None})
+    monkeypatch.setattr(mcp_server_module, "execute_tool", lambda *args, **kwargs: payload)
+    response = MCPServer()._dispatch(JSONRPCRequest(
+        id=3, method="tools/call",
+        params={"name": "edit_file_transaction", "arguments": {
+            "path": "x.py", "edits": [{"old_text": "a", "new_text": "b"}],
+        }},
+    ))
+    text = response.result["content"][0]["text"]
+    assert text == payload
+    assert json.loads(text)["success"] is True
+
+
+def test_allowed_mcp_shell_preserves_returncode_marker(monkeypatch):
+    original_get = mcp_server_module.config.get
+    monkeypatch.setattr(
+        mcp_server_module.config, "get",
+        lambda key, default=None: True if key == "mcp.allow_dangerous" else original_get(key, default),
+    )
+    monkeypatch.setattr(
+        mcp_server_module, "execute_tool", lambda *args, **kwargs: "ok\n[returncode] 0"
+    )
+    response = MCPServer()._dispatch(JSONRPCRequest(
+        id=4, method="tools/call",
+        params={"name": "run_shell", "arguments": {"command": "pytest -q"}},
+    ))
+    assert response.result["content"][0]["text"].endswith("[returncode] 0")
 
 
 def test_failed_connection_cleans_up_subprocess():

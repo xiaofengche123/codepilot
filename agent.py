@@ -157,42 +157,89 @@ class AgentSession:
             self.execution_state.begin_iteration(_iteration + 1)
             # 每轮迭代前裁剪：循环中累积的工具结果会持续占用上下文
             messages = self.context_mgr.trim(messages)
+            directive = self.execution_state.consume_pending_directive()
+            call_messages = self._with_control_directive(messages, directive)
             response, tool_calls = self._stream_llm(
-                llm_with_tools, messages, on_stream,
+                llm_with_tools, call_messages, on_stream,
             )
 
             messages.append(response)
 
             if not tool_calls:
                 answer = response.content or ""
-                self.execution_state.request_completion("model_response_finished")
-                if answer:
-                    save_turn(
-                        self.memory_dir, user_input, answer,
-                        session_id=self.session_id,
-                    )
-                return answer
+                completion = self.execution_state.request_completion(
+                    "model_response_finished"
+                )
+                if completion.accepted:
+                    if answer:
+                        save_turn(
+                            self.memory_dir, user_input, answer,
+                            session_id=self.session_id,
+                        )
+                    return answer
+                if self.execution_state.is_terminal:
+                    break
+                # Missing objective evidence is a controlled re-plan, not an
+                # immediate failure and not a completed answer.
+                continue
 
             for tc in tool_calls:
                 tool_name = tc.get("name", "")
                 tool_args = tc.get("args", {})
                 tc_id = tc.get("id", "")
 
-                result = self._execute_tool(tool_name, tool_args)
+                if self.execution_state.is_terminal:
+                    result = self._tool_rejection("task_already_terminal")
+                else:
+                    category = self.execution_state.tool_budget_category(
+                        tool_name, tool_args
+                    )
+                    budget = (
+                        self.execution_state.budget_decision(category)
+                        if category else None
+                    )
+                    if budget is not None and budget.exhausted:
+                        code = budget.terminal_reason or "tool_budget_exhausted"
+                        self.execution_state.reject_tool(code)
+                        result = self._tool_rejection(code)
+                    else:
+                        result = self._execute_tool(tool_name, tool_args)
+                        self.execution_state.observe_tool_result(
+                            tool_name, tool_args, result,
+                        )
 
-                self.execution_state.observe_tool_result(
-                    tool_name, tool_args, result,
-                )
-
-                # Preserve the AIMessage/tool-call protocol pairing before any
-                # optional observer code runs.
+                # Every requested tool call receives a matching ToolMessage,
+                # including budget, policy and terminal-state rejections.
                 messages.append(ToolMessage(content=result, tool_call_id=tc_id))
 
                 if on_tool_call:
                     on_tool_call(tool_name, tool_args, result)
 
-        self.execution_state.fail("max_iterations_exhausted")
-        return f"已达到最大执行步数（{self.max_iterations}步），任务可能未完成。请拆分任务后重试。"
+            if self.execution_state.is_terminal:
+                break
+
+        if not self.execution_state.is_terminal:
+            self.execution_state.fail("max_iterations_exhausted")
+        if self.execution_state.terminal_reason == "max_iterations_exhausted":
+            return f"已达到最大执行步数（{self.max_iterations}步），任务可能未完成。请拆分任务后重试。"
+        return f"任务未完成：{self.execution_state.terminal_reason or 'agent_execution_failed'}"
+
+    @staticmethod
+    def _tool_rejection(error_code: str) -> str:
+        return json.dumps(
+            {"success": False, "error_code": error_code},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+    @staticmethod
+    def _with_control_directive(messages: list, directive: str | None) -> list:
+        if not directive:
+            return messages
+        controlled = list(messages)
+        insert_at = 1 if controlled and isinstance(controlled[0], SystemMessage) else 0
+        controlled.insert(insert_at, SystemMessage(content=directive))
+        return controlled
 
     def _stream_llm(self, llm_with_tools, messages, on_stream):
         """流式调用 LLM，返回 (完整 AIMessage, 解析好的 tool_calls 列表)。
@@ -200,6 +247,7 @@ class AgentSession:
         优先使用 LangChain 内置的 AIMessageChunk 累加后的 tool_calls；
         若失败则回退到 invoke() 非流式调用。
         """
+        streamed_text = ""
         try:
             full_response = None
             for chunk in llm_with_tools.stream(messages):
@@ -210,6 +258,7 @@ class AgentSession:
                 chunk_content = getattr(chunk, "content", "")
                 if chunk_content and on_stream:
                     on_stream(chunk_content)
+                    streamed_text += chunk_content
 
             if full_response is None:
                 return AIMessage(content=""), []
@@ -225,16 +274,22 @@ class AgentSession:
             # 流式失败时回退到非流式；已流出的 chunk 不重复，
             # 但 invoke 的完整内容需要补发给调用方，否则用户看不到任何输出
             response = llm_with_tools.invoke(messages)
-            if on_stream and getattr(response, "content", ""):
-                on_stream(response.content)
+            response_content = getattr(response, "content", "") or ""
+            if on_stream and response_content:
+                remaining = response_content
+                if streamed_text and response_content.startswith(streamed_text):
+                    remaining = response_content[len(streamed_text):]
+                if remaining:
+                    on_stream(remaining)
             tool_calls = getattr(response, "tool_calls", None) or []
             return response, tool_calls
 
 
-def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None, on_stream=None) -> str:
+def run(user_input: str, working_dir: Optional[str] = None, on_tool_call=None,
+        on_stream=None, task_mode: str | TaskMode = TaskMode.AUTO) -> str:
     """无状态单次调用（兼容旧接口）。"""
     wd = working_dir or os.getcwd()
-    session = AgentSession(working_dir=wd)
+    session = AgentSession(working_dir=wd, task_mode=task_mode)
     return session.run(user_input, on_tool_call=on_tool_call, on_stream=on_stream)
 
 
