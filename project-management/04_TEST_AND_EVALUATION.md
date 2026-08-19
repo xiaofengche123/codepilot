@@ -56,6 +56,14 @@
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
+ROUTE-006 当前已验证：
+
+```text
+446 passed, 4 skipped
+```
+
+其中 Router/Tuning/RerankPolicy 定向107 passed，相关回归299 passed。离线 CLI 仅接受30条 `codepilot-dev.json`，搜索空间为每个路由族54组；族级方案开发集 Recall@10/MRR@10 为0.788889/0.593056，固定 RRF 为0.780556/0.591005。差值只用于参数选择，不能作为独立验证结果；test-v1、冻结 Oracle和正式结果未读取。
+
 ROUTE-005 当前已验证：
 
 ```text

@@ -624,6 +624,38 @@
 
 ---
 
+## 2026-08-19：ROUTE-006 开发集自适应路由校准
+
+### 本轮任务
+
+- 任务 ID：`ROUTE-006`。
+- 目标：仅使用开发集校准 ROUTE-004 参数，提供可复现调参入口并阻止冻结集误用。
+- 基线：`feat/adaptive-retrieval` 的 `ea8d8a48dcdfeab28ccc6ea529ede8f5d8400bc2`；开工时工作区仅有受保护的未跟踪 `resume-output/`。
+
+### 修改与实验
+
+- 新增 `rag/retrieval_tuning.py`：只接受 `codepilot-dev.json`，从本地索引一次收集双路 Top-100，再做每路由族54组的确定性网格选择；CLI 只输出聚合值。
+- 新增开发集报告 `.rag-eval/adaptive-routing-dev-2026-08-19.md`，记录数据角色、搜索空间、参数、复现命令、结果和有效性边界。
+- 调整 Router：自然语言/跨模块 `2.5/0.25, 10, 30`，中英混合 `1.5/0.5, 10, 30`，低重合分歧 `2.0/0.5, 10, 40`；精确/兼容参数不变。
+- 未校准规则 Recall@10/MRR@10 `0.652778/0.543373`，固定 RRF `0.780556/0.591005`，族级选择 `0.788889/0.593056`。只报告开发集内小幅差值，不宣称泛化。
+- 实验设置 `HF_HUB_OFFLINE=1`、`TRANSFORMERS_OFFLINE=1`，临时目录位于 `D:\codepilot\.tmp-route006`；只使用已有 Embedding 缓存，没有下载或网络访问。
+
+### 测试与安全
+
+- Router/Tuning/RerankPolicy 定向：107 passed。
+- QueryFeatures/Plan/信号/Router/Tuning/Retriever/Reranker/Evaluate/Indexer/Config/Tools 相关回归：299 passed。
+- 全量：446 passed、4 skipped；`git diff --check` 通过。
+- test-v1、冻结 Oracle、Agent任务和正式结果未读取或修改；没有运行正式 RAG/Agent评测，没有调用付费 API。
+- `install.py` 未修改；`resume-output/` 未读取、未修改、未暂存。
+
+### 限制与下一步
+
+- 30条开发集存在出题者偏差，路由族最少只有2条；参数可能过拟合，尚未验证400ms P95、调用比例、外部自然语言或端到端任务。
+- Router/Tuning/Policy仍未接入 Retriever，默认运行时行为不变。
+- 下一任务：`ROUTE-007`，建立新独立验证集。
+
+---
+
 ## 新会话日志模板
 
 ```markdown

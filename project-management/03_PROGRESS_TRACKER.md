@@ -18,7 +18,7 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～005 已完成；下一项 ROUTE-006，仅用开发集调参 |
+| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～006 已完成；下一项 ROUTE-007，建立新独立验证集 |
 | M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
@@ -189,7 +189,7 @@
 - [x] `ROUTE-003` `DONE`：实现检索置信信号。
 - [x] `ROUTE-004` `DONE`：实现规则式路由器。
 - [x] `ROUTE-005` `DONE`：实现 RerankPolicy 和延迟预算。
-- [ ] `ROUTE-006` `PLANNED`：在开发集调参，不读取 test-v1 结果。
+- [x] `ROUTE-006` `DONE`：在开发集调参，不读取 test-v1 结果。
 - [ ] `ROUTE-007` `PLANNED`：建立新独立验证集。
 - [ ] `ROUTE-008` `PLANNED`：对比固定 RRF、纯 Vector 和自适应策略。
 
@@ -264,6 +264,20 @@
 - 评测：未读取 test-v1 或正式结果调参，未运行正式 RAG 或付费 Agent 评测，冻结数据未修改。
 - 限制：v1 资格规则、0.2分歧阈值和30候选上限尚未经开发集校准；调用方必须提供可信的机器/模型成本估计；尚未验证 P95、质量收益或 Rerank 调用比例。
 - 下一任务：`ROUTE-006`。
+
+### ROUTE-006 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-19
+- 修改文件：`rag/retrieval_router.py`、`rag/retrieval_tuning.py`、`tests/test_retrieval_router.py`、`tests/test_retrieval_tuning.py`、`tests/test_rerank_policy.py`、`.rag-eval/adaptive-routing-dev-2026-08-19.md` 和项目管理文档。
+- 隔离：调参入口只接受文件名 `codepilot-dev.json`，在文件读取前拒绝 test、Agent任务或结果文件；实验只用30条开发集、本地 Chroma 和 D 盘已有 Embedding 缓存，强制离线，未读取 test-v1、冻结 Oracle或正式报告。
+- 搜索：每条查询收集一次 Vector/BM25 Top-100，按实际 QueryFeatures/Top-10置信信号分成路由族；每族比较6组权重×3个RRF k×3个候选数，共54组，依次按 Recall@10、MRR@10、较低候选成本和稳定声明顺序选择。
+- 参数：自然语言/跨模块 `2.5/0.25, k=10, candidates=30`；中英混合 `1.5/0.5, 10, 30`；低重合 Top-1分歧 `2.0/0.5, 10, 40`；精确代码与兼容基线分别保留 `2.5/0.25` 和 `2.0/0.25`。
+- 开发集结果：未校准规则 Recall@10/MRR@10 `0.652778/0.543373`；固定 RRF `0.780556/0.591005`；族级校准 `0.788889/0.593056`。相对固定方案只增加 `+0.008333/+0.002051`，不宣称显著或泛化收益。
+- 运行时：Router 常量已冻结为开发集选择，但 Retriever 仍未导入 Router/Tuning/RerankPolicy；默认产品继续固定 Weighted RRF，Rerank继续关闭。
+- 测试：Router/Tuning/RerankPolicy 定向107 passed；特征/Plan/信号/Router/Tuning/RAG/配置/工具相关回归299 passed；全量446 passed、4 skipped；`git diff --check` 通过。
+- 限制：开发集仅30条、最小路由族2条且由当前项目反推；没有验证新独立集、外部自然语言、400ms P95、Rerank调用比例或 Agent成功率。
+- 下一任务：`ROUTE-007`。
 
 ## 9. 结构图任务
 

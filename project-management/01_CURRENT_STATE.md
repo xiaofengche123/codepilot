@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：421 passed，4 skipped（包含 ROUTE-001～004 的特征/计划/信号/路由测试和 ROUTE-005 的52个 RerankPolicy 测试）。
+- 全量 pytest：446 passed，4 skipped（包含 ROUTE-001～005 和 ROUTE-006 的25个开发集调参隔离/选择测试）。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-005` 已完成确定性实现和本地验证。独立 RerankPolicy 现在能在调用方显式允许、模型可用、跨模块双路排序明显分歧且调用方成本估计满足剩余延迟预算时生成 `rerank=true` 的新计划；高置信精确命中会跳过。策略尚未接入运行时，也没有证明400ms P95或调用比例目标。下一项进入 `ROUTE-006`，仅使用开发集调参；完整付费重复评测尚未执行。CPU 默认仍使用固定 Weighted RRF。
+M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-006` 已完成。ROUTE-006 只使用30条开发集做54组/路由族的离线网格选择：未校准规则 Recall@10/MRR@10 为0.652778/0.543373，固定 RRF 为0.780556/0.591005，保守族级参数为0.788889/0.593056。该小幅变化仅是同一开发集内结果，不是独立收益。调参 CLI 在读取前拒绝非 `codepilot-dev.json` 文件；冻结集、Oracle和正式结果未读取。下一项 `ROUTE-007` 建立新独立验证集；策略仍未接入 Retriever，CPU 默认仍使用固定 Weighted RRF。
