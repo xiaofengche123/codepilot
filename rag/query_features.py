@@ -56,6 +56,11 @@ _ERROR_RE = re.compile(
     r"|(?:错误|异常|报错|失败|错误码)",
     re.IGNORECASE,
 )
+_DOCUMENTATION_RE = re.compile(
+    r"(?:说明文档|使用说明|开发文档|接口文档|文档|教程)"
+    r"|\b(?:readme|documentation|docs?|guide|manual|tutorial)\b",
+    re.IGNORECASE,
+)
 _PYTHON_FRAME_RE = re.compile(
     r"(?m)^\s*File\s+[\"'][^\"'\r\n]{1,500}[\"'],\s+line\s+\d+"
     r"(?:,\s+in\s+\S+)?\s*$"
@@ -106,6 +111,7 @@ class QueryFeatures:
     contains_config_key: bool
     contains_error_text: bool
     contains_stack_trace: bool
+    requests_documentation: bool
     has_cross_module_intent: bool
     reason_codes: tuple[str, ...]
 
@@ -226,6 +232,7 @@ def extract_query_features(query: str) -> QueryFeatures:
         or _PYTHON_FRAME_RE.search(text)
         or _JAVA_FRAME_RE.search(text)
     )
+    requests_documentation = bool(_DOCUMENTATION_RE.search(text))
 
     # A file name inside a path is the same reference, not a second module.
     # Keeping only standalone file matches avoids treating ``rag/retriever.py``
@@ -279,6 +286,8 @@ def extract_query_features(query: str) -> QueryFeatures:
         reasons.append("error_text")
     if contains_stack_trace:
         reasons.append("stack_trace")
+    if requests_documentation:
+        reasons.append("documentation_intent")
     if has_cross_module_intent:
         reasons.append("cross_module_intent")
 
@@ -296,6 +305,7 @@ def extract_query_features(query: str) -> QueryFeatures:
         contains_config_key=contains_config_key,
         contains_error_text=contains_error_text,
         contains_stack_trace=contains_stack_trace,
+        requests_documentation=requests_documentation,
         has_cross_module_intent=has_cross_module_intent,
         reason_codes=tuple(reasons),
     )
