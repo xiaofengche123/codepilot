@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001 节点契约完成；下一项 GRAPH-002 contains/imports 边 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～002 节点及 contains/imports 完成；下一项 GRAPH-003 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -320,7 +320,7 @@
 ## 9. 结构图任务
 
 - [x] `GRAPH-001` `DONE`：定义文件、类、函数节点模型。
-- [ ] `GRAPH-002` `PLANNED`：解析 contains/imports 边。
+- [x] `GRAPH-002` `DONE`：解析 contains/imports 边。
 - [ ] `GRAPH-003` `PLANNED`：解析简单 calls/inherits 边。
 - [ ] `GRAPH-004` `PLANNED`：建立 tests 关系映射。
 - [ ] `GRAPH-005` `PLANNED`：实现种子 Chunk 一跳扩展。
@@ -339,6 +339,18 @@
 - 范围：父节点 ID 只做格式要求，父子存在性及contains/imports正确性由GRAPH-002验证；本轮不解析 calls/inherits、不构图、不改变检索行为。
 - 测试：节点模型定向30 passed；节点/Indexer相关回归36 passed；全量501 passed、4 skipped；`git diff --check`通过。
 - 下一任务：`GRAPH-002`。
+
+### GRAPH-002 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph.py`、`rag/code_graph_builder.py`、`tests/test_code_graph_builder.py`、README和项目管理文档。
+- 契约：新增不可变 contains/imports 边和稳定SHA-256边 ID；构图器只消费调用方提供的内存源码映射，不遍历仓库或读取文件。
+- 解析：Python AST生成类、函数、异步函数及直接词法 contains 边；绝对和相对导入只连接仓库内模块文件，重复边确定性去重。
+- 失败处理：语法错误、缺失/外部导入、自导入和重复限定名返回有界结构化 issue；非法路径、非Python、非文本、过大输入、模块歧义和图规模超限明确拒绝。
+- 隐私与范围：结果不保存源码或AST；不实现 calls/inherits/tests 边，不接入索引或Retriever，不产生检索质量收益声明。
+- 测试：节点/构图定向53 passed；节点/构图/Indexer相关回归59 passed；全量524 passed、4 skipped；`git diff --check`通过。
+- 下一任务：`GRAPH-003`。
 
 ## 10. 模型服务任务
 

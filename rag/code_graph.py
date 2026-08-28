@@ -15,6 +15,7 @@ from typing import Any
 
 
 GRAPH_NODE_SCHEMA_VERSION = 1
+GRAPH_EDGE_SCHEMA_VERSION = 1
 GRAPH_LANGUAGE = "python"
 MAX_GRAPH_PATH_CHARS = 1_024
 MAX_GRAPH_NAME_CHARS = 256
@@ -28,6 +29,11 @@ class GraphNodeKind(str, Enum):
     FILE = "file"
     CLASS = "class"
     FUNCTION = "function"
+
+
+class GraphEdgeKind(str, Enum):
+    CONTAINS = "contains"
+    IMPORTS = "imports"
 
 
 def normalize_graph_path(value: object) -> str:
@@ -71,6 +77,71 @@ def stable_graph_node_id(
     canonical = "\0".join((GRAPH_LANGUAGE, kind.value, normalized_file, normalized_name))
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return f"py:{kind.value}:{digest}"
+
+
+def is_graph_node_id(value: object) -> bool:
+    return isinstance(value, str) and _NODE_ID.fullmatch(value) is not None
+
+
+def stable_graph_edge_id(
+    kind: GraphEdgeKind, source_id: str, target_id: str
+) -> str:
+    if not isinstance(kind, GraphEdgeKind):
+        raise TypeError("kind must be GraphEdgeKind")
+    if not is_graph_node_id(source_id) or not is_graph_node_id(target_id):
+        raise ValueError("edge endpoints must be valid graph node IDs")
+    canonical = "\0".join((kind.value, source_id, target_id))
+    return "edge:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class GraphEdge:
+    """Immutable directed contains/imports relationship."""
+
+    edge_id: str
+    kind: GraphEdgeKind
+    source_id: str
+    target_id: str
+    schema_version: int = GRAPH_EDGE_SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, GraphEdgeKind):
+            raise TypeError("kind must be GraphEdgeKind")
+        if not is_graph_node_id(self.source_id) or not is_graph_node_id(
+            self.target_id
+        ):
+            raise ValueError("edge endpoints must be valid graph node IDs")
+        if self.source_id == self.target_id:
+            raise ValueError("graph edges must not be self-referential")
+        if self.schema_version != GRAPH_EDGE_SCHEMA_VERSION:
+            raise ValueError(
+                f"schema_version must be {GRAPH_EDGE_SCHEMA_VERSION}"
+            )
+        expected = stable_graph_edge_id(
+            self.kind, self.source_id, self.target_id
+        )
+        if self.edge_id != expected:
+            raise ValueError("edge_id does not match kind/source/target")
+
+    @classmethod
+    def create(
+        cls, kind: GraphEdgeKind, source_id: str, target_id: str
+    ) -> "GraphEdge":
+        return cls(
+            edge_id=stable_graph_edge_id(kind, source_id, target_id),
+            kind=kind,
+            source_id=source_id,
+            target_id=target_id,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "edge_id": self.edge_id,
+            "kind": self.kind.value,
+            "source_id": self.source_id,
+            "target_id": self.target_id,
+        }
 
 
 @dataclass(frozen=True, slots=True)

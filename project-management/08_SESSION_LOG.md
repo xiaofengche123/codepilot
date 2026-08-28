@@ -773,3 +773,16 @@
 - 新增 `rag.code_graph`：不可变 file/class/function 节点、稳定SHA-256身份、严格相对路径/行区间/Python限定名验证和JSON序列化。
 - ID不含行号，插行保持身份；序列化不含源码、docstring、decorator或AST内容。
 - 定向30 passed；节点/Indexer相关回归36 passed；全量501 passed、4 skipped；GRAPH-002 才解析 contains/imports 与验证父子存在性。
+
+## 2026-08-29 / GRAPH-002 开工
+
+- 目标：在 GRAPH-001 节点上解析直接 contains 边和仓库内 imports 边。
+- 设计边界：构图器只消费调用方提供的内存源码映射，不遍历文件系统；外部/缺失模块和语法错误输出有界 issue，不伪造目标节点。
+- 不在本轮实现 calls、inherits、tests 边，也不接入 Retriever。
+
+### GRAPH-002 完成
+
+- 新增稳定 contains/imports 边契约和纯内存 Python AST 构图器；生成直接词法包含关系，并将绝对/相对导入连接到仓库内模块文件。
+- 语法错误、缺失/外部导入、自导入和重复符号返回有界结构化 issue；修复顶层包 `from ..` 不得逃逸到仓库根模块的边界。
+- 输出确定性去重且不包含源码/AST；未实现 calls/inherits/tests，未接入 Retriever或运行质量评测。
+- 节点/构图定向53 passed；节点/构图/Indexer相关回归59 passed；全量524 passed、4 skipped；下一项GRAPH-003。

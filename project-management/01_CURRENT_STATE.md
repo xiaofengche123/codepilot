@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：446 passed，4 skipped（包含 ROUTE-001～005 和 ROUTE-006 的25个开发集调参隔离/选择测试）。
+- 全量 pytest：524 passed，4 skipped（包含 ROUTE、运行时接线及 GRAPH-001～002 回归）。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001` 已完成。`rag.code_graph` 已定义不可变、无源码内容的 Python file/class/function 节点：稳定 ID 由语言、类型、POSIX相对路径和限定名确定，不含行号；节点只保存有界名称、限定名、位置和父节点 ID。下一项 `GRAPH-002` 解析 contains/imports 边；当前尚未解析 AST、建立边或接入 Retriever。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-002` 已完成。代码图现可从调用方提供的内存 Python 源码确定性生成 file/class/function 节点、直接 contains 边和仓库内 imports 边；语法错误、缺失/外部导入、自导入与重复符号以有界 issue 返回。下一项 `GRAPH-003` 解析简单 calls/inherits 边；代码图仍未接入 Retriever，当前检索行为不变。

@@ -72,6 +72,8 @@ ROUTE-RUNTIME-001 将冻结 Router 接入 Retriever 的可选运行时路径。�
 
 GRAPH-001 只定义节点契约，不运行图检索或质量评测。30个定向测试覆盖稳定身份、行移动、类型/文件/改名区分、父节点约束、路径与数值边界、Python/Unicode限定名、不可变性、JSON序列化、内容最小化和依赖隔离；节点/Indexer相关回归36 passed，全量501 passed、4 skipped。跨模块 Recall 变化必须等到 GRAPH-007，不能由节点单测宣称。
 
+GRAPH-002 新增纯内存 Python AST 构图和 contains/imports 边。53个节点/构图定向测试覆盖嵌套词法关系、异步函数、绝对/相对/函数内导入、仓库外导入、自导入、重复符号及其函数体导入、语法错误、确定性、Windows路径、输入与大小边界、内容最小化及未来边类型隔离；节点/构图/Indexer相关回归59 passed，全量524 passed、4 skipped。构图尚未接入 Retriever，因此没有运行 GRAPH-007 质量评测，也不宣称 Recall 或端到端收益。
+
 ROUTE-005 当前已验证：
 
 ```text
