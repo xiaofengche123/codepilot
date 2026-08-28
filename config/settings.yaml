@@ -41,11 +41,15 @@ rag:
   candidate_multiplier: 3
   bm25_k1: 1.5
   bm25_b: 0.75
-  # 30 条开发集调参结果：代码检索以精确词项为主，BM25 权重更高。
-  # 该参数仍需在独立冻结测试集复核，不能当作最终最优值。
+  # 兼容性固定 RRF。独立验证中自适应方案只有小幅点估计提升，默认不切换。
   rrf_k: 10
   vector_weight: 0.25
   bm25_weight: 2.0
+  adaptive_routing:
+    # 显式启用后，hybrid/rerank 候选阶段消费 QueryFeatures、置信信号和冻结 Router。
+    enabled: false
+    # 路由计算异常时复用同一批 Vector/BM25 排名回退固定 RRF，不重复请求模型。
+    fallback_on_error: true
   reranker:
     enabled: false
     # CPU 友好的多语言模型；有 GPU 时可切换为 BAAI/bge-reranker-v2-m3。

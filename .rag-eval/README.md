@@ -3,11 +3,26 @@
 ## 数据集角色
 
 - `codepilot-dev.json`：30 条开发集，只用于诊断和调参，不对外作为最终指标。
+- `codepilot-validation-v1.json`：50 条 ROUTE-007 独立验证集，五类各10条；在运行策略比较前冻结，同时封存 ROUTE-006 路由参数。它独立于参数选择，但仍是同一项目、同一标注流程的内部数据，不等同外部泛化基准。
 - `codepilot-test-v1.json`：150 条内部冻结集，五类各 30 条。每条分别标注必须命中的 `required` 和仅提供帮助的 `supporting`；测试代码原则上只属于 supporting。
 - CodeSearchNet：外部可比基准，使用官方 99 条自然语言查询和人工 0–3 级相关性判断。
 - `agent-tasks-v1.json`：20 个隔离的缺陷修复任务，用于比较 Hybrid 与 Rerank 对实际 Agent 成功率的影响。
 
 内部集与外部集必须分别报告，不合并为单一分数。内部集适配 CodePilot 当前代码库，CodeSearchNet 衡量跨仓库泛化，两者回答的问题不同。
+
+ROUTE-007 只冻结未评分验证集，不执行检索：
+
+```powershell
+.\venv\Scripts\python.exe -m rag.retrieval_validation `
+  .rag-eval\codepilot-validation-v1.json --project .
+
+.\venv\Scripts\python.exe -m rag.retrieval_validation `
+  .rag-eval\codepilot-validation-v1.json --project . --check
+```
+
+检查同时验证数据集 SHA-256 与 ROUTE-006 路由参数画像；任何策略对比均留待 ROUTE-008，结果不得反向修改 query、required 或 supporting。
+
+ROUTE-008 已在强制离线、增量更新后的本地索引上完成唯一一次比较，完整结果见 `adaptive-routing-validation-2026-08-28.json`，可读摘要见同名 Markdown。固定 RRF、纯 Vector、冻结自适应的 Recall@10/MRR@10 分别为 `0.466667/0.248905`、`0.380000/0.196333`、`0.486667/0.265857`。自适应相对固定方案为 `+0.020000/+0.016952`，但 MRR 成对95%区间跨0，Recall 也只有1条改善；不得描述为稳定或外部泛化收益。
 
 ## 冻结规则
 

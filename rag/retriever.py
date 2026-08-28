@@ -16,6 +16,10 @@ import warnings
 from typing import Any, Iterable
 
 from rag.indexer import _get_collection, _get_model
+from rag.query_features import QueryFeatures, extract_query_features
+from rag.retrieval_confidence import calculate_retrieval_confidence
+from rag.retrieval_plan import RetrievalPlan
+from rag.retrieval_router import route_retrieval
 
 
 _TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9]*|\d+|[\u4e00-\u9fff]+")
@@ -217,20 +221,16 @@ def _vector_rank(
     return hits
 
 
-def _hybrid_candidates(
+def _dual_rankings(
     query: str,
     collection,
     documents: list[SearchHit],
-    limit: int,
+    recall_limit: int,
     include_docs: bool,
     k1: float,
     b: float,
-) -> list[SearchHit]:
-    """并行执行两路召回，并返回 RRF 排名候选。"""
-    from config import config
-
-    multiplier = max(1, int(config.get("rag.candidate_multiplier", 3)))
-    recall_limit = min(max(limit * multiplier, limit), 100)
+) -> tuple[list[SearchHit], list[SearchHit]]:
+    """并行执行两路召回，供固定与自适应融合复用。"""
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-retrieval") as executor:
         vector_future = executor.submit(
             _vector_rank, query, collection, recall_limit, include_docs,
@@ -240,6 +240,16 @@ def _hybrid_candidates(
         )
         vector_hits = vector_future.result()
         keyword_hits = keyword_future.result()
+    return vector_hits, keyword_hits
+
+
+def _fixed_fusion(
+    vector_hits: list[SearchHit],
+    keyword_hits: list[SearchHit],
+    limit: int,
+) -> list[SearchHit]:
+    from config import config
+
     return reciprocal_rank_fusion(
         vector_hits,
         keyword_hits,
@@ -248,6 +258,103 @@ def _hybrid_candidates(
         vector_weight=float(config.get("rag.vector_weight", 1.0)),
         bm25_weight=float(config.get("rag.bm25_weight", 1.0)),
     )
+
+
+def _route_family(plan: RetrievalPlan) -> str:
+    if "ranking_disagreement" in plan.reason_codes:
+        return "ranking_disagreement"
+    return next(
+        (
+            code.removeprefix("query_")
+            for code in plan.reason_codes
+            if code.startswith("query_")
+        ),
+        "baseline",
+    )
+
+
+def _annotate_adaptive_hits(
+    hits: list[SearchHit], plan: RetrievalPlan
+) -> list[SearchHit]:
+    family = _route_family(plan)
+    for hit in hits:
+        hit.metadata = dict(hit.metadata)
+        hit.metadata.update({
+            "adaptive_routing": True,
+            "retrieval_router_version": plan.reason_codes[0],
+            "retrieval_route_family": family,
+            "retrieval_reason_codes": ",".join(plan.reason_codes),
+            "retrieval_bm25_weight": plan.bm25_weight,
+            "retrieval_vector_weight": plan.vector_weight,
+            "retrieval_rrf_k": plan.rrf_k,
+            "retrieval_candidate_count": plan.candidate_count,
+        })
+    return hits
+
+
+def _hybrid_candidates(
+    query: str,
+    collection,
+    documents: list[SearchHit],
+    limit: int,
+    include_docs: bool,
+    k1: float,
+    b: float,
+    features: QueryFeatures | None = None,
+) -> list[SearchHit]:
+    """返回固定 RRF，或在显式启用时执行冻结自适应计划。"""
+    from config import config
+
+    multiplier = max(1, int(config.get("rag.candidate_multiplier", 3)))
+    recall_limit = min(max(limit * multiplier, limit), 100)
+    if features is not None:
+        from rag.retrieval_router import (
+            CROSS_MODULE_CANDIDATE_COUNT,
+            DEFAULT_CANDIDATE_COUNT,
+            DISAGREEMENT_CANDIDATE_COUNT,
+            MIXED_CANDIDATE_COUNT,
+        )
+
+        recall_limit = max(
+            recall_limit,
+            DEFAULT_CANDIDATE_COUNT,
+            MIXED_CANDIDATE_COUNT,
+            CROSS_MODULE_CANDIDATE_COUNT,
+            DISAGREEMENT_CANDIDATE_COUNT,
+        )
+    vector_hits, keyword_hits = _dual_rankings(
+        query, collection, documents, recall_limit, include_docs, k1, b
+    )
+    if features is None:
+        return _fixed_fusion(vector_hits, keyword_hits, limit)
+
+    try:
+        confidence = calculate_retrieval_confidence(
+            query, vector_hits, keyword_hits, top_k=10
+        )
+        plan = route_retrieval(features, confidence)
+        hits = reciprocal_rank_fusion(
+            vector_hits[:plan.candidate_count],
+            keyword_hits[:plan.candidate_count],
+            limit,
+            rrf_k=plan.rrf_k,
+            vector_weight=plan.vector_weight,
+            bm25_weight=plan.bm25_weight,
+        )
+        return _annotate_adaptive_hits(hits, plan)
+    except Exception as exc:
+        if not bool(config.get("rag.adaptive_routing.fallback_on_error", True)):
+            raise
+        warnings.warn(
+            f"Adaptive retrieval routing failed; falling back to fixed RRF: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        fallback = _fixed_fusion(vector_hits, keyword_hits, limit)
+        for hit in fallback:
+            hit.metadata = dict(hit.metadata)
+            hit.metadata["adaptive_routing_fallback"] = True
+        return fallback
 
 
 def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") -> list[SearchHit]:
@@ -267,15 +374,39 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
     if mode == "vector":
         return _vector_rank(query, collection, n, include_docs)
 
-    documents = _collection_documents(collection, include_docs)
     if mode == "bm25":
+        documents = _collection_documents(collection, include_docs)
         return bm25_rank(query, documents, n, k1=k1, b=b)
     if mode not in {"hybrid", "rerank"}:
         raise ValueError(f"不支持的检索模式: {mode}")
 
+    adaptive_features = None
+    if bool(config.get("rag.adaptive_routing.enabled", False)):
+        try:
+            adaptive_features = extract_query_features(query)
+            # include_docs is decided solely from features, not ranking results.
+            adaptive_include_docs = route_retrieval(
+                adaptive_features, None
+            ).include_docs
+            if adaptive_include_docs and not include_docs:
+                include_docs = True
+        except Exception as exc:
+            if not bool(config.get("rag.adaptive_routing.fallback_on_error", True)):
+                raise
+            warnings.warn(
+                "Adaptive retrieval feature routing failed; using fixed RRF: "
+                f"{exc}",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            adaptive_features = None
+
+    documents = _collection_documents(collection, include_docs)
+
     if mode == "hybrid":
         return _hybrid_candidates(
             query, collection, documents, n, include_docs, k1, b,
+            adaptive_features,
         )
 
     candidate_count = min(
@@ -284,6 +415,7 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
     )
     candidates = _hybrid_candidates(
         query, collection, documents, candidate_count, include_docs, k1, b,
+        adaptive_features,
     )
     try:
         from rag.reranker import rerank

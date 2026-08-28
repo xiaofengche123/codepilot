@@ -1,6 +1,10 @@
 """BM25、RRF 与检索评估测试。"""
 
+import pytest
+
+from config import config
 from rag.evaluate import calculate_metrics
+from rag.query_features import extract_query_features
 import rag.retriever as retriever
 from rag.retriever import SearchHit, bm25_rank, reciprocal_rank_fusion, tokenize_code
 
@@ -146,6 +150,121 @@ def test_hybrid_retrieve_runs_two_retrievers_and_fuses(monkeypatch):
     assert hits[0].uid == "auth"
     assert hits[0].vector_rank == 2
     assert hits[0].bm25_rank == 1
+
+
+def test_adaptive_hybrid_consumes_router_plan_and_adds_safe_metadata(monkeypatch):
+    vector = [
+        _hit("vector.py:1-10", file="vector.py"),
+        _hit("shared.py:1-10", file="shared.py"),
+    ]
+    keyword = [
+        _hit("keyword.py:1-10", file="keyword.py"),
+        _hit("shared.py:1-10", file="shared.py"),
+    ]
+    calls = []
+
+    def fake_dual(*_args):
+        calls.append(True)
+        return vector, keyword
+
+    monkeypatch.setattr(retriever, "_dual_rankings", fake_dual)
+    features = extract_query_features("中文 mixed query across modules")
+    hits = retriever._hybrid_candidates(
+        "中文 mixed query across modules", object(), [], 2, False, 1.5, 0.75,
+        features,
+    )
+    assert calls == [True]
+    assert hits
+    assert all(hit.metadata["adaptive_routing"] is True for hit in hits)
+    assert hits[0].metadata["retrieval_router_version"] == "rule_router_v1"
+    assert "query" not in hits[0].metadata
+    assert "retrieval_reason_codes" in hits[0].metadata
+
+
+def test_adaptive_failure_reuses_rankings_for_fixed_fallback(monkeypatch):
+    vector = [_hit("vector.py:1-10", file="vector.py")]
+    keyword = [_hit("keyword.py:1-10", file="keyword.py")]
+    calls = []
+
+    def fake_dual(*_args):
+        calls.append(True)
+        return vector, keyword
+
+    monkeypatch.setattr(retriever, "_dual_rankings", fake_dual)
+    monkeypatch.setattr(
+        retriever,
+        "route_retrieval",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("router failed")),
+    )
+    with pytest.warns(RuntimeWarning, match="falling back to fixed RRF"):
+        hits = retriever._hybrid_candidates(
+            "query", object(), [], 2, False, 1.5, 0.75,
+            extract_query_features("query"),
+        )
+    assert calls == [True]
+    assert hits
+    assert all(hit.metadata["adaptive_routing_fallback"] is True for hit in hits)
+
+
+def test_retrieve_passes_features_only_when_adaptive_is_enabled(monkeypatch):
+    observed = []
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_args: [])
+
+    def fake_candidates(*args):
+        observed.append(args[-1])
+        return []
+
+    monkeypatch.setattr(retriever, "_hybrid_candidates", fake_candidates)
+    original_get = config.get
+
+    def adaptive_get(key, default=None):
+        if key == "rag.adaptive_routing.enabled":
+            return True
+        return original_get(key, default)
+
+    monkeypatch.setattr(config, "get", adaptive_get)
+    retriever.retrieve("README documentation", ".", n=2, mode="hybrid")
+    assert observed and observed[0] is not None
+    assert observed[0].requests_documentation is True
+
+
+def test_default_hybrid_keeps_fixed_rrf_without_adaptive_metadata(monkeypatch):
+    vector = [_hit("vector.py:1-10", file="vector.py")]
+    keyword = [_hit("keyword.py:1-10", file="keyword.py")]
+    monkeypatch.setattr(
+        retriever, "_dual_rankings", lambda *_args: (vector, keyword)
+    )
+    hits = retriever._hybrid_candidates(
+        "query", object(), [], 2, False, 1.5, 0.75, None
+    )
+    assert hits
+    assert all("adaptive_routing" not in hit.metadata for hit in hits)
+
+
+def test_adaptive_switch_does_not_change_pure_vector_mode(monkeypatch):
+    observed = []
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(
+        retriever,
+        "_vector_rank",
+        lambda _query, _collection, _n, include_docs: observed.append(include_docs) or [],
+    )
+    monkeypatch.setattr(
+        retriever,
+        "extract_query_features",
+        lambda _query: (_ for _ in ()).throw(AssertionError("must not route vector")),
+    )
+    original_get = config.get
+
+    def adaptive_get(key, default=None):
+        if key == "rag.adaptive_routing.enabled":
+            return True
+        return original_get(key, default)
+
+    monkeypatch.setattr(config, "get", adaptive_get)
+    assert retriever.retrieve("README documentation", ".", mode="vector") == []
+    assert observed == [False]
 
 
 def test_rerank_uses_rrf_top_30_then_truncates_to_requested_k(monkeypatch):

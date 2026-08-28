@@ -47,6 +47,10 @@ DEFAULTS = {
         "rrf_k": 10,
         "vector_weight": 0.25,
         "bm25_weight": 2.0,
+        "adaptive_routing": {
+            "enabled": False,
+            "fallback_on_error": True,
+        },
         "reranker": {
             "enabled": False,
             "model_name": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",

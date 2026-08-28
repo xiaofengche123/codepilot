@@ -1,0 +1,352 @@
+[
+  {
+    "id": "CPV1-I01",
+    "category": "identifier",
+    "query": "QueryFeatures reason_codes 为什么不保存原始查询文本",
+    "required": ["rag/query_features.py:92-116"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I02",
+    "category": "identifier",
+    "query": "extract_query_identifiers 的去重顺序与数量上限在哪里实现",
+    "required": ["rag/query_features.py:141-178"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I03",
+    "category": "identifier",
+    "query": "RetrievalPlan 如何验证 weight、candidate_count 和 reason_codes",
+    "required": ["rag/retrieval_plan.py:27-86"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I04",
+    "category": "identifier",
+    "query": "baseline_retrieval_plan 返回的兼容性默认值",
+    "required": ["rag/retrieval_plan.py:163-174"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I05",
+    "category": "identifier",
+    "query": "RetrievalConfidenceSignals.to_dict 序列化哪些排名置信信号",
+    "required": ["rag/retrieval_confidence.py:31-68"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I06",
+    "category": "identifier",
+    "query": "calculate_retrieval_confidence 怎样计算 Top-1 一致性和候选重叠率",
+    "required": ["rag/retrieval_confidence.py:71-176"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I07",
+    "category": "identifier",
+    "query": "route_retrieval 对 ranking_disagreement 使用什么候选池",
+    "required": ["rag/retrieval_router.py:61-163"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I08",
+    "category": "identifier",
+    "query": "LatencyBudget.remaining_ms 如何扣除 elapsed 和 reserve",
+    "required": ["rag/rerank_policy.py:28-54"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I09",
+    "category": "identifier",
+    "query": "decide_rerank 的显式 allowed 与 model_available 门禁",
+    "required": ["rag/rerank_policy.py:111-197"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-I10",
+    "category": "identifier",
+    "query": "TaskTrace.snapshot 如何导出有界的执行轨迹",
+    "required": ["task_trace.py:132-319"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N01",
+    "category": "natural_language",
+    "query": "怎样在不保留用户问题的前提下提取检索路由特征",
+    "required": ["rag/query_features.py:181-278"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N02",
+    "category": "natural_language",
+    "query": "查询为空或只有单路召回结果时检索计划如何安全回退",
+    "required": ["rag/retrieval_router.py:61-163"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N03",
+    "category": "natural_language",
+    "query": "如何判断两个召回器的首条结果是否一致以及彼此重合多少",
+    "required": ["rag/retrieval_confidence.py:71-176"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N04",
+    "category": "natural_language",
+    "query": "什么条件全部满足后才允许执行可选的重排序",
+    "required": ["rag/rerank_policy.py:111-197"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N05",
+    "category": "natural_language",
+    "query": "任务各阶段怎样分别限制检索、读取、编辑和测试次数",
+    "required": ["execution_state.py:243-418"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N06",
+    "category": "natural_language",
+    "query": "代理声称完成后系统依据哪些证据决定是否接受",
+    "required": ["execution_state.py:690-767"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N07",
+    "category": "natural_language",
+    "query": "怎样从多份任务报告汇总检索、检查、编辑、测试和完成漏斗",
+    "required": ["trace_analysis.py:76-122"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N08",
+    "category": "natural_language",
+    "query": "事件缓存达到全局容量后怎样淘汰最旧事件",
+    "required": ["events.py:34-92"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N09",
+    "category": "natural_language",
+    "query": "工作线程怎样领取排队任务并更新成功或失败状态",
+    "required": ["task_queue.py:49-108"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-N10",
+    "category": "natural_language",
+    "query": "任务结束后怎样收集补丁并清理隔离工作树和临时分支",
+    "required": ["worktree_manager.py:77-109"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B01",
+    "category": "bug_symptom",
+    "query": "超长用户查询导致正则扫描耗时和内存失去上界怎么办",
+    "required": ["rag/query_features.py:181-278"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B02",
+    "category": "bug_symptom",
+    "query": "向量和关键词召回都为空时为什么不能沿用单路权重",
+    "required": ["rag/retrieval_router.py:102-124"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B03",
+    "category": "bug_symptom",
+    "query": "重排序耗时估计为 NaN 或负数时怎样阻止错误预算判断",
+    "required": ["rag/rerank_policy.py:229-244"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B04",
+    "category": "bug_symptom",
+    "query": "会话历史文件内容损坏时为什么服务不应直接崩溃",
+    "required": ["memory.py:41-61"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B05",
+    "category": "bug_symptom",
+    "query": "事件积压超过 max_total 后进程内存持续增长如何处理",
+    "required": ["events.py:34-92"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B06",
+    "category": "bug_symptom",
+    "query": "对正在运行的任务调用取消接口为什么不能伪装成已取消",
+    "required": ["task_queue.py:49-108"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B07",
+    "category": "bug_symptom",
+    "query": "工具结果含绝对路径或换行时如何避免把敏感值写入 Trace",
+    "required": ["task_trace.py:33-79"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B08",
+    "category": "bug_symptom",
+    "query": "编辑或测试连续失败后代理仍反复执行同一动作如何恢复",
+    "required": ["execution_state.py:204-240", "execution_state.py:618-687"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B09",
+    "category": "bug_symptom",
+    "query": "某阶段工具预算用尽后为什么后续调用必须被拒绝并留下错误码",
+    "required": ["execution_state.py:353-418"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-B10",
+    "category": "bug_symptom",
+    "query": "上下文裁剪后只剩 tool message 却没有对应 assistant tool_calls 怎么修复",
+    "required": ["context_mgr.py:31-80"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C01",
+    "category": "cross_module",
+    "query": "从词法查询特征和双路排名信号到最终 RetrievalPlan 的决策链",
+    "required": ["rag/query_features.py:181-278", "rag/retrieval_confidence.py:71-176", "rag/retrieval_router.py:61-163"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C02",
+    "category": "cross_module",
+    "query": "路由计划如何结合延迟预算变成启用或禁用 rerank 的替换计划",
+    "required": ["rag/retrieval_router.py:61-163", "rag/rerank_policy.py:111-197"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C03",
+    "category": "cross_module",
+    "query": "HTTP 任务执行时状态机证据如何同步写入任务 Trace 并暴露给查询接口",
+    "required": ["server.py:72-176", "execution_state.py:243-418", "task_trace.py:132-319", "server.py:274-289"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C04",
+    "category": "cross_module",
+    "query": "编辑和验证工具结果怎样同时推动执行阶段迁移并记录结构化轨迹",
+    "required": ["execution_state.py:421-687", "task_trace.py:240-285"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C05",
+    "category": "cross_module",
+    "query": "逐任务 Trace 如何转换成失败分类并进一步汇总运行期漏斗",
+    "required": ["task_trace.py:288-319", "trace_analysis.py:200-279"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C06",
+    "category": "cross_module",
+    "query": "配置的模型名称怎样经过路由器创建客户端并交给每个独立 Agent 任务",
+    "required": ["model_router.py:80-189", "server.py:72-176"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C07",
+    "category": "cross_module",
+    "query": "工具风险等级如何从注册表进入执行入口并触发人工确认",
+    "required": ["tools/registry.py:12-86", "tools/__init__.py:38-78"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C08",
+    "category": "cross_module",
+    "query": "任务队列 worker 调用执行器后如何把流式输出保存为可分页事件",
+    "required": ["task_queue.py:71-108", "server.py:72-176", "events.py:34-92"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C09",
+    "category": "cross_module",
+    "query": "隔离工作树创建、Agent 执行、diff 收集和最终清理之间的调用关系",
+    "required": ["worktree_manager.py:14-109", "server.py:72-176"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-C10",
+    "category": "cross_module",
+    "query": "完成决策为何需要同时检查状态机阶段、编辑证据、测试证据和 review 记录",
+    "required": ["execution_state.py:690-767", "task_trace.py:157-216"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M01",
+    "category": "mixed_language",
+    "query": "query feature extraction 如何 bounded scan 超长 input",
+    "required": ["rag/query_features.py:181-278"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M02",
+    "category": "mixed_language",
+    "query": "top1_agreement 和 overlap_ratio 如何影响 routing plan",
+    "required": ["rag/retrieval_confidence.py:71-176", "rag/retrieval_router.py:102-148"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M03",
+    "category": "mixed_language",
+    "query": "rerank latency budget 不够时返回哪个 reason code",
+    "required": ["rag/rerank_policy.py:111-197"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M04",
+    "category": "mixed_language",
+    "query": "candidate_count 超过 MAX_RERANK_CANDIDATE_COUNT 怎样 cap",
+    "required": ["rag/rerank_policy.py:111-197"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M05",
+    "category": "mixed_language",
+    "query": "phase budget exhausted 后 tool call 如何 reject",
+    "required": ["execution_state.py:353-418"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M06",
+    "category": "mixed_language",
+    "query": "completion request 缺少 tests evidence 时为什么 blocked",
+    "required": ["execution_state.py:690-767"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M07",
+    "category": "mixed_language",
+    "query": "trace funnel 里的 retrieval_hit 和 relevant_test_inspected 怎样 aggregate",
+    "required": ["trace_analysis.py:76-122"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M08",
+    "category": "mixed_language",
+    "query": "EventBuffer cursor 小于 earliest event 时如何继续 incremental polling",
+    "required": ["events.py:34-92"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M09",
+    "category": "mixed_language",
+    "query": "running task 调用 cancel 为什么只能 return false",
+    "required": ["task_queue.py:49-108"],
+    "supporting": []
+  },
+  {
+    "id": "CPV1-M10",
+    "category": "mixed_language",
+    "query": "worktree cleanup 怎样 remove branch 并处理 failure fallback",
+    "required": ["worktree_manager.py:99-109"],
+    "supporting": []
+  }
+]

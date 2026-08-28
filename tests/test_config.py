@@ -16,6 +16,8 @@ class TestConfig:
         assert config.get("rag.rrf_k") == 10
         assert config.get("rag.vector_weight") == 0.25
         assert config.get("rag.bm25_weight") == 2.0
+        assert config.get("rag.adaptive_routing.enabled") is False
+        assert config.get("rag.adaptive_routing.fallback_on_error") is True
         assert config.get("rag.reranker.enabled") is False
         assert config.get("rag.reranker.candidate_count") == 30
 

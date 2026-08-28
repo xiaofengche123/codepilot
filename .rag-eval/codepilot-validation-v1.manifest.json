@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "dataset_role": "independent_validation",
+  "status": "frozen_unscored",
+  "frozen_at": "2026-08-28T15:10:55.665155+00:00",
+  "dataset": ".rag-eval/codepilot-validation-v1.json",
+  "dataset_sha256": "4c45a8b848328d44a234468753cd11757818df3fedc49759a252e2ddef8fa71f",
+  "development_dataset_sha256": "b1c079ac8b103880aace9c6fc23b351417e81f692d151c8341f855d6abd45e50",
+  "corpus_sha256_at_freeze": "93b08f347595a94987d5bb8e1bd24a712fc8f798bb1ebd1807af7505f7ac8a8e",
+  "query_count": 50,
+  "categories": {
+    "bug_symptom": 10,
+    "cross_module": 10,
+    "identifier": 10,
+    "mixed_language": 10,
+    "natural_language": 10
+  },
+  "required_labels": 66,
+  "supporting_labels": 0,
+  "development_query_overlap": 0,
+  "router_profile": {
+    "router_version": "rule_router_v1",
+    "rrf_k": 10,
+    "families": {
+      "baseline": {
+        "bm25_weight": 2.0,
+        "vector_weight": 0.25,
+        "candidate_count": 30
+      },
+      "exact_code": {
+        "bm25_weight": 2.5,
+        "vector_weight": 0.25,
+        "candidate_count": 30
+      },
+      "natural_language": {
+        "bm25_weight": 2.5,
+        "vector_weight": 0.25,
+        "candidate_count": 30
+      },
+      "mixed_language": {
+        "bm25_weight": 1.5,
+        "vector_weight": 0.5,
+        "candidate_count": 30
+      },
+      "cross_module": {
+        "bm25_weight": 2.5,
+        "vector_weight": 0.25,
+        "candidate_count": 30
+      },
+      "ranking_disagreement": {
+        "bm25_weight": 2.0,
+        "vector_weight": 0.5,
+        "candidate_count": 40
+      }
+    }
+  },
+  "router_profile_sha256": "630542eff259aa3c3eecb9a98d419a6c9a3d188e9c89f56a6350f2f5486c1009",
+  "policy": {
+    "retrieval_not_run_during_route_007": true,
+    "results_must_not_change_queries_or_labels": true,
+    "router_profile_must_not_change_before_route_008": true,
+    "required_grade": 2,
+    "supporting_grade": 1,
+    "comparison_deferred_to": "ROUTE-008"
+  }
+}
