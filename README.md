@@ -13,6 +13,7 @@
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
 - **MCP Tools 双端** — Server 供 Claude Desktop 调用，Client 消费外部 MCP Server 工具
 - **RAG 混合检索与精排** — BM25 + ChromaDB 向量召回、RRF 融合，并可用多语言 Cross-Encoder 精排
+- **轻量代码结构图** — 已定义内容无关、稳定可序列化的 Python 文件/类/函数节点契约；边解析按阶段实施
 - **事务式代码编辑** — SHA 乐观并发控制、全量预检、Python AST 校验、同目录临时文件与原子替换
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
@@ -234,13 +235,14 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - 向量模型：`all-MiniLM-L6-v2`（本地运行）
 - 关键词召回：内置 Okapi BM25，支持代码标识符和中英文注释分词
 - 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
+- 自适应路由：设置 `rag.adaptive_routing.enabled=true` 后，Hybrid/Rerank 候选阶段根据有界 QueryFeatures 和双路排名置信信号消费冻结 Router；默认关闭，异常时复用同批候选回退固定 RRF
 - 精排：启用后对 RRF Top-30 使用 `mmarco-mMiniLMv2-L12-H384-v1` 进行 `(query, chunk)` 成对打分，再返回最终 Top-K；CPU 默认关闭
 - 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
 - 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件
 - 索引 schema 升级：检测到缺少 `content_type` 的旧版索引状态时，下一次 `/index` 会自动完整重建
 
-可在 `config/settings.yaml` 中调整候选集倍数、BM25、RRF 及 Reranker。需要高质量
+可在 `config/settings.yaml` 中调整候选集倍数、BM25、RRF、自适应路由及 Reranker。需要高质量
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 

@@ -64,6 +64,14 @@ ROUTE-006 当前已验证：
 
 其中 Router/Tuning/RerankPolicy 定向107 passed，相关回归299 passed。离线 CLI 仅接受30条 `codepilot-dev.json`，搜索空间为每个路由族54组；族级方案开发集 Recall@10/MRR@10 为0.788889/0.593056，固定 RRF 为0.780556/0.591005。差值只用于参数选择，不能作为独立验证结果；test-v1、冻结 Oracle和正式结果未读取。
 
+ROUTE-007 建立 `.rag-eval/codepilot-validation-v1.json`：50条、五类各10条、66个 required 标签，开发集规范化 query 重合为0。冻结 manifest 状态为 `frozen_unscored`，同时封存数据集 SHA-256 `4c45a8b848328d44a234468753cd11757818df3fedc49759a252e2ddef8fa71f` 与路由参数画像 SHA-256 `630542eff259aa3c3eecb9a98d419a6c9a3d188e9c89f56a6350f2f5486c1009`。本轮只验证结构、标签到 chunk 的映射和防漂移契约，没有运行任何策略并且没有指标；定向43 passed，全量456 passed、4 skipped；对比留待 ROUTE-008。
+
+ROUTE-008 在上述双哈希通过后完成唯一一次离线比较：固定 RRF、纯 Vector、自适应 Recall@10/MRR@10 为 `0.466667/0.248905`、`0.380000/0.196333`、`0.486667/0.265857`。自适应相对固定 Recall 差值 `+0.020000`（成对95% CI `[0.000000,0.060000]`），MRR差值 `+0.016952`（`[-0.006143,0.051167]`）；证据不足以宣称稳定优势。报告为 `.rag-eval/adaptive-routing-validation-2026-08-28.{json,md}`，不包含 query、源码或 Top 结果。定向115 passed，全量466 passed、4 skipped。
+
+ROUTE-RUNTIME-001 将冻结 Router 接入 Retriever 的可选运行时路径。默认关闭时固定 RRF 行为不变；启用后 Hybrid/Rerank 候选使用自适应计划，异常复用同批原始排名回退。定向98 passed，全量471 passed、4 skipped；强制离线真实 smoke 验证 `adaptive_routing=true`、`rule_router_v1`、`natural_language` 和30候选 metadata。该 smoke 只验证接线，不重复运行冻结评测或产生新质量结论。
+
+GRAPH-001 只定义节点契约，不运行图检索或质量评测。30个定向测试覆盖稳定身份、行移动、类型/文件/改名区分、父节点约束、路径与数值边界、Python/Unicode限定名、不可变性、JSON序列化、内容最小化和依赖隔离；节点/Indexer相关回归36 passed，全量501 passed、4 skipped。跨模块 Recall 变化必须等到 GRAPH-007，不能由节点单测宣称。
+
 ROUTE-005 当前已验证：
 
 ```text

@@ -1,6 +1,6 @@
 # CodePilot 进度跟踪表
 
-更新时间：2026-08-19
+更新时间：2026-08-29
 
 ## 1. 使用方法
 
@@ -18,8 +18,8 @@
 | M1 事务式代码编辑 | `DONE_WITH_GAP` | 工具与复测完成；事务调用32/32成功，目标修改率70%/60%未达80% |
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
-| M4 自适应检索 | `IN_PROGRESS` | ROUTE-001～006 已完成；下一项 ROUTE-007，建立新独立验证集 |
-| M5 AST 结构图扩展 | `PLANNED` | 只解决跨模块问题 |
+| M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001 节点契约完成；下一项 GRAPH-002 contains/imports 边 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -190,8 +190,8 @@
 - [x] `ROUTE-004` `DONE`：实现规则式路由器。
 - [x] `ROUTE-005` `DONE`：实现 RerankPolicy 和延迟预算。
 - [x] `ROUTE-006` `DONE`：在开发集调参，不读取 test-v1 结果。
-- [ ] `ROUTE-007` `PLANNED`：建立新独立验证集。
-- [ ] `ROUTE-008` `PLANNED`：对比固定 RRF、纯 Vector 和自适应策略。
+- [x] `ROUTE-007` `DONE`：建立新独立验证集。
+- [x] `ROUTE-008` `DONE`：对比固定 RRF、纯 Vector 和自适应策略。
 
 ### ROUTE-001 完成记录
 
@@ -279,15 +279,66 @@
 - 限制：开发集仅30条、最小路由族2条且由当前项目反推；没有验证新独立集、外部自然语言、400ms P95、Rerank调用比例或 Agent成功率。
 - 下一任务：`ROUTE-007`。
 
+### ROUTE-007 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-28
+- 修改文件：`rag/retrieval_validation.py`、`tests/test_retrieval_validation.py`、`.rag-eval/codepilot-validation-v1.json`、对应 manifest、评测协议和项目管理文档。
+- 数据集：50条新 query，identifier、natural_language、bug_symptom、cross_module、mixed_language 五类各10条；共66个 required 标签，全部映射到当前源码 chunk，未用测试代码充当 required。
+- 隔离：验证集与30条开发集做大小写折叠和空白归一后的精确查重，重合为0；冻结入口在读取前拒绝非 `codepilot-validation-v1.json`，不会被 ROUTE-006 调参入口接受。
+- 双重冻结：manifest 记录验证集 SHA-256、开发集 SHA-256、语料指纹以及完整 ROUTE-006 路由参数画像和哈希；`--check` 同时拒绝答案漂移和验证前重新调参。
+- 评测纪律：本轮状态为 `frozen_unscored`，没有调用 Retriever/Evaluator、Embedding、Reranker、网络或付费 API，没有生成 Recall/MRR；固定 RRF、纯 Vector和冻结自适应策略的单次比较留待 ROUTE-008。
+- 测试：Validation/Tuning/Evaluate 定向43 passed；全量456 passed、4 skipped；manifest 双哈希检查和 `git diff --check` 通过。
+- 限制：该集合只独立于 ROUTE-006 参数选择，仍来自同一仓库和内部标注流程；样本量每类10条，不能冒充外部或统计显著的泛化证据。
+- 下一任务：`ROUTE-008`。
+
+### ROUTE-008 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-28
+- 修改文件：`rag/retrieval_comparison.py`、`tests/test_retrieval_comparison.py`、`.rag-eval/adaptive-routing-validation-2026-08-28.json`、同名 Markdown 报告和项目管理文档。
+- 预检：ROUTE-007 数据集 SHA 与 ROUTE-006 路由画像双哈希通过；本地旧索引在强制离线下增量更新61个文件、639个 chunk，评测语料 SHA-256 为 `f73d8a579afd2acdbc2a644cd0d67697e2be304c746ea82ba710ac4a0fb14b8f`。
+- 协议：入口只接受冻结验证集和固定结果文件名，已有结果时拒绝覆盖；只运行固定 RRF `2.0/0.25,k=10,candidates=30`、纯 Vector、ROUTE-006 冻结自适应三种策略，不启用 Rerank。
+- 结果：固定 RRF Recall@10/MRR@10 `0.466667/0.248905`；纯 Vector `0.380000/0.196333`；冻结自适应 `0.486667/0.265857`。本机预热后 P95 分别为66.858/31.349/68.405ms，但不是生产 SLO。
+- 成对证据：自适应相对固定 Recall `+0.020000`，95% CI `[0.000000,0.060000]`，1条改善/0条退化/49条持平；MRR `+0.016952`，95% CI `[-0.006143,0.051167]`，7条改善/5条退化/38条持平。只记录小幅点估计，不宣称稳定优势。
+- 隔离：结果不包含 query、源码或排名内容；未联网、未调用付费 API、未使用 test-v1、旧正式结果或 Agent Oracle做选择，未回改验证标注或路由参数。
+- 测试：Comparison/Validation/Tuning/Router/Confidence 定向115 passed；全量466 passed、4 skipped；双哈希检查与 `git diff --check` 通过。
+- 运行时缺口：Retriever 没有接入 Router/RerankPolicy，默认产品仍为固定 RRF、关闭 Rerank；若上线应另立带回退与观测的接线任务。
+
+### ROUTE-RUNTIME-001 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/retriever.py`、`config.py`、`config/settings.yaml`、`tests/test_retriever.py`、`tests/test_config.py`、README和项目管理文档。
+- 接线：Hybrid 与 Rerank 的候选生成路径在 `rag.adaptive_routing.enabled=true` 时提取有界 QueryFeatures，使用 Vector/BM25 Top-10置信信号调用冻结 Router，再按计划权重、RRF k和候选数融合。
+- 兼容：开关默认 false，关闭时保持原固定 RRF及原 metadata；文档意图可在自适应路径显式包含文档，但不会覆盖用户已有的 `rag.include_docs=true`。
+- 回退：特征/预路由失败直接回到固定路径；取得双路排名后的置信或路由失败复用同批候选固定融合，不重复请求 Embedding。`fallback_on_error=false` 可用于严格失败。
+- 观测：自适应结果只附加路由版本、族、固定 reason codes、权重、RRF k和候选数，不保存 query、文档或模型输出。
+- 验证：Retriever/Config/Router/Confidence/Reranker 定向98 passed；全量471 passed、4 skipped；真实本地离线 smoke 返回3条全部带 `adaptive_routing=true`，路由版本 `rule_router_v1`、族 `natural_language`、候选数30。
+- 遗留：RerankPolicy仍未接入；默认不开启自适应，后续启用需灰度、回退指标和线上延迟/质量观测。
+
 ## 9. 结构图任务
 
-- [ ] `GRAPH-001` `PLANNED`：定义文件、类、函数节点模型。
+- [x] `GRAPH-001` `DONE`：定义文件、类、函数节点模型。
 - [ ] `GRAPH-002` `PLANNED`：解析 contains/imports 边。
 - [ ] `GRAPH-003` `PLANNED`：解析简单 calls/inherits 边。
 - [ ] `GRAPH-004` `PLANNED`：建立 tests 关系映射。
 - [ ] `GRAPH-005` `PLANNED`：实现种子 Chunk 一跳扩展。
 - [ ] `GRAPH-006` `PLANNED`：实现上下文预算和去重。
 - [ ] `GRAPH-007` `PLANNED`：跨模块专项评测。
+
+### GRAPH-001 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph.py`、`tests/test_code_graph.py`、README和项目管理文档。
+- 契约：`GraphNodeKind` 仅包含 file/class/function，方法统一为function；不可变 slots 节点保存 schema、稳定 ID、名称、限定名、POSIX相对路径、行区间、父节点和固定 Python language。
+- 身份：SHA-256节点 ID由语言、类型、路径和限定名生成，不包含行号，因此普通插行不改变身份；改名、换文件或换类型会改变身份。
+- 边界：路径拒绝绝对路径、遍历、空/点段、换行和超长；行号拒绝 bool、倒序、非正数和超过1,000万；符号名称遵守Python标识符与点分限定名契约，并支持Unicode标识符。
+- 隐私：序列化不包含source、content、docstring或decorators；模块不导入AST、文件I/O、Indexer或Retriever。
+- 范围：父节点 ID 只做格式要求，父子存在性及contains/imports正确性由GRAPH-002验证；本轮不解析 calls/inherits、不构图、不改变检索行为。
+- 测试：节点模型定向30 passed；节点/Indexer相关回归36 passed；全量501 passed、4 skipped；`git diff --check`通过。
+- 下一任务：`GRAPH-002`。
 
 ## 10. 模型服务任务
 

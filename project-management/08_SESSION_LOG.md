@@ -706,3 +706,70 @@
 
 - 推荐任务 ID：
 ```
+
+## 2026-08-28 / ROUTE-007 独立验证集冻结
+
+### 修改
+
+- 新增50条 `codepilot-validation-v1.json`，五类各10条、66个 required 标签；所有标签已映射到当前源码 chunk，开发集规范化 query 重合为0。
+- 新增 `rag.retrieval_validation`，只接受指定验证集文件名，冻结数据集与 ROUTE-006 路由参数画像，并提供双哈希 `--check`。
+- manifest 状态为 `frozen_unscored`；本轮没有运行 Retriever/Evaluator，也没有生成 Recall、MRR或策略胜负。
+
+### 验证
+
+- Validation/Tuning/Evaluate 定向：43 passed。
+- 全量：456 passed、4 skipped；manifest `--check` 与 `git diff --check` 通过。
+- 冻结 SHA-256：`4c45a8b848328d44a234468753cd11757818df3fedc49759a252e2ddef8fa71f`。
+- 路由画像 SHA-256：`630542eff259aa3c3eecb9a98d419a6c9a3d188e9c89f56a6350f2f5486c1009`。
+
+### 下一步
+
+- 推荐任务 ID：`ROUTE-008`。
+- 在修改任何路由常量或验证标注前先运行 manifest `--check`，随后一次性比较固定 RRF、纯 Vector和冻结自适应策略。
+
+## 2026-08-28 / ROUTE-008 冻结三策略对比
+
+### 修改与协议
+
+- 新增 `rag.retrieval_comparison` 与定向测试；入口只接受 ROUTE-007 冻结集及固定结果文件名，已有结果时拒绝覆盖。
+- 强制离线增量更新本地索引61个文件、639个 chunk；随后唯一一次运行固定 RRF、纯 Vector、冻结自适应，不启用 Rerank。
+- JSON报告不保存 query、源码、文档或 Top结果；验证集和路由参数未回改。
+
+### 指标
+
+- 固定 RRF：Recall@10 `0.466667`，MRR@10 `0.248905`，本机 P95 `66.858ms`。
+- 纯 Vector：Recall@10 `0.380000`，MRR@10 `0.196333`，本机 P95 `31.349ms`。
+- 冻结自适应：Recall@10 `0.486667`，MRR@10 `0.265857`，本机 P95 `68.405ms`。
+- 自适应相对固定：Recall `+0.020000`，95% CI `[0.000000,0.060000]`；MRR `+0.016952`，95% CI `[-0.006143,0.051167]`。不宣称稳定或外部泛化收益。
+
+### 遗留
+
+- Comparison/Validation/Tuning/Router/Confidence 定向115 passed；全量466 passed、4 skipped；双哈希检查与 `git diff --check` 通过。
+- M4 标记 `DONE_WITH_GAP`：Retriever 默认路径仍未接入 Router/RerankPolicy，产品继续固定 RRF、关闭 Rerank。
+- 如需上线自适应策略，应新增运行时接线、回退和线上观测任务，而不是修改本轮冻结答案或参数。
+
+## 2026-08-29 / ROUTE-RUNTIME-001 Router 运行时接线
+
+### 修改
+
+- `rag.retriever` 的 Hybrid/Rerank 候选阶段可通过 `rag.adaptive_routing.enabled=true` 调用 QueryFeatures、置信信号和冻结 Router。
+- 默认开关为 false；关闭时保持固定 RRF。路由异常复用同一批 Vector/BM25 排名回退，不重复请求 Embedding。
+- 自适应结果 metadata 记录版本、路由族、固定 reason codes和计划参数，不记录 query或内容。
+
+### 验证与边界
+
+- Retriever/Config/Router/Confidence/Reranker 定向98 passed；全量471 passed、4 skipped。
+- 强制离线真实 smoke：3/3结果带自适应标记，`rule_router_v1`、`natural_language`、30候选。
+- 未重复运行冻结 ROUTE-008 评测；没有新质量收益声明。RerankPolicy、灰度和线上观测仍是后续缺口。
+
+## 2026-08-29 / GRAPH-001 开工
+
+- 目标：只定义 Python 文件、类、函数/方法节点的稳定数据契约，不提前解析 contains/imports/calls/inherits 边。
+- 假设：节点 ID 由语言、节点类型、POSIX 相对路径和限定名确定，不包含行号，因此插行不改变身份；源码、docstring和装饰器内容不进入节点。
+- 边界：GRAPH-002 才解析 contains/imports；GRAPH-003 才解析 calls/inherits；本轮不接入 Retriever或索引流程。
+
+### GRAPH-001 完成
+
+- 新增 `rag.code_graph`：不可变 file/class/function 节点、稳定SHA-256身份、严格相对路径/行区间/Python限定名验证和JSON序列化。
+- ID不含行号，插行保持身份；序列化不含源码、docstring、decorator或AST内容。
+- 定向30 passed；节点/Indexer相关回归36 passed；全量501 passed、4 skipped；GRAPH-002 才解析 contains/imports 与验证父子存在性。

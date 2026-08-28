@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006 与 `ROUTE-001`～`ROUTE-006` 已完成。ROUTE-006 只使用30条开发集做54组/路由族的离线网格选择：未校准规则 Recall@10/MRR@10 为0.652778/0.543373，固定 RRF 为0.780556/0.591005，保守族级参数为0.788889/0.593056。该小幅变化仅是同一开发集内结果，不是独立收益。调参 CLI 在读取前拒绝非 `codepilot-dev.json` 文件；冻结集、Oracle和正式结果未读取。下一项 `ROUTE-007` 建立新独立验证集；策略仍未接入 Retriever，CPU 默认仍使用固定 Weighted RRF。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001` 已完成。`rag.code_graph` 已定义不可变、无源码内容的 Python file/class/function 节点：稳定 ID 由语言、类型、POSIX相对路径和限定名确定，不含行号；节点只保存有界名称、限定名、位置和父节点 ID。下一项 `GRAPH-002` 解析 contains/imports 边；当前尚未解析 AST、建立边或接入 Retriever。

@@ -212,6 +212,47 @@ search_semantic
 - 下一验证：参数在 ROUTE-006 后冻结。ROUTE-007 必须建立此前未参与选择的新独立集，ROUTE-008 才进行固定/Vector/自适应比较；不得根据新结果回改该验证集答案。
 - 验证：25个调参测试覆盖数据集文件名隔离、搜索空间、数值边界、确定性选择、分族、聚合隐私和模型隔离；三层定向107 passed、相关回归299 passed、全量446 passed、4 skipped。
 
+### ADR-020：独立验证集与待测路由参数在评分前双重冻结
+
+- 日期：2026-08-28
+- 状态：`ACCEPTED`
+- 数据决策：ROUTE-007 新建 `codepilot-validation-v1.json`，共50条，五类各10条。它不参与 ROUTE-006 的参数搜索，与开发集做规范化精确查重，但仍是同仓库内部标注集，不宣称外部独立性。
+- 隔离决策：`rag.retrieval_validation` 只接受指定验证集文件名；模块不导入 Retriever 或 Evaluator。ROUTE-007 只校验结构、类别、ID、chunk 标签和开发集重合，不计算或持久化任何排名与指标。
+- 双重冻结：manifest 除数据集、开发集和语料哈希外，还保存完整族级 BM25/Vector/RRF/candidate 参数画像。`--check` 要求验证集哈希和当前路由画像哈希同时一致，防止看完答案后改标签或改策略。
+- 使用规则：ROUTE-008 才能对固定 RRF、纯 Vector和冻结自适应方案进行同条件比较；结果不得回改 v1 query/labels，也不得据此重新选择 ROUTE-006 参数。
+- 限制：每类只有10条且由项目内部标注，足以隔离参数选择与一次验证，但不足以证明统计显著性、跨仓库泛化或线上收益。
+
+### ADR-021：冻结验证只运行预声明三策略且结果不可覆盖
+
+- 日期：2026-08-28
+- 状态：`ACCEPTED`
+- 预检：ROUTE-008 在任何检索前验证 ROUTE-007 数据集 SHA 和 ROUTE-006 参数画像 SHA；本地索引强制离线增量更新到当前语料，报告记录评测语料指纹。
+- 策略：只允许固定 RRF `2.0/0.25,k=10,candidates=30`、纯 Vector Top-10和冻结 Router 生成的自适应计划。三种策略均不使用 Rerank、Oracle或结果驱动参数。
+- 一次性：CLI 只接受固定数据集/结果文件名，结果文件存在即拒绝覆盖。JSON保留 case ID、类别、指标和路由族，不复制 query、源码、文档或 Top结果。
+- 结论：自适应获得最高点估计，但 Recall 差值只来自1条改善，MRR成对95% CI跨0。保持默认固定 RRF；不以本结果自动授权运行时接线。
+- 延迟边界：本机预热后的顺序墙钟 P95 低于70ms，但没有并发、服务队列或线上硬件条件，不能据此宣称达到生产400ms P95。
+
+### ADR-022：自适应 Router 通过默认关闭的运行时开关接入
+
+- 日期：2026-08-28
+- 状态：`ACCEPTED`
+- 接线路径：Retriever 在 Hybrid/Rerank 候选生成阶段消费 QueryFeatures、双路 Top-10置信信号和冻结 Router，不改变纯 Vector/BM25 模式。
+- 默认策略：`rag.adaptive_routing.enabled=false`，因为独立验证只显示小幅、不稳定点估计；接入能力不等于默认发布授权。
+- 同批回退：双路召回只执行一次。置信或路由失败时用已经取得的排名和配置固定权重完成 RRF，避免异常路径重复 Embedding；可通过 `fallback_on_error=false` 改为严格失败。
+- 检索分域：显式文档意图可让自适应路径包含文档；全局 `rag.include_docs=true` 仍具有优先权，排名置信结果不参与分域决定。
+- 可观测与隐私：返回 metadata 仅包含稳定版本、路由族、reason codes和数值计划，不复制 query、源码、hits内容或模型输出。
+- 范围：本 ADR 不接入 RerankPolicy、不默认启用 Router，也不声称 ROUTE-008 的本机延迟等同线上 SLO。
+
+### ADR-023：代码图节点身份与源码位置解耦
+
+- 日期：2026-08-29
+- 状态：`ACCEPTED`
+- 节点范围：GRAPH-001 只定义 Python file、class、function三类；方法使用function类型并通过限定名和父节点区分，不提前增加配置、测试或工具专用节点类型。
+- 稳定身份：节点 ID 是 `python + kind + POSIX相对路径 + qualified_name` 的SHA-256，不包含行号。插行只更新位置；改名、移动文件或改变类型产生新身份。
+- 最小内容：节点只保存名称、限定名、路径、行区间、父节点 ID、语言和schema，不保存源码、docstring、decorator、AST对象或检索结果。
+- 校验：路径必须仓库相对且无遍历；符号名必须是Python标识符，限定名必须是点分标识符并以自身名称结尾；所有字符串和行号有硬上界。
+- 分阶段边界：GRAPH-002 负责AST解析、父节点存在性和contains/imports边；GRAPH-003再处理calls/inherits。本 ADR 不接入索引或Retriever。
+
 ### ADR-009：结构图只做检索后扩展
 
 - 状态：`PLANNED`
