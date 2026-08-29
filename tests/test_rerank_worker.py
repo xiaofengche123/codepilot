@@ -21,8 +21,81 @@ from rag.rerank_worker import (
     RerankWorker,
     RerankWorkerClosedError,
     RerankWorkerError,
+    RerankWarmupResult,
 )
 from rag.rerank_worker_state import RerankWorkerPhase
+
+
+def _wait_for_phase(worker, phase, timeout=1.0):
+    deadline = time.monotonic() + timeout
+    while worker.state().phase is not phase:
+        if time.monotonic() >= deadline:
+            pytest.fail(f"worker did not reach {phase.value}")
+        time.sleep(0.001)
+
+
+def test_background_warmup_is_non_blocking_and_idempotent():
+    loading = threading.Event()
+    release = threading.Event()
+    attempts = []
+
+    def loader():
+        attempts.append(threading.get_ident())
+        loading.set()
+        release.wait(timeout=2)
+
+    worker = RerankWorker(capacity=2, loader=loader)
+    try:
+        before = time.monotonic()
+        first = worker.start_warmup()
+        elapsed = time.monotonic() - before
+        assert first == RerankWarmupResult(True, "rerank_warmup_scheduled")
+        assert elapsed < 0.5
+        assert loading.wait(timeout=1)
+        assert worker.state().phase is RerankWorkerPhase.LOADING
+
+        second = worker.start_warmup()
+        assert second.reason_code == "rerank_warmup_already_pending"
+        assert second.scheduled is False
+        release.set()
+        _wait_for_phase(worker, RerankWorkerPhase.READY)
+        assert len(attempts) == 1
+        assert attempts[0] != threading.get_ident()
+
+        third = worker.start_warmup()
+        assert third.reason_code == "rerank_warmup_not_needed"
+        assert json.loads(json.dumps(third.to_dict())) == third.to_dict()
+        with pytest.raises(FrozenInstanceError):
+            third.scheduled = True
+    finally:
+        release.set()
+        worker.close(wait=True, timeout=1)
+
+
+def test_background_warmup_failure_updates_state_without_raising_to_scheduler():
+    attempted = threading.Event()
+
+    def loader():
+        attempted.set()
+        raise RuntimeError("private warmup detail")
+
+    worker = RerankWorker(capacity=1, loader=loader)
+    try:
+        result = worker.start_warmup()
+        assert result.reason_code == "rerank_warmup_scheduled"
+        assert attempted.wait(timeout=1)
+        _wait_for_phase(worker, RerankWorkerPhase.FAILED)
+        assert worker.circuit_snapshot().consecutive_failures == 1
+        assert "private warmup detail" not in repr(result.to_dict())
+    finally:
+        worker.close(wait=True, timeout=1)
+
+
+def test_close_rejects_background_warmup_with_stable_result():
+    worker = RerankWorker(capacity=1, loader=lambda: None)
+    assert worker.close(wait=True, timeout=1)
+    result = worker.start_warmup()
+    assert result == RerankWarmupResult(False, "rerank_warmup_worker_closed")
 
 
 def test_worker_lazy_loads_once_and_reuses_single_thread():

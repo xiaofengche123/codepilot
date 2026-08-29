@@ -12,6 +12,7 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
 from server import SubmitRequest, app
+import server
 
 needs_api_key = pytest.mark.skipif(
     os.getenv("CODEPILOT_RUN_LLM_TESTS") != "1"
@@ -47,6 +48,40 @@ async def test_metrics(client):
     assert "codepilot_trace_tasks_total" in response.text
     assert "codepilot_trace_review_passed" in response.text
     assert "codepilot_trace_failures_total" in response.text
+
+
+@pytest.mark.asyncio
+async def test_lifespan_schedules_warmup_and_closes_worker(monkeypatch):
+    events = []
+    monkeypatch.setattr(
+        "rag.reranker.start_background_warmup",
+        lambda: events.append("warmup"),
+    )
+    monkeypatch.setattr(
+        "rag.reranker.shutdown_worker",
+        lambda **kwargs: events.append(("shutdown", kwargs)),
+    )
+
+    async with server.lifespan(app):
+        assert events == ["warmup"]
+
+    assert events == ["warmup", ("shutdown", {"wait": False})]
+
+
+@pytest.mark.asyncio
+async def test_lifespan_survives_warmup_scheduling_failure(monkeypatch):
+    def fail_to_schedule():
+        raise RuntimeError("private startup detail")
+
+    monkeypatch.setattr("rag.reranker.start_background_warmup", fail_to_schedule)
+    monkeypatch.setattr("rag.reranker.shutdown_worker", lambda **_kwargs: True)
+    with pytest.warns(RuntimeWarning) as caught:
+        async with server.lifespan(app):
+            assert True
+
+    message = str(caught[0].message)
+    assert "rerank_warmup_start_failed" in message
+    assert "private startup detail" not in message
 
 
 def test_dashboard_exposes_trace_funnel_metrics():

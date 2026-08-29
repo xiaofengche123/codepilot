@@ -64,6 +64,8 @@ rag:
     failure_threshold: 3
     # 熔断冷却结束后只放行一个恢复探测请求。
     circuit_cooldown_seconds: 60.0
+    # 服务启动时仅向单模型Worker投递预热任务；启动线程不等待模型加载。
+    background_warmup: true
     max_length: 512
     device: null
     cache_folder: ".codepilot/model-cache"

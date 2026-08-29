@@ -9,6 +9,7 @@ import asyncio
 import os
 import threading
 import time
+import warnings
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -181,10 +182,26 @@ async def lifespan(app: FastAPI):
     max_workers = config.get("server.max_concurrent", 5)
     _task_queue = TaskQueue(max_concurrent=max_workers)
     await _task_queue.start(_executor)
-    yield
-    await _task_queue.stop()
-    for manager in list(_worktree_managers.values()):
-        manager.cleanup_all()
+    try:
+        try:
+            from rag.reranker import start_background_warmup
+
+            start_background_warmup()
+        except Exception:
+            warnings.warn(
+                "reranker background warmup could not be scheduled "
+                "(rerank_warmup_start_failed)",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        yield
+    finally:
+        await _task_queue.stop()
+        from rag.reranker import shutdown_worker
+
+        shutdown_worker(wait=False)
+        for manager in list(_worktree_managers.values()):
+            manager.cleanup_all()
 
 
 app = FastAPI(

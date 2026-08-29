@@ -267,3 +267,54 @@ def test_worker_settings_have_bounded_runtime_defaults():
     assert settings["inference_timeout_seconds"] == 30.0
     assert settings["failure_threshold"] == 3
     assert settings["circuit_cooldown_seconds"] == 60.0
+    assert settings["background_warmup"] is True
+
+
+def test_background_warmup_disabled_does_not_create_worker(monkeypatch):
+    reranker.reset_for_tests()
+    monkeypatch.setattr(
+        reranker,
+        "_settings",
+        lambda: {"enabled": False, "background_warmup": True},
+    )
+
+    result = reranker.start_background_warmup()
+
+    assert result.scheduled is False
+    assert result.reason_code == "rerank_warmup_disabled"
+    assert reranker._worker is None
+
+
+def test_background_warmup_runs_loader_off_calling_thread(monkeypatch):
+    loading = threading.Event()
+    release = threading.Event()
+    loader_threads = []
+    reranker.reset_for_tests()
+
+    def loader():
+        loader_threads.append(threading.get_ident())
+        loading.set()
+        release.wait(timeout=2)
+
+    monkeypatch.setattr(reranker, "_load_model", loader)
+    monkeypatch.setattr(
+        reranker,
+        "_settings",
+        lambda: {
+            "enabled": True,
+            "background_warmup": True,
+            "queue_capacity": 1,
+            "failure_threshold": 3,
+            "circuit_cooldown_seconds": 60.0,
+        },
+    )
+    calling_thread = threading.get_ident()
+    try:
+        result = reranker.start_background_warmup()
+        assert result.reason_code == "rerank_warmup_scheduled"
+        assert loading.wait(timeout=1)
+        assert loader_threads == [reranker._worker._thread.ident]
+        assert loader_threads[0] != calling_thread
+    finally:
+        release.set()
+        reranker.reset_for_tests()

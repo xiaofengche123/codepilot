@@ -3,8 +3,8 @@
 The worker serializes model access without spawning one inference thread per
 request.  A caller timeout abandons its result but cannot forcibly interrupt a
 running Python/PyTorch call; the single worker finishes that call before taking
-the next request.  Consecutive model failures open a cooldown circuit with one
-recovery probe.  Background warmup remains intentionally deferred.
+the next request. Consecutive model failures open a cooldown circuit with one
+recovery probe. Background warmup uses the same worker without blocking startup.
 """
 
 from __future__ import annotations
@@ -93,11 +93,24 @@ class RerankCircuitSnapshot:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class RerankWarmupResult:
+    scheduled: bool
+    reason_code: str
+
+    def to_dict(self) -> dict[str, str | bool]:
+        return {
+            "scheduled": self.scheduled,
+            "reason_code": self.reason_code,
+        }
+
+
 @dataclass(slots=True)
 class _WorkItem(Generic[T]):
     operation: Callable[[], T] = field(repr=False)
     future: Future[T] = field(default_factory=Future, repr=False)
     recovery_probe: bool = False
+    background_warmup: bool = False
 
 
 class RerankWorker:
@@ -129,6 +142,7 @@ class RerankWorker:
         self._consecutive_failures = 0
         self._circuit_opened_at: float | None = None
         self._probe_in_progress = False
+        self._warmup_item: _WorkItem[object] | None = None
         self._thread = threading.Thread(
             target=self._run,
             name="rerank-worker",
@@ -164,6 +178,33 @@ class RerankWorker:
         with self._state_lock:
             return self._state
 
+    def start_warmup(self) -> RerankWarmupResult:
+        """Schedule one content-free model load without waiting for it."""
+        item: _WorkItem[object] = _WorkItem(
+            operation=lambda: None,
+            background_warmup=True,
+        )
+        with self._state_lock:
+            if self._model_loaded:
+                return RerankWarmupResult(False, "rerank_warmup_not_needed")
+            if self._circuit_opened_at is not None:
+                return RerankWarmupResult(False, "rerank_warmup_circuit_open")
+            if self._warmup_item is not None:
+                return RerankWarmupResult(False, "rerank_warmup_already_pending")
+            self._warmup_item = item
+
+        offered = self._queue.offer(item)
+        if offered.accepted:
+            return RerankWarmupResult(True, "rerank_warmup_scheduled")
+
+        self._finish_warmup(item)
+        reason_code = (
+            "rerank_warmup_queue_full"
+            if offered.reason_code == "rerank_queue_full"
+            else "rerank_warmup_worker_closed"
+        )
+        return RerankWarmupResult(False, reason_code)
+
     def queue_snapshot(self):
         return self._queue.snapshot()
 
@@ -176,6 +217,10 @@ class RerankWorker:
         if not isinstance(wait, bool):
             raise TypeError("wait must be a boolean")
         join_timeout = _validate_optional_join_timeout(timeout)
+        with self._state_lock:
+            warmup_item = self._warmup_item
+        if warmup_item is not None and warmup_item.future.cancel():
+            self._finish_warmup(warmup_item)
         self._queue.close()
         if wait and threading.current_thread() is not self._thread:
             self._thread.join(join_timeout)
@@ -189,25 +234,31 @@ class RerankWorker:
                 except RerankQueueClosed:
                     return
                 if not item.future.set_running_or_notify_cancel():
-                    continue
-                rejection = self._execution_rejection(item.recovery_probe)
-                if rejection is not None:
-                    item.future.set_exception(rejection)
+                    if item.background_warmup:
+                        self._finish_warmup(item)
                     continue
                 try:
-                    self._ensure_loaded(item.recovery_probe)
-                    result = item.operation()
-                except RerankWorkerError as exc:
-                    item.future.set_exception(exc)
-                    continue
-                except BaseException as exc:
-                    self._record_inference_failure(item.recovery_probe)
-                    wrapped = RerankInferenceError()
-                    wrapped.__cause__ = exc
-                    item.future.set_exception(wrapped)
-                    continue
-                self._record_success()
-                item.future.set_result(result)
+                    rejection = self._execution_rejection(item.recovery_probe)
+                    if rejection is not None:
+                        item.future.set_exception(rejection)
+                        continue
+                    try:
+                        self._ensure_loaded(item.recovery_probe)
+                        result = item.operation()
+                    except RerankWorkerError as exc:
+                        item.future.set_exception(exc)
+                        continue
+                    except BaseException as exc:
+                        self._record_inference_failure(item.recovery_probe)
+                        wrapped = RerankInferenceError()
+                        wrapped.__cause__ = exc
+                        item.future.set_exception(wrapped)
+                        continue
+                    self._record_success()
+                    item.future.set_result(result)
+                finally:
+                    if item.background_warmup:
+                        self._finish_warmup(item)
         finally:
             self._mark_unloaded()
 
@@ -279,6 +330,12 @@ class RerankWorker:
             self._consecutive_failures = 0
             self._circuit_opened_at = None
             self._probe_in_progress = False
+            self._warmup_item = None
+
+    def _finish_warmup(self, item: _WorkItem[object]) -> None:
+        with self._state_lock:
+            if self._warmup_item is item:
+                self._warmup_item = None
 
     def _admit_circuit(self) -> bool:
         with self._state_lock:

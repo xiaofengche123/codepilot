@@ -72,6 +72,9 @@ def _settings() -> dict:
         "circuit_cooldown_seconds": float(
             config.get("rag.reranker.circuit_cooldown_seconds", 60.0)
         ),
+        "background_warmup": bool(
+            config.get("rag.reranker.background_warmup", True)
+        ),
     }
 
 
@@ -195,6 +198,27 @@ def _get_worker(settings: dict):
         return _worker
 
 
+def start_background_warmup():
+    """Schedule model warmup on the rerank worker without awaiting loading."""
+    from rag.rerank_worker import RerankWarmupResult
+
+    settings = _settings()
+    if not settings["enabled"] or not settings["background_warmup"]:
+        return RerankWarmupResult(False, "rerank_warmup_disabled")
+    return _get_worker(settings).start_warmup()
+
+
+def shutdown_worker(*, wait: bool = False, timeout: float | None = None) -> bool:
+    """Detach and close the process-wide worker without unloading model globals."""
+    global _worker
+    with _worker_lock:
+        worker = _worker
+        _worker = None
+    if worker is None:
+        return True
+    return worker.close(wait=wait, timeout=timeout)
+
+
 def status() -> RerankerStatus:
     settings = _settings()
     return RerankerStatus(
@@ -206,12 +230,8 @@ def status() -> RerankerStatus:
 
 
 def reset_for_tests() -> None:
-    global _model, _model_name, _load_error, _worker
-    with _worker_lock:
-        worker = _worker
-        _worker = None
-    if worker is not None:
-        worker.close(wait=True, timeout=1.0)
+    global _model, _model_name, _load_error
+    shutdown_worker(wait=True, timeout=1.0)
     with _load_lock:
         _model = None
         _model_name = ""
