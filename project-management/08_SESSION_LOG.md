@@ -875,3 +875,10 @@
 - 预热复用有界FIFO、生命周期状态和熔断计数；加载失败只进入FAILED并保留RRF回退。重复、已加载、队列满、关闭及熔断均使用固定且不含内容的reason code。
 - 服务退出会非阻塞关闭Worker并取消尚未执行的预热。默认Rerank仍关闭，不会创建Worker或加载模型；未联网、未运行真实模型、正式评测或付费API。
 - 定向70 passed、3 skipped；相关回归60 passed；全量771 passed、4 skipped；`git diff --check`通过；实现提交`d3637d8`；下一项MODEL-006。
+
+## 2026-08-30 / MODEL-006 指标与健康状态
+
+- 新增内容最小化Worker/Reranker运行时快照；`/health`保留API存活状态并增加五阶段、revision、固定reason、队列、熔断、预热和线程状态，不读取或输出模型名、异常详情、query、候选及模型结果。
+- `/metrics`新增路线图要求的七类RAG指标：检索/精排延迟、队列深度、回退、超时、模型加载与检索模式。所有mode/reason标签使用固定白名单，未知输入统一归类，避免泄漏和无界标签基数。
+- 指标为线程安全的单进程累计count/sum/counter/gauge；默认Rerank继续关闭，读取健康与指标不会创建Worker或加载模型。
+- 定向86 passed、3 skipped；全量781 passed、4 skipped；`git diff --check`通过；实现提交`07a9fbf`；下一项MODEL-007。

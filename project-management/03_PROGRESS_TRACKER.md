@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～005单Worker、队列、超时、熔断与后台预热完成；观测待实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～006单Worker、队列、超时、熔断、预热与观测完成；压力验收待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -423,7 +423,7 @@
 - [x] `MODEL-003` `DONE`：推理超时和队列满回退。
 - [x] `MODEL-004` `DONE`：连续失败熔断和冷却探测。
 - [x] `MODEL-005` `DONE`：后台预热。
-- [ ] `MODEL-006` `PLANNED`：指标与健康状态。
+- [x] `MODEL-006` `DONE`：指标与健康状态。
 - [ ] `MODEL-007` `PLANNED`：并发压力和死锁测试。
 
 ### MODEL-001 完成记录
@@ -489,6 +489,16 @@
 - 实现提交：`d3637d8`。
 - 遗留问题：后台预热只消除启用后的首请求加载等待，不改变CPU推理成本，也不能强杀已卡死的PyTorch调用；Worker状态、队列、熔断、预热结果尚未接入健康与指标输出。
 - 下一任务：`MODEL-006`指标与健康输出。
+
+### MODEL-006 完成记录
+
+- 运行时快照：新增不可变Worker与Reranker健康快照，输出enabled/loaded、五阶段、revision、最后事件、固定reason code、队列size/capacity/closed、熔断phase/连续失败/剩余冷却、预热占用和线程存活；未创建Worker时只读配置并返回unloaded，不触发模型加载。
+- 健康接口：`/health`保留顶层`status=ok`，因为Rerank是可回退的可选子系统；新增`reranker`子对象报告上述状态。响应不含模型名、缓存路径、query、候选、异常消息或模型输出，FAILED状态也只保留稳定reason code。
+- 指标：新增线程安全、进程内累计的`rag_retrieval_latency_ms`、`rag_rerank_latency_ms`、`rag_rerank_queue_size`、`rag_rerank_fallback_total`、`rag_rerank_timeout_total`、`rag_model_load_seconds`和`rag_search_mode_total`。延迟/加载用Prometheus summary的count/sum，mode与fallback reason严格映射到固定集合，未知值归一到`unknown`/`rerank_unexpected_error`。
+- 验证：Metrics/Worker/Reranker/Retriever/Server定向86 passed、3 skipped；全量781 passed、4 skipped；`git diff --check`通过。未加载真实模型、未联网、未运行正式评测或付费API。
+- 实现提交：`07a9fbf`。
+- 遗留问题：指标仅为单进程内存累计，不跨多Worker聚合，也没有直方图分位数；本轮不是负载测试，尚未证明高并发下无死锁、队列上限和deadline行为稳定。
+- 下一任务：`MODEL-007`并发压力和死锁测试。
 
 ## 11. 每个任务完成时填写
 

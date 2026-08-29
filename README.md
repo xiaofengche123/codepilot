@@ -177,7 +177,7 @@ curl -X POST http://localhost:8000/tasks/submit \
 - `GET /tasks/{task_id}`：查询状态和最终结果
 - `GET /tasks/{task_id}/events?cursor=0`：增量拉取流式文本、工具调用和生命周期事件
 - `DELETE /tasks/{task_id}`：取消尚未开始的任务
-- `GET /metrics`：Prometheus 文本格式任务指标
+- `GET /metrics`：Prometheus 文本格式任务、检索、Rerank延迟、队列、回退、模型加载与模式指标
 
 任务状态查询示例：
 
@@ -237,10 +237,11 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
 - 自适应路由：设置 `rag.adaptive_routing.enabled=true` 后，Hybrid/Rerank 候选阶段根据有界 QueryFeatures 和双路排名置信信号消费冻结 Router；默认关闭，异常时复用同批候选回退固定 RRF
 - 精排：启用后对 RRF Top-30 使用 `mmarco-mMiniLMv2-L12-H384-v1` 进行 `(query, chunk)` 成对打分，再返回最终 Top-K；CPU 默认关闭
-- Worker 生命周期：已接入 `UNLOADED → LOADING → READY → DEGRADED → FAILED` 状态、连续失败熔断、冷却后的单请求恢复探测和服务启动后台预热；指标仍按 M6 后续任务实施
+- Worker 生命周期：已接入 `UNLOADED → LOADING → READY → DEGRADED → FAILED` 状态、连续失败熔断、冷却后的单请求恢复探测、服务启动后台预热及内容最小化健康/指标输出
 - Worker 队列与回退：显式Rerank通过单模型线程和有界FIFO执行；队列满或调用方deadline到期时返回原始RRF，并保存固定回退原因。运行中的PyTorch调用不会被强杀
 - Worker 熔断：连续3次真实加载/推理失败后开路60秒；冷却前快速回退，冷却后只允许一个探测请求。queue full和调用方timeout不计入连续失败
 - Worker 预热：Rerank启用时由服务生命周期向同一单模型Worker幂等投递预热任务，API启动线程不等待模型加载；预热失败只更新Worker状态并保留RRF回退
+- Worker 可观测性：`/health`返回有界阶段、revision、固定reason code、队列和熔断状态；`/metrics`使用固定mode/reason标签，绝不输出query、模型名、异常文本、候选或模型结果
 - 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
 - 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件
