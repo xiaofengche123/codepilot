@@ -20,6 +20,8 @@ class TestConfig:
         assert config.get("rag.adaptive_routing.fallback_on_error") is True
         assert config.get("rag.reranker.enabled") is False
         assert config.get("rag.reranker.candidate_count") == 30
+        assert config.get("rag.reranker.queue_capacity") == 8
+        assert config.get("rag.reranker.inference_timeout_seconds") == 30.0
 
     def test_dot_path_access(self):
         assert config.get("agent.max_context_tokens") == 8000

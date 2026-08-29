@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import copy
 import os
 from pathlib import Path
 import threading
@@ -34,6 +35,8 @@ _model_name = ""
 _load_error: str | None = None
 _load_lock = threading.Lock()
 _predict_lock = threading.Lock()
+_worker = None
+_worker_lock = threading.Lock()
 
 
 def _settings() -> dict:
@@ -58,6 +61,10 @@ def _settings() -> dict:
         "cache_folder": str(cache_path),
         "local_files_only": bool(
             config.get("rag.reranker.local_files_only", True)
+        ),
+        "queue_capacity": int(config.get("rag.reranker.queue_capacity", 8)),
+        "inference_timeout_seconds": float(
+            config.get("rag.reranker.inference_timeout_seconds", 30.0)
         ),
     }
 
@@ -145,6 +152,38 @@ def rerank(query: str, hits: Iterable[RerankHit], limit: int) -> list[RerankHit]
     )[:limit]
 
 
+def rerank_via_worker(
+    query: str, hits: Iterable[RerankHit], limit: int
+) -> list[RerankHit]:
+    """Run rerank through the bounded single-model worker."""
+    candidates = list(hits)
+    if not candidates or limit <= 0:
+        return []
+    # A timed-out inference may continue in the background.  Isolate mutable
+    # score fields so it cannot alter the RRF fallback already returned.
+    isolated = []
+    for hit in candidates:
+        cloned = copy.copy(hit)
+        cloned.metadata = dict(hit.metadata)
+        isolated.append(cloned)
+    settings = _settings()
+    worker = _get_worker(settings["queue_capacity"])
+    return worker.submit(
+        lambda: rerank(query, isolated, limit),
+        settings["inference_timeout_seconds"],
+    )
+
+
+def _get_worker(capacity: int):
+    global _worker
+    from rag.rerank_worker import RerankWorker
+
+    with _worker_lock:
+        if _worker is None:
+            _worker = RerankWorker(capacity=capacity, loader=_load_model)
+        return _worker
+
+
 def status() -> RerankerStatus:
     settings = _settings()
     return RerankerStatus(
@@ -156,7 +195,12 @@ def status() -> RerankerStatus:
 
 
 def reset_for_tests() -> None:
-    global _model, _model_name, _load_error
+    global _model, _model_name, _load_error, _worker
+    with _worker_lock:
+        worker = _worker
+        _worker = None
+    if worker is not None:
+        worker.close(wait=True, timeout=1.0)
     with _load_lock:
         _model = None
         _model_name = ""

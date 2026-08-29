@@ -418,14 +418,16 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
         adaptive_features,
     )
     try:
-        from rag.reranker import rerank
+        from rag.reranker import rerank_via_worker
 
-        return rerank(query, candidates, n)
+        return rerank_via_worker(query, candidates, n)
     except Exception as exc:
         if not bool(config.get("rag.reranker.fallback_on_error", True)):
             raise
+        reason_code = _rerank_fallback_reason(exc)
         warnings.warn(
-            f"Cross-Encoder rerank failed; falling back to RRF: {exc}",
+            "Cross-Encoder rerank failed; falling back to RRF "
+            f"({reason_code})",
             RuntimeWarning,
             stacklevel=2,
         )
@@ -433,7 +435,17 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
         for hit in fallback:
             hit.metadata = dict(hit.metadata)
             hit.metadata["rerank_fallback"] = True
+            hit.metadata["rerank_fallback_reason"] = reason_code
         return fallback
+
+
+def _rerank_fallback_reason(exc: Exception) -> str:
+    """Accept only worker-owned reason codes; never echo arbitrary exceptions."""
+    from rag.rerank_worker import RerankWorkerError
+
+    if isinstance(exc, RerankWorkerError):
+        return exc.reason_code
+    return "rerank_unexpected_error"
 
 
 def _format_hits(query: str, hits: list[SearchHit], title: str) -> str:

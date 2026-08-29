@@ -56,6 +56,10 @@ rag:
     model_name: "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     candidate_count: 30
     batch_size: 16
+    # 单模型Worker的等待队列容量；生产者满载时不阻塞并由Retriever回退RRF。
+    queue_capacity: 8
+    # 从请求被队列接受起计算的调用方deadline；到期后回退，运行中的PyTorch调用不会被强杀。
+    inference_timeout_seconds: 30.0
     max_length: 512
     device: null
     cache_folder: ".codepilot/model-cache"

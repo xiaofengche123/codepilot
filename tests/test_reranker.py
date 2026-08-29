@@ -5,6 +5,7 @@ import time
 
 import rag.reranker as reranker
 import rag.retriever as retriever
+from rag.rerank_worker import RerankInferenceError, RerankQueueFullError
 from rag.retriever import SearchHit
 
 
@@ -57,8 +58,8 @@ def test_rerank_mode_falls_back_to_rrf_on_model_error(monkeypatch):
     )
     monkeypatch.setattr(
         reranker,
-        "rerank",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("offline")),
+        "rerank_via_worker",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RerankInferenceError()),
     )
 
     with pytest.warns(RuntimeWarning, match="falling back to RRF"):
@@ -66,7 +67,91 @@ def test_rerank_mode_falls_back_to_rrf_on_model_error(monkeypatch):
 
     assert [hit.uid for hit in hits] == ["one"]
     assert hits[0].metadata["rerank_fallback"] is True
+    assert hits[0].metadata["rerank_fallback_reason"] == "rerank_inference_error"
     assert hits[0].rrf_rank == 1
+
+
+def test_queue_full_fallback_preserves_rrf_order_and_reason(monkeypatch):
+    candidates = [_hit("one", "first", 0.2), _hit("two", "second", 0.1)]
+    for rank, hit in enumerate(candidates, start=1):
+        hit.rrf_rank = rank
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(retriever, "_hybrid_candidates", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(
+        reranker,
+        "rerank_via_worker",
+        lambda *_a, **_k: (_ for _ in ()).throw(RerankQueueFullError()),
+    )
+
+    with pytest.warns(RuntimeWarning, match="rerank_queue_full"):
+        hits = retriever.retrieve("query", ".", n=2, mode="rerank")
+
+    assert [hit.uid for hit in hits] == ["one", "two"]
+    assert [hit.rrf_rank for hit in hits] == [1, 2]
+    assert all(
+        hit.metadata["rerank_fallback_reason"] == "rerank_queue_full" for hit in hits
+    )
+
+
+def test_untrusted_exception_text_or_reason_is_not_exposed(monkeypatch):
+    class UntrustedError(RuntimeError):
+        reason_code = "API_KEY_secret"
+
+    candidates = [_hit("one", "first", 0.2)]
+    candidates[0].rrf_rank = 1
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(retriever, "_hybrid_candidates", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(
+        reranker,
+        "rerank_via_worker",
+        lambda *_a, **_k: (_ for _ in ()).throw(UntrustedError("private detail")),
+    )
+
+    with pytest.warns(RuntimeWarning) as caught:
+        hits = retriever.retrieve("query", ".", n=1, mode="rerank")
+
+    assert "private detail" not in str(caught[0].message)
+    assert "API_KEY_secret" not in str(caught[0].message)
+    assert hits[0].metadata["rerank_fallback_reason"] == "rerank_unexpected_error"
+
+
+def test_worker_timeout_cannot_mutate_returned_rrf_fallback(monkeypatch):
+    candidates = [_hit("one", "first", 0.2), _hit("two", "second", 0.1)]
+    for rank, hit in enumerate(candidates, start=1):
+        hit.rrf_rank = rank
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow_rerank(_query, isolated, _limit):
+        started.set()
+        release.wait(timeout=2)
+        isolated[0].rerank_score = 99.0
+        return isolated
+
+    reranker.reset_for_tests()
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(retriever, "_hybrid_candidates", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(reranker, "_load_model", lambda: object())
+    monkeypatch.setattr(reranker, "rerank", slow_rerank)
+    monkeypatch.setattr(
+        reranker,
+        "_settings",
+        lambda: {"queue_capacity": 1, "inference_timeout_seconds": 0.2},
+    )
+    try:
+        with pytest.warns(RuntimeWarning, match="rerank_timeout"):
+            hits = retriever.retrieve("query", ".", n=2, mode="rerank")
+        assert started.is_set()
+        assert [hit.rerank_score for hit in hits] == [None, None]
+        assert [hit.rrf_rank for hit in hits] == [1, 2]
+        assert all(hit.metadata["rerank_fallback"] is True for hit in hits)
+        release.set()
+    finally:
+        release.set()
+        reranker.reset_for_tests()
 
 
 def test_load_model_uses_local_files_only_for_online_queries(monkeypatch):
@@ -146,3 +231,9 @@ def test_reranker_status_does_not_load_model(monkeypatch):
     assert current.enabled is True
     assert current.loaded is False
     assert current.model_name == "test-model"
+
+
+def test_worker_settings_have_bounded_runtime_defaults():
+    settings = reranker._settings()
+    assert settings["queue_capacity"] == 8
+    assert settings["inference_timeout_seconds"] == 30.0
