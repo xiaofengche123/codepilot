@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 import math
 import re
+import time
 import warnings
 from typing import Any, Iterable
 
@@ -357,7 +358,22 @@ def _hybrid_candidates(
         return fallback
 
 
-def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") -> list[SearchHit]:
+def retrieve(
+    query: str, project_dir: str, n: int = 10, mode: str = "hybrid"
+) -> list[SearchHit]:
+    """Record bounded runtime metrics around one structured retrieval."""
+    started = time.perf_counter()
+    try:
+        return _retrieve_impl(query, project_dir, n, mode)
+    finally:
+        from rag.runtime_metrics import observe_retrieval
+
+        observe_retrieval(mode, time.perf_counter() - started)
+
+
+def _retrieve_impl(
+    query: str, project_dir: str, n: int = 10, mode: str = "hybrid"
+) -> list[SearchHit]:
     """返回结构化排名结果；支持 vector、bm25、hybrid、rerank。"""
     if not query.strip() or n <= 0:
         return []
@@ -425,6 +441,9 @@ def retrieve(query: str, project_dir: str, n: int = 10, mode: str = "hybrid") ->
         if not bool(config.get("rag.reranker.fallback_on_error", True)):
             raise
         reason_code = _rerank_fallback_reason(exc)
+        from rag.runtime_metrics import record_rerank_fallback
+
+        record_rerank_fallback(reason_code)
         warnings.warn(
             "Cross-Encoder rerank failed; falling back to RRF "
             f"({reason_code})",

@@ -255,6 +255,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     tools_count: int
+    reranker: dict
 
 
 # ── 端点 ──────────────────────────────────────────────────────
@@ -327,11 +328,14 @@ async def get_events(task_id: str, cursor: int = Query(default=0)):
 @app.get("/health", response_model=HealthResponse)
 async def health():
     """健康检查 + 服务器信息。"""
+    from rag.reranker import runtime_status
     from tools import TOOL_DEFINITIONS
+
     return HealthResponse(
         status="ok",
         version="2.0.0",
         tools_count=len(TOOL_DEFINITIONS),
+        reranker=runtime_status().to_dict(),
     )
 
 
@@ -406,6 +410,11 @@ async def metrics():
             f'codepilot_trace_failure_domains_total{{domain="{domain}"}} '
             f'{failure_domains.get(domain, 0)}'
         )
+    from rag.reranker import runtime_status
+    from rag.runtime_metrics import prometheus_lines
+
+    reranker = runtime_status()
+    lines.extend(prometheus_lines(reranker.queue_size))
     return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain")
 
 

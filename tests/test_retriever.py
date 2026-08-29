@@ -5,12 +5,24 @@ import pytest
 from config import config
 from rag.evaluate import calculate_metrics
 from rag.query_features import extract_query_features
+from rag.runtime_metrics import metrics_snapshot, reset_metrics_for_tests
 import rag.retriever as retriever
 from rag.retriever import SearchHit, bm25_rank, reciprocal_rank_fusion, tokenize_code
 
 
 def _hit(uid: str, content: str = "", file: str = "test.py") -> SearchHit:
     return SearchHit(uid=uid, document=content, metadata={"file": file, "start_line": 1})
+
+
+def test_retrieve_records_mode_and_latency_for_early_return():
+    reset_metrics_for_tests()
+
+    assert retriever.retrieve("", ".", mode="hybrid") == []
+
+    snapshot = metrics_snapshot().to_dict()
+    assert snapshot["retrieval_count"]["hybrid"] == 1
+    assert snapshot["search_mode_total"]["hybrid"] == 1
+    assert snapshot["retrieval_latency_ms_sum"]["hybrid"] >= 0
 
 
 def test_tokenize_code_splits_identifiers_and_chinese():

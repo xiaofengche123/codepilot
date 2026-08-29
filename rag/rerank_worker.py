@@ -105,6 +105,30 @@ class RerankWarmupResult:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class RerankWorkerSnapshot:
+    state: RerankWorkerState
+    queue_size: int
+    queue_capacity: int
+    queue_closed: bool
+    circuit: RerankCircuitSnapshot
+    warmup_pending: bool
+    thread_alive: bool
+
+    def to_dict(self) -> dict:
+        return {
+            "state": self.state.to_dict(),
+            "queue": {
+                "size": self.queue_size,
+                "capacity": self.queue_capacity,
+                "closed": self.queue_closed,
+            },
+            "circuit": self.circuit.to_dict(),
+            "warmup_pending": self.warmup_pending,
+            "thread_alive": self.thread_alive,
+        }
+
+
 @dataclass(slots=True)
 class _WorkItem(Generic[T]):
     operation: Callable[[], T] = field(repr=False)
@@ -212,6 +236,23 @@ class RerankWorker:
         with self._state_lock:
             return self._circuit_snapshot_unlocked()
 
+    def runtime_snapshot(self) -> RerankWorkerSnapshot:
+        """Return one bounded snapshot without request or model content."""
+        with self._state_lock:
+            state = self._state
+            circuit = self._circuit_snapshot_unlocked()
+            warmup_pending = self._warmup_item is not None
+        queue = self._queue.snapshot()
+        return RerankWorkerSnapshot(
+            state=state,
+            queue_size=queue.size,
+            queue_capacity=queue.capacity,
+            queue_closed=queue.closed,
+            circuit=circuit,
+            warmup_pending=warmup_pending,
+            thread_alive=self._thread.is_alive(),
+        )
+
     def close(self, *, wait: bool = False, timeout: float | None = None) -> bool:
         """Stop admission and optionally wait for queued/running work to finish."""
         if not isinstance(wait, bool):
@@ -270,6 +311,7 @@ class RerankWorker:
                 self._state = transition_rerank_worker(
                     self._state, RerankWorkerEvent.START_LOAD, "worker_lazy_load"
                 )
+        started = time.perf_counter()
         try:
             self._loader()
         except BaseException as exc:
@@ -277,6 +319,10 @@ class RerankWorker:
             wrapped = RerankModelLoadError()
             wrapped.__cause__ = exc
             raise wrapped
+        finally:
+            from rag.runtime_metrics import observe_model_load
+
+            observe_model_load(time.perf_counter() - started)
         with self._state_lock:
             self._model_loaded = True
             if not recovery_probe:

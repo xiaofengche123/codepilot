@@ -11,6 +11,7 @@ from rag.rerank_worker import (
     RerankQueueFullError,
 )
 from rag.retriever import SearchHit
+from rag.runtime_metrics import metrics_snapshot, reset_metrics_for_tests
 
 
 def _hit(uid: str, document: str, rrf_score: float = 0.0) -> SearchHit:
@@ -154,6 +155,7 @@ def test_worker_timeout_cannot_mutate_returned_rrf_fallback(monkeypatch):
         return isolated
 
     reranker.reset_for_tests()
+    reset_metrics_for_tests()
     monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
     monkeypatch.setattr(retriever, "_collection_documents", lambda *_a, **_k: candidates)
     monkeypatch.setattr(retriever, "_hybrid_candidates", lambda *_a, **_k: candidates)
@@ -176,6 +178,10 @@ def test_worker_timeout_cannot_mutate_returned_rrf_fallback(monkeypatch):
         assert [hit.rerank_score for hit in hits] == [None, None]
         assert [hit.rrf_rank for hit in hits] == [1, 2]
         assert all(hit.metadata["rerank_fallback"] is True for hit in hits)
+        metrics = metrics_snapshot().to_dict()
+        assert metrics["rerank_count"] == 1
+        assert metrics["timeout_total"] == 1
+        assert metrics["fallback_total"]["rerank_timeout"] == 1
         release.set()
     finally:
         release.set()
@@ -259,6 +265,51 @@ def test_reranker_status_does_not_load_model(monkeypatch):
     assert current.enabled is True
     assert current.loaded is False
     assert current.model_name == "test-model"
+
+
+def test_runtime_status_does_not_create_worker_or_expose_model_name(monkeypatch):
+    reranker.reset_for_tests()
+    secret_model = "private/model-name"
+    settings = reranker._settings()
+    settings.update(enabled=True, model_name=secret_model)
+    monkeypatch.setattr(reranker, "_settings", lambda: settings)
+
+    current = reranker.runtime_status()
+    data = current.to_dict()
+
+    assert current.worker_created is False
+    assert current.phase == "unloaded"
+    assert current.queue_capacity == 8
+    assert reranker._worker is None
+    assert secret_model not in repr(data)
+
+
+def test_failed_worker_health_does_not_expose_loader_error(monkeypatch):
+    reranker.reset_for_tests()
+    secret = "private loader path and credential"
+    settings = reranker._settings()
+    settings.update(enabled=True, background_warmup=True)
+    monkeypatch.setattr(reranker, "_settings", lambda: settings)
+    monkeypatch.setattr(
+        reranker,
+        "_load_model",
+        lambda: (_ for _ in ()).throw(RuntimeError(secret)),
+    )
+    try:
+        assert reranker.start_background_warmup().scheduled is True
+        deadline = time.monotonic() + 1
+        while reranker.runtime_status().phase != "failed":
+            if time.monotonic() >= deadline:
+                pytest.fail("warmup failure was not reflected in health")
+            time.sleep(0.001)
+
+        data = reranker.runtime_status().to_dict()
+        assert data["phase"] == "failed"
+        assert data["reason_code"] == "model_load_failed"
+        assert secret not in repr(data)
+        assert settings["model_name"] not in repr(data)
+    finally:
+        reranker.reset_for_tests()
 
 
 def test_worker_settings_have_bounded_runtime_defaults():

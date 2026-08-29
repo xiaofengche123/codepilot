@@ -11,6 +11,7 @@ import copy
 import os
 from pathlib import Path
 import threading
+import time
 from typing import Iterable, Protocol
 
 
@@ -28,6 +29,48 @@ class RerankerStatus:
     loaded: bool
     model_name: str
     error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RerankerRuntimeStatus:
+    enabled: bool
+    worker_created: bool
+    loaded: bool
+    phase: str
+    revision: int
+    last_event: str | None
+    reason_code: str | None
+    queue_size: int
+    queue_capacity: int
+    queue_closed: bool
+    circuit_phase: str
+    consecutive_failures: int
+    cooldown_remaining_seconds: float
+    warmup_pending: bool
+    thread_alive: bool
+
+    def to_dict(self) -> dict:
+        return {
+            "enabled": self.enabled,
+            "worker_created": self.worker_created,
+            "loaded": self.loaded,
+            "phase": self.phase,
+            "revision": self.revision,
+            "last_event": self.last_event,
+            "reason_code": self.reason_code,
+            "queue": {
+                "size": self.queue_size,
+                "capacity": self.queue_capacity,
+                "closed": self.queue_closed,
+            },
+            "circuit": {
+                "phase": self.circuit_phase,
+                "consecutive_failures": self.consecutive_failures,
+                "cooldown_remaining_seconds": self.cooldown_remaining_seconds,
+            },
+            "warmup_pending": self.warmup_pending,
+            "thread_alive": self.thread_alive,
+        }
 
 
 _model = None
@@ -177,10 +220,16 @@ def rerank_via_worker(
         isolated.append(cloned)
     settings = _settings()
     worker = _get_worker(settings)
-    return worker.submit(
-        lambda: rerank(query, isolated, limit),
-        settings["inference_timeout_seconds"],
-    )
+    started = time.perf_counter()
+    try:
+        return worker.submit(
+            lambda: rerank(query, isolated, limit),
+            settings["inference_timeout_seconds"],
+        )
+    finally:
+        from rag.runtime_metrics import observe_rerank
+
+        observe_rerank(time.perf_counter() - started)
 
 
 def _get_worker(settings: dict):
@@ -226,6 +275,53 @@ def status() -> RerankerStatus:
         loaded=_model is not None and _model_name == settings["model_name"],
         model_name=settings["model_name"],
         error=_load_error if _model_name == settings["model_name"] else None,
+    )
+
+
+def runtime_status() -> RerankerRuntimeStatus:
+    """Return bounded health data without model names or exception messages."""
+    settings = _settings()
+    with _worker_lock:
+        worker = _worker
+    loaded = _model is not None and _model_name == settings["model_name"]
+    if worker is None:
+        return RerankerRuntimeStatus(
+            enabled=settings["enabled"],
+            worker_created=False,
+            loaded=loaded,
+            phase="unloaded",
+            revision=0,
+            last_event=None,
+            reason_code=None,
+            queue_size=0,
+            queue_capacity=settings["queue_capacity"],
+            queue_closed=False,
+            circuit_phase="closed",
+            consecutive_failures=0,
+            cooldown_remaining_seconds=0.0,
+            warmup_pending=False,
+            thread_alive=False,
+        )
+
+    snapshot = worker.runtime_snapshot()
+    state = snapshot.state
+    circuit = snapshot.circuit
+    return RerankerRuntimeStatus(
+        enabled=settings["enabled"],
+        worker_created=True,
+        loaded=loaded,
+        phase=state.phase.value,
+        revision=state.revision,
+        last_event=state.last_event.value if state.last_event else None,
+        reason_code=state.reason_code,
+        queue_size=snapshot.queue_size,
+        queue_capacity=snapshot.queue_capacity,
+        queue_closed=snapshot.queue_closed,
+        circuit_phase=circuit.phase.value,
+        consecutive_failures=circuit.consecutive_failures,
+        cooldown_remaining_seconds=circuit.cooldown_remaining_seconds,
+        warmup_pending=snapshot.warmup_pending,
+        thread_alive=snapshot.thread_alive,
     )
 
 

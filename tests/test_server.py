@@ -38,6 +38,15 @@ async def test_health(client):
     data = response.json()
     assert data["status"] == "ok"
     assert data["version"] == "2.0.0"
+    assert data["reranker"]["phase"] in {
+        "unloaded", "loading", "ready", "degraded", "failed",
+    }
+    assert data["reranker"]["queue"]["size"] >= 0
+    assert data["reranker"]["circuit"]["phase"] in {
+        "closed", "open", "half_open",
+    }
+    assert "model_name" not in data["reranker"]
+    assert "error" not in data["reranker"]
 
 
 @pytest.mark.asyncio
@@ -48,6 +57,16 @@ async def test_metrics(client):
     assert "codepilot_trace_tasks_total" in response.text
     assert "codepilot_trace_review_passed" in response.text
     assert "codepilot_trace_failures_total" in response.text
+    for metric in (
+        "rag_retrieval_latency_ms",
+        "rag_rerank_latency_ms",
+        "rag_rerank_queue_size",
+        "rag_rerank_fallback_total",
+        "rag_rerank_timeout_total",
+        "rag_model_load_seconds",
+        "rag_search_mode_total",
+    ):
+        assert metric in response.text
 
 
 @pytest.mark.asyncio

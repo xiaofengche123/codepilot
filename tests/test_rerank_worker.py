@@ -24,6 +24,7 @@ from rag.rerank_worker import (
     RerankWarmupResult,
 )
 from rag.rerank_worker_state import RerankWorkerPhase
+from rag.runtime_metrics import metrics_snapshot, reset_metrics_for_tests
 
 
 def _wait_for_phase(worker, phase, timeout=1.0):
@@ -120,6 +121,18 @@ def test_worker_lazy_loads_once_and_reuses_single_thread():
         assert worker.state().phase is RerankWorkerPhase.READY
     finally:
         assert worker.close(wait=True, timeout=1)
+
+
+def test_worker_records_real_model_load_duration():
+    reset_metrics_for_tests()
+    worker = RerankWorker(capacity=1, loader=lambda: None)
+    try:
+        assert worker.submit(lambda: "ready", 1) == "ready"
+        metrics = metrics_snapshot().to_dict()
+        assert metrics["model_load_count"] == 1
+        assert metrics["model_load_seconds_sum"] >= 0
+    finally:
+        worker.close(wait=True, timeout=1)
 
 
 def test_load_failure_is_stable_and_next_request_can_retry():
@@ -299,6 +312,12 @@ def test_state_and_queue_snapshots_do_not_expose_operation_content():
         assert secret not in repr(worker.state().to_dict())
         assert secret not in repr(worker.queue_snapshot().to_dict())
         assert secret not in repr(worker.circuit_snapshot().to_dict())
+        runtime = worker.runtime_snapshot()
+        assert runtime.state.phase is RerankWorkerPhase.READY
+        assert runtime.queue_size == 0
+        assert runtime.thread_alive is True
+        assert secret not in repr(runtime.to_dict())
+        json.dumps(runtime.to_dict())
     finally:
         worker.close(wait=True, timeout=1)
 
