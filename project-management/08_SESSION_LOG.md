@@ -860,3 +860,11 @@
 - deadline到期立即释放调用方；未开始任务取消，运行中PyTorch不能强杀并由Worker继续完成。候选及metadata隔离复制，迟到推理不会修改已返回的RRF对象。
 - 默认Rerank仍关闭；未加载真实模型、未联网、未运行正式评测或付费API。熔断、后台预热、指标及压力测试仍未实现。
 - Worker/Reranker定向26 passed；相关回归94 passed；全量741 passed、4 skipped；实现提交`6ae1ea0`；下一项MODEL-004。
+
+## 2026-08-30 / MODEL-004 连续失败熔断与冷却探测
+
+- 单Worker新增真实加载/推理连续失败计数，默认3次开路、60秒冷却；成功请求清零，queue full和调用方timeout不计数。
+- 开路后新请求入队前快速拒绝，阈值前已排队的旧请求执行前再次门控；固定原因通过Retriever保持原始RRF回退。
+- 冷却到期由锁原子预约唯一half-open探测；成功回READY，加载/推理失败回FAILED并重启冷却，其他并发请求明确返回probe-in-progress。未执行的取消探测不伪造失败。
+- 新增不可变内容最小circuit快照；默认Rerank仍关闭，未加载真实模型、未联网、未运行正式评测或付费API。熔断不能强杀已卡死PyTorch调用。
+- Worker/Reranker定向49 passed；相关回归117 passed；全量764 passed、4 skipped；实现提交`4fdeee5`；下一项MODEL-005。

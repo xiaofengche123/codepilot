@@ -462,7 +462,7 @@ RRF 分数不能直接当概率，必须把置信度描述为可解释启发式�
 
 状态：`IN_PROGRESS`
 
-实现进度：`MODEL-001`～`MODEL-003` 已完成生命周期契约、有界队列、单模型Worker及队列满/调用方deadline的RRF回退；熔断、后台预热、指标和压力验证留在 `MODEL-004`～`MODEL-007`。
+实现进度：`MODEL-001`～`MODEL-004` 已完成生命周期契约、有界队列、单模型Worker、deadline回退及连续失败熔断/冷却探测；后台预热、指标和压力验证留在 `MODEL-005`～`MODEL-007`。
 
 依赖：M4
 
@@ -485,6 +485,8 @@ UNLOADED → LOADING → READY
 请求队列采用固定容量FIFO和非阻塞生产者：入队只会立即接受，或以`rerank_queue_full`/`rerank_queue_closed`拒绝；关闭时拒绝新请求、保留已有请求并唤醒等待消费者。队列快照只暴露size/capacity/closed。MODEL-002不执行RRF回退，也不把消费者等待上限解释为推理超时。
 
 显式Rerank运行时使用容量8的单daemon Worker，首次请求在线程内惰性加载模型，调用方deadline默认30秒并从队列接受时计时。队列满、关闭、加载失败、推理失败和deadline到期都以固定reason code回退候选的原始RRF顺序。Python/PyTorch运行中调用不能安全取消，超时只释放调用方；隔离候选副本防止迟到推理修改回退结果，Worker完成当前调用后再处理下一项。
+
+连续真实加载/推理失败默认阈值3；达到阈值后Worker进入FAILED并开路60秒，开路期间新请求和阈值触发前已排队但未执行的请求都快速回退。冷却结束后仅一个调用方能预约half-open探测，其他调用返回`rerank_recovery_probe_in_progress`；探测成功重置计数并回READY，真实失败重启完整冷却。未执行的探测因queue拒绝或排队deadline取消时释放预约，不伪造新的模型失败。queue full和调用方timeout本身不计数。
 
 ### 能力
 

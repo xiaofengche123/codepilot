@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～003单Worker、队列和超时回退完成；熔断、预热和观测待实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～004单Worker、队列、超时与熔断完成；预热和观测待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -421,7 +421,7 @@
 - [x] `MODEL-001` `DONE`：定义 Rerank Worker 状态机。
 - [x] `MODEL-002` `DONE`：有界请求队列。
 - [x] `MODEL-003` `DONE`：推理超时和队列满回退。
-- [ ] `MODEL-004` `PLANNED`：连续失败熔断和冷却探测。
+- [x] `MODEL-004` `DONE`：连续失败熔断和冷却探测。
 - [ ] `MODEL-005` `PLANNED`：后台预热。
 - [ ] `MODEL-006` `PLANNED`：指标与健康状态。
 - [ ] `MODEL-007` `PLANNED`：并发压力和死锁测试。
@@ -465,6 +465,20 @@
 - 实现提交：`6ae1ea0`。
 - 遗留问题：deadline无法停止正在执行的底层推理，长时间卡死会占住唯一Worker并最终填满队列；连续失败阈值、冷却窗口和单次恢复探测尚未执行。
 - 下一任务：`MODEL-004`连续失败熔断和冷却探测。
+
+### MODEL-004 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-30
+- 修改文件：`rag/rerank_worker.py`、`rag/reranker.py`、`config/settings.yaml`、`tests/test_rerank_worker.py`、`tests/test_reranker.py`、`tests/test_config.py`、README和项目管理文档。
+- 计数：真实模型加载或推理失败才递增连续失败；任一完整请求成功清零。默认阈值3，硬上限100。queue full/closed、调用方deadline和熔断快速拒绝不计数；超时后后台推理若最终真实失败，仍按模型结果计数。
+- 开路：达到阈值后记录单调时钟开路点、Worker状态进入FAILED；默认60秒冷却，硬上限86400秒。开路请求立即返回`rerank_circuit_open`，阈值触发前已排队但未执行的旧请求在执行前复核并快速拒绝。
+- 探测：冷却结束只允许一个请求将状态切到DEGRADED并占有探测资格，其他并发请求返回`rerank_recovery_probe_in_progress`。成功回READY并关闭熔断；加载/推理失败回FAILED并重新开始完整冷却。尚未执行就被队列拒绝或取消的探测释放资格且不增加失败。
+- 快照：不可变、JSON-ready的circuit快照只含closed/open/half_open、连续失败、阈值、冷却及剩余时间、探测占用，不含query、候选、异常或模型输出。
+- 验证：Worker/Reranker定向49 passed；Worker/Queue/State/Reranker/Retriever/Config相关回归117 passed；全量764 passed、4 skipped；`git diff --check`通过。未加载真实模型、未联网、未运行正式评测或付费API。
+- 实现提交：`4fdeee5`。
+- 遗留问题：熔断不能终止已经卡死的底层推理；进程内单Worker永久阻塞时只能让后续请求经deadline/queue full回退。尚无后台预热、指标、健康接口或压力证据。
+- 下一任务：`MODEL-005`后台预热。
 
 ## 11. 每个任务完成时填写
 

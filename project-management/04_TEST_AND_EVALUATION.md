@@ -90,6 +90,8 @@ MODEL-002只验证有界队列协议，不运行模型、检索或正式评测�
 
 MODEL-003以fake loader/inference验证单模型Worker和Retriever回退，不加载真实Cross-Encoder、不联网且不运行正式评测。新增20项测试，连同既有Reranker共26项定向，覆盖惰性单次加载、单线程复用、加载重试、DEGRADED恢复、运行中deadline、排队取消、实际queue full、关闭卸载、数值边界、内容最小快照、RRF顺序/原因、第三方异常脱敏以及迟到推理不污染回退对象；相关回归94 passed，全量741 passed、4 skipped。deadline是调用方等待上限，不是底层推理强杀，因此不能据此宣称卡死恢复、P95、吞吐、熔断或无死锁压力验收完成。
 
+MODEL-004以注入单调时钟和fake loader/inference验证熔断，不等待真实冷却、不加载模型、不联网且不运行正式评测。新增23项测试，连同既有Worker/Reranker共49项定向，覆盖精确失败阈值、成功重置、开路快速拒绝、剩余冷却、single half-open probe、探测失败重开、加载失败后探测重载、开路清退旧排队请求、timeout/queue full不计数、稳定Retriever回退原因、不可变内容最小快照和参数硬边界；相关回归117 passed，全量764 passed、4 skipped。这些确定性测试不证明真实模型故障分布、吞吐、P95、进程级卡死恢复或无死锁压力验收完成。
+
 ROUTE-005 当前已验证：
 
 ```text
