@@ -78,6 +78,10 @@ GRAPH-003 增加保守 calls/inherits 解析。76个节点/结构构图定向测
 
 GRAPH-004 增加pytest tests关系映射。103个节点/五类结构边定向测试覆盖默认测试文件/函数/`Test*`类识别、异步与Windows路径、方向、直接调用、pytest及`test/`/`tests/`支持模块helper链、循环/深度与总步数上限、同文件fixture/别名/依赖链/autouse、作用域隔离、动态引用拒绝、去重、确定性和内容最小化；节点/构图/Indexer相关回归109 passed，全量574 passed、4 skipped。仅加载`rag/`和`tests/`的56文件smoke生成867节点、408条tests边。该smoke没有相关性标注，且不解析conftest/插件fixture或覆盖率，因此不能作为映射准确率或检索收益证据。
 
+GRAPH-005 增加纯内存种子Chunk一跳扩展。24个定向测试覆盖精确/包含/文件节点映射、方法到类Chunk回退、未来符号拆分、五类边过滤、双向遍历、递归、自顶向下及反向tests、重复路径保留、结构化issue、硬规模上限和内容最小化；代码图/Indexer/Retriever相关回归147 passed，全量598 passed、4 skipped。该层未接入Retriever，也不评分或去重，因此没有检索收益结论。
+
+GRAPH-006 增加纯内存结构评分、UID去重和上下文预算。50个定向测试覆盖固定/自定义策略、边/方向/种子排名分数组件、重复证据取最佳而不累加、冲突UID拒绝、精确token成本、reserved tokens、严格token/Chunk上限、超大候选跳过、稳定等分规则、序列化内容最小化及GRAPH-005到006串联；代码图/Indexer/Retriever相关回归197 passed，全量648 passed、4 skipped。固定权重未调参，贪心预算不是全局背包最优；跨模块Recall、上下文污染和延迟必须由GRAPH-007独立评测。
+
 ROUTE-005 当前已验证：
 
 ```text

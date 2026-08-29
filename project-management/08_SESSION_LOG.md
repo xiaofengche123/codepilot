@@ -820,3 +820,11 @@
 - 原始候选保留种子排名、节点、边和方向，也保留跨种子/边重复Chunk；不含query、document、源码或AST。GRAPH-006再负责结构评分、上下文预算和去重。
 - 未读取索引、文件、冻结数据或正式结果，未接入Indexer/Retriever，默认检索路径不变，不声明检索收益。
 - 一跳扩展定向24 passed；代码图/Indexer/Retriever相关147 passed；全量598 passed、4 skipped；下一项GRAPH-006。
+
+## 2026-08-29 / GRAPH-006 上下文预算、结构评分与去重
+
+- 新增纯内存`rag.code_graph_context`：固定未调参边/方向权重乘以RRF式种子排名衰减，输出完整分数组件；支持调用方传入显式自定义策略。
+- 按稳定Chunk UID去重，重复路径只取最佳分数并记录证据数，不用重复边累加刷分；冲突UID明确失败。
+- 调用方提供精确token成本，支持reserved tokens、总token预算和Chunk上限；确定性贪心选择永不超限，装不下的候选不会阻止后续较小候选。
+- 结果不含query、document、源码或AST；未接入Indexer/Retriever，未运行正式评测或声明质量收益。
+- 定向50 passed；代码图/Indexer/Retriever相关197 passed；全量648 passed、4 skipped；下一项GRAPH-007。

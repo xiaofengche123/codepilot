@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～005 五类结构关系及一跳扩展完成；下一项 GRAPH-006 预算与去重 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～006 构图、扩展、评分、预算与去重完成；下一项 GRAPH-007 专项评测 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -324,7 +324,7 @@
 - [x] `GRAPH-003` `DONE`：解析简单 calls/inherits 边。
 - [x] `GRAPH-004` `DONE`：建立 tests 关系映射。
 - [x] `GRAPH-005` `DONE`：实现种子 Chunk 一跳扩展。
-- [ ] `GRAPH-006` `PLANNED`：实现上下文预算和去重。
+- [x] `GRAPH-006` `DONE`：实现上下文预算和去重。
 - [ ] `GRAPH-007` `PLANNED`：跨模块专项评测。
 
 ### GRAPH-001 完成记录
@@ -390,6 +390,18 @@
 - 范围：纯内存逻辑，不读取索引、文件、冻结数据或正式结果；未接入Indexer/Retriever，默认检索行为不变，不宣称质量或泛化收益。
 - 验证：一跳扩展定向24 passed；代码图/Indexer/Retriever相关回归147 passed；全量598 passed、4 skipped；`git diff --check`通过。
 - 下一任务：`GRAPH-006`。
+
+### GRAPH-006 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph_context.py`、`tests/test_code_graph_context.py`、README和项目管理文档。
+- 评分：固定未调参v1策略按边类型、方向和种子排名相乘；calls/inherits/tests/imports/contains权重依次为`1.0/0.9/0.8/0.65/0.5`，outgoing/incoming为`1.0/0.9`，种子排名使用`(k+1)/(k+rank)`且`k=10`。调用方可显式传入同契约自定义策略。
+- 去重：按稳定Chunk UID分组，同UID多条路径不累加分数，采用最高分证据并记录`evidence_count`；UID相同但文件或行区间冲突时明确拒绝。等分时按token成本、种子排名和UID稳定排序，输入顺序不影响结果。
+- 预算：调用方必须提供精确`uid → token_count`，纯逻辑层不以字符数猜测token；支持总预算、已由种子/系统占用的reserved tokens和最大Chunk数。先评分去重，再按分数贪心装入；装不下的高分Chunk会跳过并继续尝试较小候选，结果记录预算与Chunk上限遗漏数且永不超限。
+- 边界：选择结果只含Chunk引用、token计数、分数组件和最佳结构证据，不含query、document、源码或AST；固定权重未经开发集或冻结集调参。未接入Indexer/Retriever，未运行正式评测，不宣称质量收益。
+- 验证：结构评分/预算/去重定向50 passed；代码图/Indexer/Retriever相关回归197 passed；全量648 passed、4 skipped；`git diff --check`通过。
+- 下一任务：`GRAPH-007`。
 
 ## 10. 模型服务任务
 
