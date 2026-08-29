@@ -237,6 +237,7 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
 - 自适应路由：设置 `rag.adaptive_routing.enabled=true` 后，Hybrid/Rerank 候选阶段根据有界 QueryFeatures 和双路排名置信信号消费冻结 Router；默认关闭，异常时复用同批候选回退固定 RRF
 - 精排：启用后对 RRF Top-30 使用 `mmarco-mMiniLMv2-L12-H384-v1` 进行 `(query, chunk)` 成对打分，再返回最终 Top-K；CPU 默认关闭
+- Worker 生命周期：已定义不可变的 `UNLOADED → LOADING → READY → DEGRADED → FAILED` 状态契约；有界队列、超时、熔断执行器和运行时接线仍按 M6 后续任务实施
 - 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
 - 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件
@@ -304,6 +305,7 @@ codepilot/
 │   ├── code_graph_expansion.py # Chunk 到一跳图邻居的纯逻辑扩展
 │   ├── code_graph_context.py # 图候选结构评分、预算与去重
 │   ├── code_graph_evaluation.py # 冻结跨模块专项评测
+│   ├── rerank_worker_state.py # Rerank Worker 纯生命周期契约
 │   ├── retriever.py     # BM25 + 向量 + RRF
 │   └── evaluate.py      # Recall@K / MRR 离线评估
 ├── static/

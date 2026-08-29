@@ -1,6 +1,6 @@
 # CodePilot 进度跟踪表
 
-更新时间：2026-08-29
+更新时间：2026-08-30
 
 ## 1. 使用方法
 
@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001生命周期契约完成；队列、超时、熔断、预热和观测待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -418,13 +418,26 @@
 
 ## 10. 模型服务任务
 
-- [ ] `MODEL-001` `PLANNED`：定义 Rerank Worker 状态机。
+- [x] `MODEL-001` `DONE`：定义 Rerank Worker 状态机。
 - [ ] `MODEL-002` `PLANNED`：有界请求队列。
 - [ ] `MODEL-003` `PLANNED`：推理超时和队列满回退。
 - [ ] `MODEL-004` `PLANNED`：连续失败熔断和冷却探测。
 - [ ] `MODEL-005` `PLANNED`：后台预热。
 - [ ] `MODEL-006` `PLANNED`：指标与健康状态。
 - [ ] `MODEL-007` `PLANNED`：并发压力和死锁测试。
+
+### MODEL-001 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-30
+- 修改文件：`rag/rerank_worker_state.py`、`tests/test_rerank_worker_state.py`、README和项目管理文档。
+- 契约：定义`UNLOADED/LOADING/READY/DEGRADED/FAILED`五阶段和固定事件；加载成功/失败、推理降级/恢复、连续失败到FAILED、重载、恢复探测和显式卸载均有唯一目标阶段，非法转换使用稳定错误码拒绝。
+- 状态：每次合法事件返回新的不可变slots快照并递增revision；快照校验初始状态和`last_event → phase`自洽，可JSON序列化。reason code只接受最长64字符的snake-case标识符，不保存query、异常消息、源码或模型输出。
+- 边界：模块不导入模型、config、线程或队列，不读时钟和文件；没有接入现有`reranker.py`/Retriever。队列满和超时属于后续请求级回退，不在本任务改变模型健康状态。
+- 验证：状态机定向22 passed；状态机/Reranker/RerankPolicy/Retriever相关回归94 passed；全量697 passed、4 skipped；`git diff --check`通过。
+- 实现提交：`e42d28c`。
+- 遗留问题：当前只是生命周期契约，不提供线程安全执行器、排队、超时、熔断计数、预热或指标，默认Rerank运行时行为不变。
+- 下一任务：`MODEL-002`有界请求队列。
 
 ## 11. 每个任务完成时填写
 

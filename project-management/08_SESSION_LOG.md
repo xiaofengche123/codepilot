@@ -836,3 +836,11 @@
 - 固定Hybrid/图增强Recall@10 `0.567500/0.656667`，点差`+0.089167`、95% CI `[-0.045833,+0.222500]`；MRR点差`-0.010476`。
 - 图阶段P95额外耗时`32.754ms`；新增88个Chunk仅9个标注相关，无关新增单题P95为5；测试/文档新增均为0。召回点门槛通过，性能和污染门槛失败，M5为`DONE_WITH_GAP`。
 - 相关回归232 passed；全量675 passed、4 skipped。结果不含query、Top结果、document或源码；图仍未接入产品Retriever。下一项M6 MODEL-001。
+
+## 2026-08-30 / MODEL-001 Rerank Worker状态机契约
+
+- 新增纯内存`rag.rerank_worker_state`，固定五阶段与事件驱动转换，返回不可变、JSON-ready、revision递增且历史自洽的状态快照；非法转换使用稳定错误码拒绝。
+- 将FAILED后的重新加载与冷却恢复探测分成不同事件；重复推理失败可以保持DEGRADED并继续留下revision证据，失败阈值事件再进入FAILED。
+- reason code仅允许有界snake-case标识符，不保存query、异常消息、源码或模型输出。模块不加载模型，不导入config、线程或队列，不读取文件和时钟。
+- 未接入现有Reranker/Retriever；队列、超时、熔断计数、后台预热和指标仍待MODEL-002～006，不能宣称服务化完成。
+- 状态机定向22 passed；Reranker/RerankPolicy/Retriever相关94 passed；全量697 passed、4 skipped；下一项MODEL-002。

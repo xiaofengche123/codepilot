@@ -1,6 +1,6 @@
 # CodePilot 当前状态
 
-更新时间：2026-08-19
+更新时间：2026-08-30
 
 ## 1. 项目定位
 
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-007` 已完成。M5标记`DONE_WITH_GAP`：20条冻结内部跨模块专项集上，固定Hybrid+图相对固定Hybrid的Recall@10点差`+0.089167`，但95% CI跨0；图阶段P95额外耗时`32.754ms`且无关新增Chunk单题P95为5，未通过预设性能和污染门槛。图路径仍未接入Retriever，普通运行时不变。下一项进入M6 `MODEL-001`，同时保留图邻接预索引、意图相关评分和更严格候选控制的后续缺口。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M6已经建立不可变、可序列化且不依赖模型/线程/队列的Rerank Worker生命周期契约，下一项是`MODEL-002`有界请求队列；超时回退、熔断、预热、指标和压力测试仍未实现，不能把状态契约描述成已完成服务化。
