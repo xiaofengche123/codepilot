@@ -1,0 +1,162 @@
+[
+  {
+    "id": "CGV1-C01",
+    "category": "cross_module",
+    "query": "_label_has_chunk 如何根据文件类型分别调用 Python AST 切分和固定行切分",
+    "seed": "rag/eval_dataset.py:69-94",
+    "required": ["rag/eval_dataset.py:69-94", "rag/indexer.py:76-108", "rag/indexer.py:111-125"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C02",
+    "category": "cross_module",
+    "query": "retrieval_comparison.main 在写报告前怎样取得当前代码语料哈希",
+    "seed": "rag/retrieval_comparison.py:364-408",
+    "required": ["rag/retrieval_comparison.py:364-408", "rag/eval_dataset.py:33-45"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C03",
+    "category": "cross_module",
+    "query": "validate_independent_items 如何复用基础数据集校验并增加独立性检查",
+    "seed": "rag/retrieval_validation.py:117-151",
+    "required": ["rag/retrieval_validation.py:117-151", "rag/eval_dataset.py:97-153"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C04",
+    "category": "cross_module",
+    "query": "search_semantic 工具入口怎样把查询交给 hybrid_search",
+    "seed": "tools/rag_tools.py:10-15",
+    "required": ["tools/rag_tools.py:10-15", "rag/retriever.py:478-490"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C05",
+    "category": "cross_module",
+    "query": "工具层 index_project 怎样转发 force 参数到真正的索引实现",
+    "seed": "tools/rag_tools.py:18-23",
+    "required": ["tools/rag_tools.py:18-23", "rag/indexer.py:130-287"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C06",
+    "category": "cross_module",
+    "query": "decide_rerank 最终如何构造包含解释原因的 RetrievalPlan",
+    "seed": "rag/rerank_policy.py:111-197",
+    "required": ["rag/rerank_policy.py:111-197", "rag/retrieval_plan.py:27-87"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C07",
+    "category": "cross_module",
+    "query": "_hybrid_candidates 启用自适应时如何计算置信信号并选择检索计划",
+    "seed": "rag/retriever.py:295-357",
+    "required": ["rag/retriever.py:295-357", "rag/retrieval_confidence.py:71-176", "rag/retrieval_router.py:61-163"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C08",
+    "category": "cross_module",
+    "query": "compare_strategies 怎样读取索引文档、取得 collection 并计算每种策略指标",
+    "seed": "rag/retrieval_comparison.py:212-294",
+    "required": ["rag/retrieval_comparison.py:212-294", "rag/retriever.py:166-182", "rag/indexer.py:303-313", "rag/evaluate.py:54-67"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C09",
+    "category": "cross_module",
+    "query": "evaluate_judged_pool 如何组合本地模型、BM25、RRF 与 rerank 完成评估",
+    "seed": "rag/codesearchnet.py:156-260",
+    "required": ["rag/codesearchnet.py:156-260", "rag/indexer.py:55-71", "rag/retriever.py:68-123", "rag/retriever.py:126-158", "rag/reranker.py:109-145"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C10",
+    "category": "cross_module",
+    "query": "route_retrieval 经过规则判断后在哪里生成不可变 RetrievalPlan",
+    "seed": "rag/retrieval_router.py:61-163",
+    "required": ["rag/retrieval_router.py:61-163", "rag/retrieval_plan.py:27-87"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C11",
+    "category": "cross_module",
+    "query": "_run_once 如何把单次 CLI 输入传给 agent.run 并输出结果",
+    "seed": "main.py:54-79",
+    "required": ["main.py:54-79", "agent.py:288-293"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C12",
+    "category": "cross_module",
+    "query": "corpus_sha256 遍历代码时怎样复用索引器的目录排除规则",
+    "seed": "rag/eval_dataset.py:33-45",
+    "required": ["rag/eval_dataset.py:33-45", "rag/indexer.py:48-52"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C13",
+    "category": "cross_module",
+    "query": "FastAPI lifespan 如何创建并管理 TaskQueue 的启动关闭生命周期",
+    "seed": "server.py:179-187",
+    "required": ["server.py:179-187", "task_queue.py:49-115"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C14",
+    "category": "cross_module",
+    "query": "submit_task 接口怎样构造 Task 与 TaskEvent 后提交后台任务",
+    "seed": "server.py:246-270",
+    "required": ["server.py:246-270", "task_queue.py:23-46", "events.py:17-31"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C15",
+    "category": "cross_module",
+    "query": "_get_worktree_manager 如何延迟创建 WorktreeManager 单例",
+    "seed": "server.py:36-43",
+    "required": ["server.py:36-43", "worktree_manager.py:14-119"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C16",
+    "category": "cross_module",
+    "query": "cancel_task 成功取消 pending 任务后怎样生成 cancelled TaskEvent",
+    "seed": "server.py:292-300",
+    "required": ["server.py:292-300", "events.py:17-31"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C17",
+    "category": "cross_module",
+    "query": "load_frozen_validation 怎样先调用 manifest 检查再读取独立验证标注",
+    "seed": "rag/retrieval_comparison.py:51-60",
+    "required": ["rag/retrieval_comparison.py:51-60", "rag/retrieval_validation.py:197-206"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C18",
+    "category": "cross_module",
+    "query": "_rank_from_raw 怎样组合 QueryFeatures、置信度、路由计划与 reciprocal_rank_fusion",
+    "seed": "rag/retrieval_comparison.py:89-129",
+    "required": ["rag/retrieval_comparison.py:89-129", "rag/query_features.py:181-311", "rag/retrieval_confidence.py:71-176", "rag/retrieval_router.py:61-163", "rag/retriever.py:126-158"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C19",
+    "category": "cross_module",
+    "query": "_run_strategy 的 vector 分支如何直接调用 _vector_rank",
+    "seed": "rag/retrieval_comparison.py:132-147",
+    "required": ["rag/retrieval_comparison.py:132-147", "rag/retriever.py:185-221"],
+    "supporting": []
+  },
+  {
+    "id": "CGV1-C20",
+    "category": "cross_module",
+    "query": "_score_setting 如何用 RRF 融合开发集排名并调用 calculate_metrics",
+    "seed": "rag/retrieval_tuning.py:250-278",
+    "required": ["rag/retrieval_tuning.py:250-278", "rag/retriever.py:126-158", "rag/evaluate.py:54-67"],
+    "supporting": []
+  }
+]

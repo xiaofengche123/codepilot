@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "task": "GRAPH-007",
+  "dataset_role": "cross_module_internal_validation",
+  "status": "frozen_unscored",
+  "frozen_at": "2026-08-29T15:19:41.859675+00:00",
+  "dataset": ".rag-eval/codepilot-graph-cross-module-v1.json",
+  "dataset_sha256": "adc8e9bb3a6ebecafca705d925aefda3bc372e95f5ee03ab9602942b84c2dfcc",
+  "development_dataset_sha256": "b1c079ac8b103880aace9c6fc23b351417e81f692d151c8341f855d6abd45e50",
+  "corpus_sha256_at_freeze": "684c675e1ce2149a7085ac6065fe39311a882ab18b9978451faef6d209a8fdbc",
+  "git_head_at_freeze": "363b99066b75c59cb845e7eaa6714040e21f24e7",
+  "git_dirty_at_freeze": true,
+  "query_count": 20,
+  "categories": {
+    "cross_module": 20
+  },
+  "required_labels": 52,
+  "supporting_labels": 0,
+  "reachable_target_labels": 32,
+  "development_query_overlap": 0,
+  "graph_build_issue_count": 4400,
+  "evaluation_profile": {
+    "baseline": {
+      "mode": "hybrid",
+      "top_k": 10,
+      "adaptive_routing": false,
+      "rerank": false,
+      "include_docs": false
+    },
+    "graph": {
+      "baseline_prefix_count": 5,
+      "seed_count": 5,
+      "max_chunks": 5,
+      "token_budget": 2048,
+      "edge_kinds": [
+        "calls"
+      ],
+      "direction": "outgoing",
+      "exclude_test_seeds_and_targets": true,
+      "exclude_existing_baseline_top_k": true,
+      "scoring_policy": {
+        "calls_weight": 1.0,
+        "inherits_weight": 0.9,
+        "tests_weight": 0.8,
+        "imports_weight": 0.65,
+        "contains_weight": 0.5,
+        "outgoing_weight": 1.0,
+        "incoming_weight": 0.9,
+        "seed_rank_k": 10
+      }
+    },
+    "acceptance": {
+      "minimum_recall_at_10_delta": 0.05,
+      "maximum_graph_overhead_p95_ms": 10.0,
+      "maximum_test_additions": 0,
+      "maximum_document_additions": 0,
+      "maximum_irrelevant_additions_p95": 3,
+      "ordinary_runtime_must_remain_unintegrated": true
+    }
+  },
+  "evaluation_profile_sha256": "ad354bdee9c3604dbd36cbb2d9a321ef7d7a9928b730b1a620ad2d575faf597b",
+  "policy": {
+    "retrieval_not_run_before_freeze": true,
+    "results_must_not_change_queries_labels_or_profile": true,
+    "new_annotations_require_a_new_dataset_version": true,
+    "same_repository_internal_validation": true
+  }
+}
