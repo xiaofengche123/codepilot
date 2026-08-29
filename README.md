@@ -300,7 +300,7 @@ codepilot/
 ├── rag/
 │   ├── indexer.py       # AST 切分与增量索引
 │   ├── code_graph.py    # 稳定代码图节点与边契约
-│   ├── code_graph_builder.py # 内存 AST contains/imports 构图器
+│   ├── code_graph_builder.py # 内存 AST 结构关系构图器
 │   ├── retriever.py     # BM25 + 向量 + RRF
 │   └── evaluate.py      # Recall@K / MRR 离线评估
 ├── static/
@@ -329,8 +329,8 @@ pytest tests/ -v
 当前测试基线（Python 3.11/3.12 均纳入 GitHub Actions）：
 
 ```text
-528 tests collected
-524 passed, 4 skipped
+551 tests collected
+547 passed, 4 skipped
 ```
 
 测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git

@@ -786,3 +786,16 @@
 - 语法错误、缺失/外部导入、自导入和重复符号返回有界结构化 issue；修复顶层包 `from ..` 不得逃逸到仓库根模块的边界。
 - 输出确定性去重且不包含源码/AST；未实现 calls/inherits/tests，未接入 Retriever或运行质量评测。
 - 节点/构图定向53 passed；节点/构图/Indexer相关回归59 passed；全量524 passed、4 skipped；下一项GRAPH-003。
+
+## 2026-08-29 / GRAPH-003 开工
+
+- 目标：在纯内存 AST 图上增加可静态唯一解析的简单 calls/inherits 边。
+- 保守解析：只连接同文件词法符号、`self`/`cls`方法和明确导入的仓库符号；动态分派、运行时重绑定和无法唯一确定的引用不猜测目标。
+- 递归调用允许 calls 自环；contains/imports/inherits仍拒绝自环。本轮不实现tests边，也不接入Retriever。
+
+### GRAPH-003 完成
+
+- 新增calls/inherits边类型与保守关系解析：同文件词法调用、递归、`self`/`cls`、明确导入、模块属性、类构造、本地/跨模块/多继承和泛型基类。
+- 参数、赋值、外部导入、global重绑定和函数局部导入作用域阻止错误连边；动态调用/基类输出有界issue，lambda、推导式和动态分派保持在范围外。
+- 只允许递归calls自环；结果继续确定性去重且不包含源码/AST。未接入Indexer/Retriever，未运行质量评测。
+- 节点/结构构图定向76 passed；节点/结构构图/Indexer相关回归82 passed；全量547 passed、4 skipped；下一项GRAPH-004。

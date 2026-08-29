@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～002 节点及 contains/imports 完成；下一项 GRAPH-003 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～003 四类结构关系完成；下一项 GRAPH-004 tests映射 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -321,7 +321,7 @@
 
 - [x] `GRAPH-001` `DONE`：定义文件、类、函数节点模型。
 - [x] `GRAPH-002` `DONE`：解析 contains/imports 边。
-- [ ] `GRAPH-003` `PLANNED`：解析简单 calls/inherits 边。
+- [x] `GRAPH-003` `DONE`：解析简单 calls/inherits 边。
 - [ ] `GRAPH-004` `PLANNED`：建立 tests 关系映射。
 - [ ] `GRAPH-005` `PLANNED`：实现种子 Chunk 一跳扩展。
 - [ ] `GRAPH-006` `PLANNED`：实现上下文预算和去重。
@@ -351,6 +351,19 @@
 - 隐私与范围：结果不保存源码或AST；不实现 calls/inherits/tests 边，不接入索引或Retriever，不产生检索质量收益声明。
 - 测试：节点/构图定向53 passed；节点/构图/Indexer相关回归59 passed；全量524 passed、4 skipped；`git diff --check`通过。
 - 下一任务：`GRAPH-003`。
+
+### GRAPH-003 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph.py`、`rag/code_graph_builder.py`、`tests/test_code_graph_builder.py`、`tests/test_code_graph_relations.py`、README和项目管理文档。
+- calls语义：调用所在file/class/function指向静态唯一确定的函数、类或方法；支持同文件词法符号、递归、`self`/`cls`、直接导入别名、模块属性和类构造调用，重复调用只保留一条结构边。
+- inherits语义：子类指向同文件或明确导入的仓库内基类，支持简单模块属性、多继承和下标泛型基类。
+- 保守边界：参数、赋值、外部导入及global重绑定会阻止猜测；函数局部导入不泄漏；动态调用/基类及无法解析引用只生成有界issue。lambda、推导式和动态分派不在简单解析范围。
+- 契约：递归calls允许自环；contains/imports/inherits继续拒绝自环。结果仍不包含源码或AST。
+- 范围：不实现tests边，不接入Indexer或Retriever，不运行图质量评测或宣称检索收益。
+- 测试：节点/结构构图定向76 passed；节点/结构构图/Indexer相关回归82 passed；全量547 passed、4 skipped；`git diff --check`通过。
+- 下一任务：`GRAPH-004`。
 
 ## 10. 模型服务任务
 

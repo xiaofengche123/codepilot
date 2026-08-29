@@ -259,12 +259,17 @@ def test_edge_contract_is_stable_validated_and_content_free():
         GraphEdge.create(GraphEdgeKind.IMPORTS, edge.source_id, edge.source_id)
 
 
-def test_builder_does_not_emit_future_edge_kinds():
+def test_builder_does_not_guess_unresolved_relation_edges():
     result = build_python_code_graph({
         "app.py": "class Child(Base):\n    def run(self):\n        return helper()\n"
     })
     assert {edge.kind for edge in result.edges} == {GraphEdgeKind.CONTAINS}
-    assert {kind.value for kind in GraphEdgeKind} == {"contains", "imports"}
+    assert {kind.value for kind in GraphEdgeKind} == {
+        "calls",
+        "contains",
+        "imports",
+        "inherits",
+    }
 
 
 def test_empty_mapping_produces_empty_deterministic_graph():

@@ -1,7 +1,7 @@
-"""Bounded, content-free node contracts for the lightweight Python code graph.
+"""Bounded, content-free contracts for the lightweight Python code graph.
 
-GRAPH-001 defines identity and serialization only.  AST parsing and graph edges
-belong to later tasks; this module performs no file I/O and stores no source.
+This module defines stable node and edge identity only.  It performs no file I/O
+and stores no source or AST objects.
 """
 
 from __future__ import annotations
@@ -34,6 +34,8 @@ class GraphNodeKind(str, Enum):
 class GraphEdgeKind(str, Enum):
     CONTAINS = "contains"
     IMPORTS = "imports"
+    CALLS = "calls"
+    INHERITS = "inherits"
 
 
 def normalize_graph_path(value: object) -> str:
@@ -96,7 +98,7 @@ def stable_graph_edge_id(
 
 @dataclass(frozen=True, slots=True)
 class GraphEdge:
-    """Immutable directed contains/imports relationship."""
+    """Immutable directed code-structure relationship."""
 
     edge_id: str
     kind: GraphEdgeKind
@@ -111,8 +113,11 @@ class GraphEdge:
             self.target_id
         ):
             raise ValueError("edge endpoints must be valid graph node IDs")
-        if self.source_id == self.target_id:
-            raise ValueError("graph edges must not be self-referential")
+        if (
+            self.source_id == self.target_id
+            and self.kind is not GraphEdgeKind.CALLS
+        ):
+            raise ValueError("only recursive calls may be self-referential")
         if self.schema_version != GRAPH_EDGE_SCHEMA_VERSION:
             raise ValueError(
                 f"schema_version must be {GRAPH_EDGE_SCHEMA_VERSION}"
