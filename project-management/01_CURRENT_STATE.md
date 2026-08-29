@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-006` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker和有界FIFO执行，连续3次真实加载/推理失败后开路60秒，冷却后只允许一个恢复探测；成功清零并关闭，失败重新冷却。Rerank启用时，服务启动会向同一Worker幂等投递后台预热且不等待模型加载；失败只更新Worker状态。开路、探测占用、队列满、错误或deadline均稳定回退原始RRF；queue full和调用方timeout不计连续失败。`/health`现输出内容最小化Worker/队列/熔断状态，`/metrics`覆盖检索与精排延迟、队列、回退、超时、模型加载和模式计数，标签均为固定集合。默认Rerank仍关闭。下一项是`MODEL-007`并发压力和死锁测试；运行中的PyTorch调用仍不能强杀。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker和有界FIFO执行，连续3次真实加载/推理失败后开路60秒，冷却后只允许一个恢复探测；成功清零并关闭，失败重新冷却。Rerank启用时，服务启动会向同一Worker幂等投递后台预热且不等待模型加载；失败只更新Worker状态。开路、探测占用、队列满、错误或deadline均稳定回退原始RRF；queue full和调用方timeout不计连续失败。`/health`输出内容最小化Worker/队列/熔断状态，`/metrics`覆盖七类RAG运行指标。离线fake-inference压力验收覆盖持续、过载、deadline、关闭/快照竞争、单恢复探测和并发RRF回退，未检测到死锁。默认Rerank仍关闭；压力数字不代表真实Cross-Encoder性能，运行中的PyTorch调用仍不能强杀。下一里程碑为M7重复和独立评测。

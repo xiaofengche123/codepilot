@@ -882,3 +882,10 @@
 - `/metrics`新增路线图要求的七类RAG指标：检索/精排延迟、队列深度、回退、超时、模型加载与检索模式。所有mode/reason标签使用固定白名单，未知输入统一归类，避免泄漏和无界标签基数。
 - 指标为线程安全的单进程累计count/sum/counter/gauge；默认Rerank继续关闭，读取健康与指标不会创建Worker或加载模型。
 - 定向86 passed、3 skipped；全量781 passed、4 skipped；`git diff --check`通过；实现提交`07a9fbf`；下一项MODEL-007。
+
+## 2026-08-30 / MODEL-007 并发压力和死锁测试
+
+- 新增纯离线`rag.rerank_stress`及11项验收测试，使用fake loader/sleep推理覆盖持续、过载、deadline、重复启停、close/submit/snapshot竞争、32并发单恢复探测和64并发Retriever回退；报告吞吐、P95、队列峰值、线程退出和死锁判定。
+- 持续1000请求全部成功，完成吞吐380.208 req/s、完成P95 23.676ms；过载8成功/992 queue-full；deadline场景248 queue-full/8 timeout。三场景均0未完成调用、单Worker、队列不越界、监控和关闭完成且无死锁。
+- 数字仅代表本机2ms/30ms fake操作，不代表真实Cross-Encoder性能；未加载模型、未联网、未运行冻结评测或付费API，PyTorch永久卡死仍需进程隔离才能恢复。
+- 定向11 passed；相关143 passed、3 skipped；全量792 passed、4 skipped；`git diff --check`通过；实现提交`85b88e9`；M6完成，下一里程碑M7。

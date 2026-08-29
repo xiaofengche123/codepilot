@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～006单Worker、队列、超时、熔断、预热与观测完成；压力验收待实施 |
+| M6 模型服务化 | `DONE` | MODEL-001～007完成；fake-inference持续/过载/deadline压力无死锁，真实模型性能不由此宣称 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -424,7 +424,7 @@
 - [x] `MODEL-004` `DONE`：连续失败熔断和冷却探测。
 - [x] `MODEL-005` `DONE`：后台预热。
 - [x] `MODEL-006` `DONE`：指标与健康状态。
-- [ ] `MODEL-007` `PLANNED`：并发压力和死锁测试。
+- [x] `MODEL-007` `DONE`：并发压力和死锁测试。
 
 ### MODEL-001 完成记录
 
@@ -499,6 +499,18 @@
 - 实现提交：`07a9fbf`。
 - 遗留问题：指标仅为单进程内存累计，不跨多Worker聚合，也没有直方图分位数；本轮不是负载测试，尚未证明高并发下无死锁、队列上限和deadline行为稳定。
 - 下一任务：`MODEL-007`并发压力和死锁测试。
+
+### MODEL-007 完成记录
+
+- 压力夹具：新增`rag.rerank_stress`，只使用fake loader和sleep推理，不读检索/冻结数据、不加载模型、不联网、不写结果文件。输入请求数、并发、容量、操作时长、deadline和join上限均有硬边界；内容最小化JSON报告记录终态计数、线程退出、关闭结果、队列峰值、单Worker线程数、吞吐及调用/完成P50/P95/最大延迟。
+- 竞争覆盖：11项定向测试覆盖持续压力、队列过载、deadline饱和、5轮重复创建/关闭、submit/close/runtime snapshot竞争、32并发冷却恢复只放行一个探测、64并发Retriever queue-full/timeout回退保持原始`rrf_rank`，以及参数硬边界。调用线程和监控线程均为daemon，检测失败可报告而不会让pytest自身永久挂起。
+- 实测持续场景：1000请求、并发8、容量8、fake操作2ms、deadline250ms；1000成功、0回退，完成吞吐`380.208 req/s`，调用与完成P95均`23.676ms`，最大队列7，单Worker线程，全部线程与关闭完成，无死锁。
+- 实测过载场景：1000请求、并发64、容量8、fake操作2ms；8成功、992个`rerank_queue_full`快速拒绝，最大观测队列6且未超过容量，全部终结并关闭，无死锁。终态吞吐包含快速拒绝，不等同模型推理吞吐。
+- 实测deadline场景：256请求、并发64、容量8、fake操作30ms、deadline5ms；248个queue-full、8个timeout，0未完成调用，监控和Worker关闭成功，无死锁。
+- 验证：MODEL-007定向11 passed；Worker/Queue/State/Reranker/Retriever/Metrics/Server相关143 passed、3 skipped；全量792 passed、4 skipped；`git diff --check`通过。
+- 实现提交：`85b88e9`。
+- 边界：本轮验证Python控制面并发和回退不变量，不加载真实Cross-Encoder，不能替代生产硬件上的真实模型吞吐/P95、进程崩溃恢复或永久卡死推理隔离。底层运行中PyTorch仍不能强杀。
+- 下一里程碑：`M7`重复和独立评测。
 
 ## 11. 每个任务完成时填写
 

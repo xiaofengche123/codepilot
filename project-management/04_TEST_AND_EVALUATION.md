@@ -92,6 +92,8 @@ MODEL-003以fake loader/inference验证单模型Worker和Retriever回退，不�
 
 MODEL-004以注入单调时钟和fake loader/inference验证熔断，不等待真实冷却、不加载模型、不联网且不运行正式评测。新增23项测试，连同既有Worker/Reranker共49项定向，覆盖精确失败阈值、成功重置、开路快速拒绝、剩余冷却、single half-open probe、探测失败重开、加载失败后探测重载、开路清退旧排队请求、timeout/queue full不计数、稳定Retriever回退原因、不可变内容最小快照和参数硬边界；相关回归117 passed，全量764 passed、4 skipped。这些确定性测试不证明真实模型故障分布、吞吐、P95、进程级卡死恢复或无死锁压力验收完成。
 
+MODEL-007使用纯离线fake sleep推理完成控制面压力验收。11项定向测试覆盖持续与过载吞吐、调用/完成P95、deadline饱和、5轮重复启停、submit/close/snapshot竞争、32并发single half-open探测、64并发Retriever回退与`rrf_rank`不变量。持续场景1000请求全部成功，完成吞吐380.208 req/s、P95 23.676ms；过载场景8成功/992 queue-full；deadline场景248 queue-full/8 timeout。三类实测均0未完成调用、单Worker线程、队列不超容量、监控与关闭完成且无死锁。相关回归143 passed、3 skipped，全量792 passed、4 skipped。数字只代表注入的2ms/30ms fake操作和本机控制面，不代表真实Cross-Encoder性能或永久卡死进程恢复。
+
 ROUTE-005 当前已验证：
 
 ```text

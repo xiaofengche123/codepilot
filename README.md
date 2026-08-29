@@ -242,6 +242,7 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - Worker 熔断：连续3次真实加载/推理失败后开路60秒；冷却前快速回退，冷却后只允许一个探测请求。queue full和调用方timeout不计入连续失败
 - Worker 预热：Rerank启用时由服务生命周期向同一单模型Worker幂等投递预热任务，API启动线程不等待模型加载；预热失败只更新Worker状态并保留RRF回退
 - Worker 可观测性：`/health`返回有界阶段、revision、固定reason code、队列和熔断状态；`/metrics`使用固定mode/reason标签，绝不输出query、模型名、异常文本、候选或模型结果
+- Worker 压力验收：可用 `python -m rag.rerank_stress` 运行纯离线fake-inference压力夹具，报告吞吐、调用/完成P95、队列峰值、终态原因、未退出线程和死锁判定；该结果不代表真实Cross-Encoder性能
 - 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
 - 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件
