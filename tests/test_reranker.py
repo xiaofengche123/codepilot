@@ -5,7 +5,11 @@ import time
 
 import rag.reranker as reranker
 import rag.retriever as retriever
-from rag.rerank_worker import RerankInferenceError, RerankQueueFullError
+from rag.rerank_worker import (
+    RerankCircuitOpenError,
+    RerankInferenceError,
+    RerankQueueFullError,
+)
 from rag.retriever import SearchHit
 
 
@@ -117,6 +121,25 @@ def test_untrusted_exception_text_or_reason_is_not_exposed(monkeypatch):
     assert hits[0].metadata["rerank_fallback_reason"] == "rerank_unexpected_error"
 
 
+def test_circuit_open_uses_stable_rrf_fallback_reason(monkeypatch):
+    candidates = [_hit("one", "first", 0.2)]
+    candidates[0].rrf_rank = 1
+    monkeypatch.setattr(retriever, "_get_collection", lambda _project: object())
+    monkeypatch.setattr(retriever, "_collection_documents", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(retriever, "_hybrid_candidates", lambda *_a, **_k: candidates)
+    monkeypatch.setattr(
+        reranker,
+        "rerank_via_worker",
+        lambda *_a, **_k: (_ for _ in ()).throw(RerankCircuitOpenError()),
+    )
+
+    with pytest.warns(RuntimeWarning, match="rerank_circuit_open"):
+        hits = retriever.retrieve("query", ".", n=1, mode="rerank")
+
+    assert hits[0].rrf_rank == 1
+    assert hits[0].metadata["rerank_fallback_reason"] == "rerank_circuit_open"
+
+
 def test_worker_timeout_cannot_mutate_returned_rrf_fallback(monkeypatch):
     candidates = [_hit("one", "first", 0.2), _hit("two", "second", 0.1)]
     for rank, hit in enumerate(candidates, start=1):
@@ -139,7 +162,12 @@ def test_worker_timeout_cannot_mutate_returned_rrf_fallback(monkeypatch):
     monkeypatch.setattr(
         reranker,
         "_settings",
-        lambda: {"queue_capacity": 1, "inference_timeout_seconds": 0.2},
+        lambda: {
+            "queue_capacity": 1,
+            "inference_timeout_seconds": 0.2,
+            "failure_threshold": 3,
+            "circuit_cooldown_seconds": 60.0,
+        },
     )
     try:
         with pytest.warns(RuntimeWarning, match="rerank_timeout"):
@@ -237,3 +265,5 @@ def test_worker_settings_have_bounded_runtime_defaults():
     settings = reranker._settings()
     assert settings["queue_capacity"] == 8
     assert settings["inference_timeout_seconds"] == 30.0
+    assert settings["failure_threshold"] == 3
+    assert settings["circuit_cooldown_seconds"] == 60.0

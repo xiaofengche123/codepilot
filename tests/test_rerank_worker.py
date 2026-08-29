@@ -1,18 +1,26 @@
-"""Single-model worker deadline and backpressure tests for MODEL-003."""
+"""Single-model worker, deadline, backpressure, and circuit tests."""
 
+from dataclasses import FrozenInstanceError
+import json
 import threading
 import time
 
 import pytest
 
 from rag.rerank_worker import (
+    MAX_RERANK_COOLDOWN_SECONDS,
     MAX_RERANK_DEADLINE_SECONDS,
+    MAX_RERANK_FAILURE_THRESHOLD,
+    RerankCircuitOpenError,
+    RerankCircuitPhase,
     RerankInferenceError,
     RerankInferenceTimeoutError,
     RerankModelLoadError,
     RerankQueueFullError,
+    RerankRecoveryProbeInProgressError,
     RerankWorker,
     RerankWorkerClosedError,
+    RerankWorkerError,
 )
 from rag.rerank_worker_state import RerankWorkerPhase
 
@@ -170,6 +178,7 @@ def test_queue_full_rejects_third_request_with_stable_reason():
         with pytest.raises(RerankQueueFullError) as caught:
             worker.submit(lambda: "third", 1)
         assert caught.value.reason_code == "rerank_queue_full"
+        assert worker.circuit_snapshot().consecutive_failures == 0
     finally:
         release.set()
         first.join(timeout=1)
@@ -216,5 +225,280 @@ def test_state_and_queue_snapshots_do_not_expose_operation_content():
         assert worker.submit(lambda: secret, 1) == secret
         assert secret not in repr(worker.state().to_dict())
         assert secret not in repr(worker.queue_snapshot().to_dict())
+        assert secret not in repr(worker.circuit_snapshot().to_dict())
     finally:
         worker.close(wait=True, timeout=1)
+
+
+def test_consecutive_failures_open_circuit_at_exact_threshold():
+    now = [100.0]
+    calls = 0
+    worker = RerankWorker(
+        capacity=1,
+        loader=lambda: None,
+        failure_threshold=2,
+        cooldown_seconds=10,
+        clock=lambda: now[0],
+    )
+
+    def fail():
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("private")
+
+    try:
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+        assert worker.circuit_snapshot().phase is RerankCircuitPhase.CLOSED
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+
+        snapshot = worker.circuit_snapshot()
+        assert snapshot.phase is RerankCircuitPhase.OPEN
+        assert snapshot.consecutive_failures == 2
+        assert snapshot.cooldown_remaining_seconds == 10
+        assert worker.state().phase is RerankWorkerPhase.FAILED
+        json.dumps(snapshot.to_dict())
+        with pytest.raises(FrozenInstanceError):
+            snapshot.consecutive_failures = 0
+        with pytest.raises(RerankCircuitOpenError):
+            worker.submit(fail, 1)
+        assert calls == 2
+    finally:
+        worker.close(wait=True, timeout=1)
+
+
+def test_success_resets_consecutive_failure_count():
+    worker = RerankWorker(
+        capacity=1,
+        loader=lambda: None,
+        failure_threshold=2,
+        cooldown_seconds=10,
+    )
+    fail = lambda: (_ for _ in ()).throw(RuntimeError("private"))
+    try:
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+        assert worker.submit(lambda: "ok", 1) == "ok"
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+
+        snapshot = worker.circuit_snapshot()
+        assert snapshot.phase is RerankCircuitPhase.CLOSED
+        assert snapshot.consecutive_failures == 1
+    finally:
+        worker.close(wait=True, timeout=1)
+
+
+def test_cooldown_allows_only_one_recovery_probe_and_success_closes():
+    now = [10.0]
+    worker = RerankWorker(
+        capacity=2,
+        loader=lambda: None,
+        failure_threshold=1,
+        cooldown_seconds=5,
+        clock=lambda: now[0],
+    )
+    with pytest.raises(RerankInferenceError):
+        worker.submit(lambda: (_ for _ in ()).throw(RuntimeError("fail")), 1)
+    with pytest.raises(RerankCircuitOpenError):
+        worker.submit(lambda: "early", 1)
+
+    now[0] += 5
+    started = threading.Event()
+    release = threading.Event()
+    results = []
+
+    def probe():
+        started.set()
+        release.wait(timeout=2)
+        return "probe_ok"
+
+    thread = threading.Thread(target=lambda: results.append(worker.submit(probe, 1)))
+    thread.start()
+    assert started.wait(timeout=1)
+    try:
+        snapshot = worker.circuit_snapshot()
+        assert snapshot.phase is RerankCircuitPhase.HALF_OPEN
+        assert snapshot.probe_in_progress is True
+        with pytest.raises(RerankRecoveryProbeInProgressError):
+            worker.submit(lambda: "second_probe", 1)
+        release.set()
+        thread.join(timeout=1)
+
+        assert results == ["probe_ok"]
+        assert worker.circuit_snapshot().phase is RerankCircuitPhase.CLOSED
+        assert worker.circuit_snapshot().consecutive_failures == 0
+        assert worker.state().phase is RerankWorkerPhase.READY
+    finally:
+        release.set()
+        thread.join(timeout=1)
+        worker.close(wait=True, timeout=1)
+
+
+def test_failed_recovery_probe_reopens_full_cooldown():
+    now = [50.0]
+    worker = RerankWorker(
+        capacity=1,
+        loader=lambda: None,
+        failure_threshold=1,
+        cooldown_seconds=7,
+        clock=lambda: now[0],
+    )
+    fail = lambda: (_ for _ in ()).throw(RuntimeError("private"))
+    try:
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+        now[0] += 7
+        with pytest.raises(RerankInferenceError):
+            worker.submit(fail, 1)
+
+        snapshot = worker.circuit_snapshot()
+        assert snapshot.phase is RerankCircuitPhase.OPEN
+        assert snapshot.cooldown_remaining_seconds == 7
+        assert snapshot.probe_in_progress is False
+        assert worker.state().phase is RerankWorkerPhase.FAILED
+    finally:
+        worker.close(wait=True, timeout=1)
+
+
+def test_load_failures_open_circuit_and_probe_reloads_model():
+    now = [0.0]
+    attempts = 0
+
+    def loader():
+        nonlocal attempts
+        attempts += 1
+        if attempts <= 2:
+            raise RuntimeError("load unavailable")
+
+    worker = RerankWorker(
+        capacity=1,
+        loader=loader,
+        failure_threshold=2,
+        cooldown_seconds=3,
+        clock=lambda: now[0],
+    )
+    try:
+        with pytest.raises(RerankModelLoadError):
+            worker.submit(lambda: "unused", 1)
+        with pytest.raises(RerankModelLoadError):
+            worker.submit(lambda: "unused", 1)
+        with pytest.raises(RerankCircuitOpenError):
+            worker.submit(lambda: "blocked", 1)
+
+        now[0] += 3
+        assert worker.submit(lambda: "recovered", 1) == "recovered"
+        assert attempts == 3
+        assert worker.state().phase is RerankWorkerPhase.READY
+        assert worker.circuit_snapshot().phase is RerankCircuitPhase.CLOSED
+    finally:
+        worker.close(wait=True, timeout=1)
+
+
+def test_requests_queued_before_open_are_rejected_without_execution():
+    active = threading.Event()
+    release = threading.Event()
+    executed = threading.Event()
+    errors = []
+    worker = RerankWorker(
+        capacity=2,
+        loader=lambda: None,
+        failure_threshold=1,
+        cooldown_seconds=10,
+    )
+
+    def first_operation():
+        active.set()
+        release.wait(timeout=2)
+        raise RuntimeError("open circuit")
+
+    def submit_and_capture(operation):
+        try:
+            worker.submit(operation, 1)
+        except RerankWorkerError as exc:
+            errors.append(exc.reason_code)
+
+    first = threading.Thread(target=submit_and_capture, args=(first_operation,))
+    second = threading.Thread(
+        target=submit_and_capture, args=(lambda: executed.set(),)
+    )
+    first.start()
+    assert active.wait(timeout=1)
+    second.start()
+    deadline = time.monotonic() + 1
+    while worker.queue_snapshot().size != 1 and time.monotonic() < deadline:
+        time.sleep(0.001)
+    release.set()
+    first.join(timeout=1)
+    second.join(timeout=1)
+    try:
+        assert not executed.is_set()
+        assert sorted(errors) == ["rerank_circuit_open", "rerank_inference_error"]
+    finally:
+        release.set()
+        first.join(timeout=1)
+        second.join(timeout=1)
+        worker.close(wait=True, timeout=1)
+
+
+def test_caller_timeout_does_not_count_as_model_failure():
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    worker = RerankWorker(
+        capacity=1,
+        loader=lambda: None,
+        failure_threshold=1,
+        cooldown_seconds=10,
+    )
+
+    def slow_success():
+        started.set()
+        release.wait(timeout=2)
+        finished.set()
+        return "late"
+
+    try:
+        with pytest.raises(RerankInferenceTimeoutError):
+            worker.submit(slow_success, 0.2)
+        assert started.is_set()
+        release.set()
+        assert finished.wait(timeout=1)
+        deadline = time.monotonic() + 1
+        while worker.state().phase is not RerankWorkerPhase.READY:
+            if time.monotonic() >= deadline:
+                pytest.fail("worker did not finish timed-out inference")
+            time.sleep(0.001)
+        snapshot = worker.circuit_snapshot()
+        assert snapshot.phase is RerankCircuitPhase.CLOSED
+        assert snapshot.consecutive_failures == 0
+    finally:
+        release.set()
+        worker.close(wait=True, timeout=1)
+
+
+@pytest.mark.parametrize("value", [True, 1.0, "3", None])
+def test_failure_threshold_rejects_non_integer_values(value):
+    with pytest.raises(TypeError):
+        RerankWorker(capacity=1, loader=lambda: None, failure_threshold=value)
+
+
+@pytest.mark.parametrize("value", [0, -1, MAX_RERANK_FAILURE_THRESHOLD + 1])
+def test_failure_threshold_is_hard_bounded(value):
+    with pytest.raises(ValueError):
+        RerankWorker(capacity=1, loader=lambda: None, failure_threshold=value)
+
+
+@pytest.mark.parametrize("value", [True, "1", None])
+def test_cooldown_rejects_non_numeric_values(value):
+    with pytest.raises(TypeError):
+        RerankWorker(capacity=1, loader=lambda: None, cooldown_seconds=value)
+
+
+@pytest.mark.parametrize(
+    "value", [0, -1, float("nan"), float("inf"), MAX_RERANK_COOLDOWN_SECONDS + 1]
+)
+def test_cooldown_is_positive_finite_and_hard_bounded(value):
+    with pytest.raises(ValueError):
+        RerankWorker(capacity=1, loader=lambda: None, cooldown_seconds=value)

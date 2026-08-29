@@ -60,6 +60,10 @@ rag:
     queue_capacity: 8
     # 从请求被队列接受起计算的调用方deadline；到期后回退，运行中的PyTorch调用不会被强杀。
     inference_timeout_seconds: 30.0
+    # 连续真实加载/推理失败达到阈值后熔断；queue full和调用方timeout不计数。
+    failure_threshold: 3
+    # 熔断冷却结束后只放行一个恢复探测请求。
+    circuit_cooldown_seconds: 60.0
     max_length: 512
     device: null
     cache_folder: ".codepilot/model-cache"

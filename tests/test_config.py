@@ -22,6 +22,8 @@ class TestConfig:
         assert config.get("rag.reranker.candidate_count") == 30
         assert config.get("rag.reranker.queue_capacity") == 8
         assert config.get("rag.reranker.inference_timeout_seconds") == 30.0
+        assert config.get("rag.reranker.failure_threshold") == 3
+        assert config.get("rag.reranker.circuit_cooldown_seconds") == 60.0
 
     def test_dot_path_access(self):
         assert config.get("agent.max_context_tokens") == 8000

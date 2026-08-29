@@ -66,6 +66,12 @@ def _settings() -> dict:
         "inference_timeout_seconds": float(
             config.get("rag.reranker.inference_timeout_seconds", 30.0)
         ),
+        "failure_threshold": int(
+            config.get("rag.reranker.failure_threshold", 3)
+        ),
+        "circuit_cooldown_seconds": float(
+            config.get("rag.reranker.circuit_cooldown_seconds", 60.0)
+        ),
     }
 
 
@@ -167,20 +173,25 @@ def rerank_via_worker(
         cloned.metadata = dict(hit.metadata)
         isolated.append(cloned)
     settings = _settings()
-    worker = _get_worker(settings["queue_capacity"])
+    worker = _get_worker(settings)
     return worker.submit(
         lambda: rerank(query, isolated, limit),
         settings["inference_timeout_seconds"],
     )
 
 
-def _get_worker(capacity: int):
+def _get_worker(settings: dict):
     global _worker
     from rag.rerank_worker import RerankWorker
 
     with _worker_lock:
         if _worker is None:
-            _worker = RerankWorker(capacity=capacity, loader=_load_model)
+            _worker = RerankWorker(
+                capacity=settings["queue_capacity"],
+                loader=_load_model,
+                failure_threshold=settings["failure_threshold"],
+                cooldown_seconds=settings["circuit_cooldown_seconds"],
+            )
         return _worker
 
 
