@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～004单Worker、队列、超时与熔断完成；预热和观测待实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～005单Worker、队列、超时、熔断与后台预热完成；观测待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -422,7 +422,7 @@
 - [x] `MODEL-002` `DONE`：有界请求队列。
 - [x] `MODEL-003` `DONE`：推理超时和队列满回退。
 - [x] `MODEL-004` `DONE`：连续失败熔断和冷却探测。
-- [ ] `MODEL-005` `PLANNED`：后台预热。
+- [x] `MODEL-005` `DONE`：后台预热。
 - [ ] `MODEL-006` `PLANNED`：指标与健康状态。
 - [ ] `MODEL-007` `PLANNED`：并发压力和死锁测试。
 
@@ -479,6 +479,16 @@
 - 实现提交：`4fdeee5`。
 - 遗留问题：熔断不能终止已经卡死的底层推理；进程内单Worker永久阻塞时只能让后续请求经deadline/queue full回退。尚无后台预热、指标、健康接口或压力证据。
 - 下一任务：`MODEL-005`后台预热。
+
+### MODEL-005 完成记录
+
+- 调度：新增不可变、JSON-ready且不含内容的`RerankWarmupResult`；Rerank启用且`background_warmup=true`时，服务启动向现有单daemon Worker非阻塞投递一次预热，不创建第二条模型执行线程。重复调度、已加载、队列满、Worker关闭和熔断均返回固定reason code。
+- 生命周期：预热与查询共享同一有界FIFO、加载状态和熔断计数。模型加载失败只把Worker置为FAILED并记录真实失败，不向API启动线程传播；服务退出停止接收请求并非阻塞关闭Worker，尚未执行的预热会被取消。
+- 默认与边界：配置默认允许预热，但`rag.reranker.enabled=false`仍是产品默认，因此常规启动不会创建Worker或加载模型。预热不下载模型，仍遵守`local_files_only`；未加载真实模型、未联网、未运行正式评测或付费API。
+- 验证：Worker/Reranker/Config/Server定向70 passed、3 skipped；Retriever/Queue/State相关回归60 passed；全量771 passed、4 skipped；`git diff --check`通过。
+- 实现提交：`d3637d8`。
+- 遗留问题：后台预热只消除启用后的首请求加载等待，不改变CPU推理成本，也不能强杀已卡死的PyTorch调用；Worker状态、队列、熔断、预热结果尚未接入健康与指标输出。
+- 下一任务：`MODEL-006`指标与健康输出。
 
 ## 11. 每个任务完成时填写
 

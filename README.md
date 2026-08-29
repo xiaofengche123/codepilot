@@ -237,9 +237,10 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 - 融合排序：RRF（Reciprocal Rank Fusion），对两路结果统一排序并按 chunk ID 去重
 - 自适应路由：设置 `rag.adaptive_routing.enabled=true` 后，Hybrid/Rerank 候选阶段根据有界 QueryFeatures 和双路排名置信信号消费冻结 Router；默认关闭，异常时复用同批候选回退固定 RRF
 - 精排：启用后对 RRF Top-30 使用 `mmarco-mMiniLMv2-L12-H384-v1` 进行 `(query, chunk)` 成对打分，再返回最终 Top-K；CPU 默认关闭
-- Worker 生命周期：已接入 `UNLOADED → LOADING → READY → DEGRADED → FAILED` 状态、连续失败熔断和冷却后的单请求恢复探测；后台预热和指标仍按 M6 后续任务实施
+- Worker 生命周期：已接入 `UNLOADED → LOADING → READY → DEGRADED → FAILED` 状态、连续失败熔断、冷却后的单请求恢复探测和服务启动后台预热；指标仍按 M6 后续任务实施
 - Worker 队列与回退：显式Rerank通过单模型线程和有界FIFO执行；队列满或调用方deadline到期时返回原始RRF，并保存固定回退原因。运行中的PyTorch调用不会被强杀
 - Worker 熔断：连续3次真实加载/推理失败后开路60秒；冷却前快速回退，冷却后只允许一个探测请求。queue full和调用方timeout不计入连续失败
+- Worker 预热：Rerank启用时由服务生命周期向同一单模型Worker幂等投递预热任务，API启动线程不等待模型加载；预热失败只更新Worker状态并保留RRF回退
 - 回退：模型未安装或推理失败时返回 RRF 结果，并在结果 metadata 标记 `rerank_fallback`
 - 检索分域：默认搜索源码/配置，避免 README 等说明文档压过真实实现；可用 `rag.include_docs=true` 开启文档检索
 - 增量索引：按文件 mtime 跳过未修改文件

@@ -868,3 +868,10 @@
 - 冷却到期由锁原子预约唯一half-open探测；成功回READY，加载/推理失败回FAILED并重启冷却，其他并发请求明确返回probe-in-progress。未执行的取消探测不伪造失败。
 - 新增不可变内容最小circuit快照；默认Rerank仍关闭，未加载真实模型、未联网、未运行正式评测或付费API。熔断不能强杀已卡死PyTorch调用。
 - Worker/Reranker定向49 passed；相关回归117 passed；全量764 passed、4 skipped；实现提交`4fdeee5`；下一项MODEL-005。
+
+## 2026-08-30 / MODEL-005 后台预热
+
+- Rerank启用时，FastAPI生命周期向现有单daemon Worker幂等投递后台预热；启动线程只接收调度结果，不等待模型加载，也不另开模型执行线程。
+- 预热复用有界FIFO、生命周期状态和熔断计数；加载失败只进入FAILED并保留RRF回退。重复、已加载、队列满、关闭及熔断均使用固定且不含内容的reason code。
+- 服务退出会非阻塞关闭Worker并取消尚未执行的预热。默认Rerank仍关闭，不会创建Worker或加载模型；未联网、未运行真实模型、正式评测或付费API。
+- 定向70 passed、3 skipped；相关回归60 passed；全量771 passed、4 skipped；`git diff --check`通过；实现提交`d3637d8`；下一项MODEL-006。
