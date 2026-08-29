@@ -812,3 +812,11 @@
 - 支持同文件明确pytest fixture、别名、参数fixture链和autouse；不猜测conftest/插件fixture、仅导入或动态对象调用。
 - 定向103 passed；结构图/Indexer相关109 passed；全量574 passed、4 skipped。
 - 真实源码smoke仅加载`rag/`与`tests/`的56文件，生成867节点、408条tests边；不代表映射准确率或检索收益。下一项GRAPH-005。
+
+## 2026-08-29 / GRAPH-005 种子Chunk一跳扩展
+
+- 新增纯内存`rag.code_graph_expansion`：将有序种子Chunk保守映射到精确符号、最小包含符号或同文件节点，沿可选边类型及outgoing/incoming/both方向输出一跳邻居Chunk。
+- 方法邻居可回落到类Chunk；文件邻居输出该文件的可用Chunk；未来大型符号拆分可输出其内部多个Chunk。无法唯一映射的种子和没有Chunk的邻居返回结构化issue，不猜测目标。
+- 原始候选保留种子排名、节点、边和方向，也保留跨种子/边重复Chunk；不含query、document、源码或AST。GRAPH-006再负责结构评分、上下文预算和去重。
+- 未读取索引、文件、冻结数据或正式结果，未接入Indexer/Retriever，默认检索路径不变，不声明检索收益。
+- 一跳扩展定向24 passed；代码图/Indexer/Retriever相关147 passed；全量598 passed、4 skipped；下一项GRAPH-006。

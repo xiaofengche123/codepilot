@@ -13,7 +13,7 @@
 - **ReAct Agent** — 推理-行动-观察循环，最多 10 轮迭代，工具调用实时可见
 - **MCP Tools 双端** — Server 供 Claude Desktop 调用，Client 消费外部 MCP Server 工具
 - **RAG 混合检索与精排** — BM25 + ChromaDB 向量召回、RRF 融合，并可用多语言 Cross-Encoder 精排
-- **轻量代码结构图** — 已定义内容无关、稳定可序列化的 Python 文件/类/函数节点契约；边解析按阶段实施
+- **轻量代码结构图** — 已定义内容无关、稳定可序列化的 Python 文件/类/函数节点与五类关系，并支持种子 Chunk 一跳结构扩展
 - **事务式代码编辑** — SHA 乐观并发控制、全量预检、Python AST 校验、同目录临时文件与原子替换
 - **对话记忆** — 按项目持久化对话历史，支持上下文裁剪
 - **流式输出** — 实时显示 AI 回复，工具调用过程透明
@@ -301,6 +301,7 @@ codepilot/
 │   ├── indexer.py       # AST 切分与增量索引
 │   ├── code_graph.py    # 稳定代码图节点与边契约
 │   ├── code_graph_builder.py # 内存 AST 结构关系构图器
+│   ├── code_graph_expansion.py # Chunk 到一跳图邻居的纯逻辑扩展
 │   ├── retriever.py     # BM25 + 向量 + RRF
 │   └── evaluate.py      # Recall@K / MRR 离线评估
 ├── static/

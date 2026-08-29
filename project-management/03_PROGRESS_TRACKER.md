@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～004 五类结构关系完成；下一项 GRAPH-005 一跳扩展 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～005 五类结构关系及一跳扩展完成；下一项 GRAPH-006 预算与去重 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -323,7 +323,7 @@
 - [x] `GRAPH-002` `DONE`：解析 contains/imports 边。
 - [x] `GRAPH-003` `DONE`：解析简单 calls/inherits 边。
 - [x] `GRAPH-004` `DONE`：建立 tests 关系映射。
-- [ ] `GRAPH-005` `PLANNED`：实现种子 Chunk 一跳扩展。
+- [x] `GRAPH-005` `DONE`：实现种子 Chunk 一跳扩展。
 - [ ] `GRAPH-006` `PLANNED`：实现上下文预算和去重。
 - [ ] `GRAPH-007` `PLANNED`：跨模块专项评测。
 
@@ -378,6 +378,18 @@
 - 验证：节点/五类结构边定向103 passed；节点/构图/Indexer相关回归109 passed；全量574 passed、4 skipped；`git diff --check`通过。
 - 真实源码smoke：仅加载`rag/`与`tests/`的56个Python文件，生成867个节点和408条tests边；仅证明可构建性和规模，不是质量评测。
 - 下一任务：`GRAPH-005`。
+
+### GRAPH-005 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph_expansion.py`、`tests/test_code_graph_expansion.py`、README和项目管理文档。
+- 映射：有序种子Chunk按“精确符号、最小包含符号、同文件节点”保守映射；邻居符号按精确Chunk、最小包含Chunk或未来拆分Chunk映射，方法可回落到当前Indexer生成的类Chunk，文件邻居映射该文件全部可用Chunk。
+- 遍历：支持 outgoing/incoming/both及显式边类型过滤；默认双向可从生产符号反向找到调用者或tests节点。递归calls在both模式只输出一次，候选记录种子排名、节点、边和遍历方向。
+- 阶段边界：结果只含Chunk引用和结构溯源，不含query、document、源码或AST；不同种子/边命中的重复Chunk有意保留，评分、上下文预算和去重留给GRAPH-006。仅设硬安全上限，超限明确失败而不静默截断。
+- 范围：纯内存逻辑，不读取索引、文件、冻结数据或正式结果；未接入Indexer/Retriever，默认检索行为不变，不宣称质量或泛化收益。
+- 验证：一跳扩展定向24 passed；代码图/Indexer/Retriever相关回归147 passed；全量598 passed、4 skipped；`git diff --check`通过。
+- 下一任务：`GRAPH-006`。
 
 ## 10. 模型服务任务
 
