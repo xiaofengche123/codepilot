@@ -852,3 +852,11 @@
 - 队列承载不透明对象，快照仅含size/capacity/closed，不保存query、候选或模型内容；不导入模型、config或Retriever。
 - 未创建Worker线程、未接入Reranker/Retriever，满载尚不执行RRF回退，消费者队列等待也不是推理超时；这些边界留给MODEL-003。
 - 队列定向24 passed；相关回归118 passed；全量721 passed、4 skipped；实现提交`fe2daad`；下一项MODEL-003。
+
+## 2026-08-30 / MODEL-003 推理deadline与队列满回退
+
+- 新增单daemon RerankWorker，将惰性加载、串行推理、MODEL-001状态和MODEL-002队列串联；默认capacity=8、调用方deadline=30秒。
+- Retriever显式rerank路径改走Worker；full/closed/load/inference/timeout均以固定原因回退原始RRF Top-N并保留`rrf_rank`。未知异常统一脱敏为`rerank_unexpected_error`。
+- deadline到期立即释放调用方；未开始任务取消，运行中PyTorch不能强杀并由Worker继续完成。候选及metadata隔离复制，迟到推理不会修改已返回的RRF对象。
+- 默认Rerank仍关闭；未加载真实模型、未联网、未运行正式评测或付费API。熔断、后台预热、指标及压力测试仍未实现。
+- Worker/Reranker定向26 passed；相关回归94 passed；全量741 passed、4 skipped；实现提交`6ae1ea0`；下一项MODEL-004。

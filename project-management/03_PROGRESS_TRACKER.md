@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～002状态与有界队列完成；超时、熔断、预热和观测待实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～003单Worker、队列和超时回退完成；熔断、预热和观测待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -420,7 +420,7 @@
 
 - [x] `MODEL-001` `DONE`：定义 Rerank Worker 状态机。
 - [x] `MODEL-002` `DONE`：有界请求队列。
-- [ ] `MODEL-003` `PLANNED`：推理超时和队列满回退。
+- [x] `MODEL-003` `DONE`：推理超时和队列满回退。
 - [ ] `MODEL-004` `PLANNED`：连续失败熔断和冷却探测。
 - [ ] `MODEL-005` `PLANNED`：后台预热。
 - [ ] `MODEL-006` `PLANNED`：指标与健康状态。
@@ -451,6 +451,20 @@
 - 实现提交：`fe2daad`。
 - 遗留问题：尚未定义运行时请求/结果信封，未接入Reranker/Retriever；满载只产生结构化拒绝，不执行RRF回退；消费者等待上限不是推理超时。
 - 下一任务：`MODEL-003`推理超时和队列满回退。
+
+### MODEL-003 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-30
+- 修改文件：`rag/rerank_worker.py`、`rag/reranker.py`、`rag/retriever.py`、`config/settings.yaml`、`tests/test_rerank_worker.py`、`tests/test_reranker.py`、`tests/test_config.py`、README和项目管理文档。
+- Worker：单daemon线程消费MODEL-002有界FIFO；首个实际请求在Worker中惰性加载模型并驱动MODEL-001的LOADING/READY/FAILED状态，推理失败进入DEGRADED、后续成功回到READY。默认队列容量8，不为每个请求创建推理线程。
+- 超时：每个已接受请求默认30秒调用方deadline，含队列等待；到期请求立即以`rerank_timeout`返回。未开始的排队任务通过Future取消并跳过；已运行的Python/PyTorch调用不能安全强杀，会在单Worker内完成后再处理下一项。
+- 回退：Retriever显式rerank路径接入Worker；queue full/closed、load error、inference error、timeout使用固定原因码，返回原候选Top-N并保留`rrf_rank`，metadata记录`rerank_fallback`和原因。任意第三方异常文本或伪造reason不会写入warning/metadata。
+- 隔离：Worker对候选和metadata做副本，超时后迟到推理不能异步改写已返回RRF结果。状态/队列快照仍不保存query、候选、异常文本或模型输出。
+- 验证：Worker/Reranker定向26 passed；Worker/Queue/State/Reranker/Retriever/Config相关回归94 passed；全量741 passed、4 skipped；`git diff --check`通过。未加载真实模型、未联网、未运行正式评测或付费API。
+- 实现提交：`6ae1ea0`。
+- 遗留问题：deadline无法停止正在执行的底层推理，长时间卡死会占住唯一Worker并最终填满队列；连续失败阈值、冷却窗口和单次恢复探测尚未执行。
+- 下一任务：`MODEL-004`连续失败熔断和冷却探测。
 
 ## 11. 每个任务完成时填写
 

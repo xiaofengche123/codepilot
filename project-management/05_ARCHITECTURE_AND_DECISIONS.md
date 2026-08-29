@@ -314,6 +314,17 @@ search_semantic
 - 超时边界：消费者的`take(timeout)`只限制等待队列项目的内部轮询，不是请求端到端或模型推理超时。MODEL-003再定义请求/结果信封、队列满RRF回退和推理deadline。
 - 上线边界：MODEL-002不接入现有Reranker/Retriever，不创建Worker线程，不改变默认Rerank路径；MODEL-007之前的单元并发测试不能替代吞吐、P95和死锁压力验收。
 
+### ADR-029：Rerank deadline释放调用方但不强杀模型线程
+
+- 日期：2026-08-30
+- 状态：`ACCEPTED`
+- 执行模型：显式Rerank复用一个daemon Worker线程和一个惰性加载模型，不按请求创建线程；这延续PyTorch串行安全边界，同时让MODEL-002队列成为唯一等待入口。
+- deadline语义：默认30秒，从请求被队列接受开始，覆盖排队和执行等待。到期立即释放调用方并回退RRF；未开始Future可取消并由Worker跳过，已经运行的Python/PyTorch调用无法可靠安全强杀，必须在Worker中自然结束。
+- 隔离策略：每次Worker请求复制候选对象和metadata；即使推理在调用方超时后才写入rerank_score，也不会修改已经返回给Retriever的原始RRF候选。
+- 稳定失败：queue full/closed、load error、inference error、timeout均为Worker自有固定reason code。Retriever只信任`RerankWorkerError`，其他异常统一为`rerank_unexpected_error`，不传播任意异常消息或外部reason属性。
+- 回退不变量：回退复用原候选Top-N，不重新融合、不改`rrf_rank`；metadata只增加回退布尔值和原因。`fallback_on_error=false`继续允许调用方选择抛错。
+- 局限：单次底层推理永久卡死仍会占住Worker，随后队列会满并快速回退；MODEL-004熔断不能中断已经卡死的线程，进程级隔离若成为真实需求必须另立方案。MODEL-007前不声明吞吐、P95或无死锁达标。
+
 ### ADR-010：结构化 Trace 不保存敏感内容
 
 - 日期：2026-08-19

@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-002` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M6现有不可变生命周期契约和独立的线程安全有界FIFO：生产者非阻塞入队，满载/关闭返回稳定原因码，消费者可被关闭唤醒且已有请求可排空。下一项是`MODEL-003`推理超时和队列满RRF回退；当前队列尚未接入Reranker/Retriever，不能宣称服务化或回退闭环完成。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-003` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank现经单模型Worker和有界FIFO执行，队列满、模型加载/推理错误或30秒调用方deadline到期均由Retriever回退原始RRF并写入稳定原因；超时后台推理使用候选副本，不会异步污染已返回结果。默认Rerank仍关闭。下一项是`MODEL-004`连续失败熔断与冷却探测；运行中的PyTorch调用尚不能强杀，也尚无熔断、预热或指标闭环。
