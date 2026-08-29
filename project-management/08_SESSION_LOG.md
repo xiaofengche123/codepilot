@@ -799,3 +799,16 @@
 - 参数、赋值、外部导入、global重绑定和函数局部导入作用域阻止错误连边；动态调用/基类输出有界issue，lambda、推导式和动态分派保持在范围外。
 - 只允许递归calls自环；结果继续确定性去重且不包含源码/AST。未接入Indexer/Retriever，未运行质量评测。
 - 节点/结构构图定向76 passed；节点/结构构图/Indexer相关回归82 passed；全量547 passed、4 skipped；下一项GRAPH-004。
+
+## 2026-08-29 / GRAPH-004 开工
+
+- 目标：从pytest命名约定和已解析calls边建立测试函数到生产符号的tests关系。
+- 方向：tests边由顶层测试函数/测试方法指向被测仓库节点；测试文件内helper允许有界穿透，但仅导入、动态分派和嵌套伪测试不猜测目标。
+- 边界：仍只消费内存源码，不读取测试结果、覆盖率、冻结数据或文件系统；本轮不接入Retriever。
+
+### GRAPH-004 完成
+
+- 新增tests边：默认pytest文件中的顶层测试函数及`Test*`类方法，沿calls将测试指向测试支持文件外生产符号；pytest及`test/`、`tests/`目录helper链最多8层、循环去重、总步数上限100万。
+- 支持同文件明确pytest fixture、别名、参数fixture链和autouse；不猜测conftest/插件fixture、仅导入或动态对象调用。
+- 定向103 passed；结构图/Indexer相关109 passed；全量574 passed、4 skipped。
+- 真实源码smoke仅加载`rag/`与`tests/`的56文件，生成867节点、408条tests边；不代表映射准确率或检索收益。下一项GRAPH-005。

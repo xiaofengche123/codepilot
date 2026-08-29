@@ -174,7 +174,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 4. 当前测试状态
 
-- 全量 pytest：547 passed，4 skipped（包含 ROUTE、运行时接线及 GRAPH-001～003 回归）。
+- 全量 pytest：574 passed，4 skipped（包含 ROUTE、运行时接线及 GRAPH-001～004 回归）。
 - `git diff --check`：通过，存在 Windows LF/CRLF 提示但没有空白错误。
 - 冻结集 SHA：复核一致。
 - Agent v1 与 v2 原始结果：各40个 JSON 文件齐全。
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-003` 已完成。代码图现可从调用方提供的内存 Python 源码确定性生成 file/class/function 节点及 contains/imports/calls/inherits 边；calls/inherits只连接同文件词法符号、方法接收者或明确导入后能唯一确定的仓库节点，动态和被遮蔽引用不猜测目标。下一项 `GRAPH-004` 建立 tests 关系映射；代码图仍未接入 Retriever，当前检索行为不变。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-004` 已完成。代码图现可确定性生成 contains/imports/calls/inherits/tests 边；tests边从默认pytest文件规则收集的顶层测试函数或`Test*`类方法指向生产符号，并支持有界测试helper链及同文件显式fixture依赖。下一项 `GRAPH-005` 实现种子Chunk一跳扩展；代码图仍未接入Retriever，当前检索行为不变。

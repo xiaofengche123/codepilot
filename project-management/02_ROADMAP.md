@@ -398,7 +398,7 @@ RRF 分数不能直接当概率，必须把置信度描述为可解释启发式�
 
 状态：`IN_PROGRESS`
 
-实现进度：`GRAPH-001`～`GRAPH-003` 已完成稳定节点契约和内存 AST contains/imports/calls/inherits 构图；下一项 `GRAPH-004` 建立 tests 关系映射。
+实现进度：`GRAPH-001`～`GRAPH-004` 已完成稳定节点契约及 contains/imports/calls/inherits/tests 构图；下一项 `GRAPH-005` 实现种子Chunk一跳扩展。
 
 依赖：M4
 

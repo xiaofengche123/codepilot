@@ -23,6 +23,8 @@ MAX_GRAPH_NODES = 100_000
 MAX_GRAPH_EDGES = 250_000
 MAX_GRAPH_ISSUES = 250_000
 MAX_ISSUE_REFERENCE_CHARS = 1_024
+MAX_TEST_HELPER_DEPTH = 8
+MAX_TEST_MAPPING_STEPS = 1_000_000
 
 
 class GraphBuildIssueCode(str, Enum):
@@ -675,6 +677,241 @@ class _RelationVisitor(ast.NodeVisitor):
         return
 
 
+def _is_pytest_file(file: str) -> bool:
+    name = PurePosixPath(file).name
+    return name.startswith("test_") or name.endswith("_test.py")
+
+
+def _is_test_support_file(file: str) -> bool:
+    path = PurePosixPath(file)
+    return _is_pytest_file(file) or any(
+        part in {"test", "tests"} for part in path.parts[:-1]
+    )
+
+
+def _is_test_node(
+    node: GraphNode,
+    nodes_by_id: dict[str, GraphNode],
+) -> bool:
+    if (
+        node.kind is not GraphNodeKind.FUNCTION
+        or not node.name.startswith("test_")
+        or not _is_pytest_file(node.file)
+        or node.parent_id is None
+    ):
+        return False
+    parent = nodes_by_id[node.parent_id]
+    if parent.kind is GraphNodeKind.FILE:
+        return True
+    if (
+        parent.kind is not GraphNodeKind.CLASS
+        or not parent.name.startswith("Test")
+        or parent.parent_id is None
+    ):
+        return False
+    return nodes_by_id[parent.parent_id].kind is GraphNodeKind.FILE
+
+
+def _function_parameters(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> set[str]:
+    names = {
+        argument.arg
+        for argument in (
+            *node.args.posonlyargs,
+            *node.args.args,
+            *node.args.kwonlyargs,
+        )
+    }
+    if node.args.vararg is not None:
+        names.add(node.args.vararg.arg)
+    if node.args.kwarg is not None:
+        names.add(node.args.kwarg.arg)
+    return names
+
+
+def _pytest_fixture_aliases(tree: ast.Module) -> tuple[set[str], set[str]]:
+    modules: set[str] = set()
+    fixtures: set[str] = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                if alias.name == "pytest":
+                    modules.add(alias.asname or "pytest")
+        elif isinstance(statement, ast.ImportFrom) and statement.module == "pytest":
+            for alias in statement.names:
+                if alias.name == "fixture":
+                    fixtures.add(alias.asname or "fixture")
+    return modules, fixtures
+
+
+def _fixture_decorator(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    pytest_modules: set[str],
+    fixture_names: set[str],
+) -> tuple[bool, bool]:
+    for decorator in node.decorator_list:
+        call = decorator if isinstance(decorator, ast.Call) else None
+        reference = call.func if call is not None else decorator
+        parts = _dotted_reference(reference)
+        is_fixture = bool(
+            parts is not None
+            and (
+                (len(parts) == 1 and parts[0] in fixture_names)
+                or (
+                    len(parts) == 2
+                    and parts[0] in pytest_modules
+                    and parts[1] == "fixture"
+                )
+            )
+        )
+        if not is_fixture:
+            continue
+        autouse = bool(
+            call is not None
+            and any(
+                keyword.arg == "autouse"
+                and isinstance(keyword.value, ast.Constant)
+                and keyword.value.value is True
+                for keyword in call.keywords
+            )
+        )
+        return True, autouse
+    return False, False
+
+
+def _pytest_fixture_dependencies(
+    parsed: dict[str, ast.Module],
+    symbols: dict[tuple[str, str], GraphNode],
+) -> dict[str, set[str]]:
+    dependencies: dict[str, set[str]] = {}
+    for file, tree in sorted(parsed.items()):
+        pytest_modules, fixture_names = _pytest_fixture_aliases(tree)
+        functions: list[
+            tuple[ast.FunctionDef | ast.AsyncFunctionDef, str]
+        ] = []
+        for statement in tree.body:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                functions.append((statement, statement.name))
+            elif isinstance(statement, ast.ClassDef):
+                functions.extend(
+                    (member, f"{statement.name}.{member.name}")
+                    for member in statement.body
+                    if isinstance(
+                        member, (ast.FunctionDef, ast.AsyncFunctionDef)
+                    )
+                )
+
+        fixtures: dict[str, tuple[GraphNode, set[str], bool]] = {}
+        test_parameters: dict[str, set[str]] = {}
+        for function, qualified_name in functions:
+            graph_node = symbols.get((file, qualified_name))
+            if graph_node is None:
+                continue
+            is_fixture, autouse = _fixture_decorator(
+                function, pytest_modules, fixture_names
+            )
+            if is_fixture and "." not in qualified_name:
+                fixtures[function.name] = (
+                    graph_node,
+                    _function_parameters(function),
+                    autouse,
+                )
+            if function.name.startswith("test_"):
+                test_parameters[graph_node.node_id] = _function_parameters(
+                    function
+                )
+
+        autouse_ids = {
+            fixture.node_id
+            for fixture, _, autouse in fixtures.values()
+            if autouse
+        }
+        for test_id, parameters in test_parameters.items():
+            target_ids = {
+                fixtures[name][0].node_id
+                for name in parameters
+                if name in fixtures
+            }
+            target_ids.update(autouse_ids)
+            if target_ids:
+                dependencies.setdefault(test_id, set()).update(target_ids)
+        for fixture, parameters, _ in fixtures.values():
+            target_ids = {
+                fixtures[name][0].node_id
+                for name in parameters
+                if name in fixtures
+            }
+            if target_ids:
+                dependencies.setdefault(fixture.node_id, set()).update(target_ids)
+    return dependencies
+
+
+def _add_test_edges(
+    nodes: list[GraphNode],
+    edges: list[GraphEdge],
+    seen_edges: set[str],
+    parsed: dict[str, ast.Module],
+) -> None:
+    """Map collected tests through bounded test-helper call chains."""
+    nodes_by_id = {node.node_id: node for node in nodes}
+    support_files = {
+        node.file for node in nodes if _is_test_support_file(node.file)
+    }
+    call_targets: dict[str, set[str]] = {}
+    for edge in edges:
+        if edge.kind is GraphEdgeKind.CALLS:
+            call_targets.setdefault(edge.source_id, set()).add(edge.target_id)
+    fixture_dependencies = _pytest_fixture_dependencies(
+        parsed,
+        {
+            (node.file, node.qualified_name): node
+            for node in nodes
+            if node.kind is not GraphNodeKind.FILE
+        },
+    )
+    for source_id, target_ids in fixture_dependencies.items():
+        call_targets.setdefault(source_id, set()).update(target_ids)
+
+    test_nodes = sorted(
+        (
+            node
+            for node in nodes
+            if _is_test_node(node, nodes_by_id)
+        ),
+        key=lambda node: (node.file, node.start_line, node.node_id),
+    )
+    mapping_steps = 0
+    for test_node in test_nodes:
+        queue = [(test_node.node_id, 0)]
+        visited = {test_node.node_id}
+        cursor = 0
+        while cursor < len(queue):
+            source_id, depth = queue[cursor]
+            cursor += 1
+            for target_id in sorted(call_targets.get(source_id, ())):
+                mapping_steps += 1
+                if mapping_steps > MAX_TEST_MAPPING_STEPS:
+                    raise ValueError("code graph exceeds the test mapping limit")
+                target = nodes_by_id[target_id]
+                if target.file in support_files:
+                    if (
+                        depth < MAX_TEST_HELPER_DEPTH
+                        and target_id not in visited
+                    ):
+                        visited.add(target_id)
+                        queue.append((target_id, depth + 1))
+                    continue
+                edge = GraphEdge.create(
+                    GraphEdgeKind.TESTS,
+                    test_node.node_id,
+                    target.node_id,
+                )
+                if edge.edge_id not in seen_edges:
+                    edges.append(edge)
+                    seen_edges.add(edge.edge_id)
+
+
 def _import_targets(
     file: str,
     node: ast.Import | ast.ImportFrom,
@@ -830,6 +1067,10 @@ def build_python_code_graph(
             raise ValueError("code graph exceeds the edge limit")
         if len(issues) > MAX_GRAPH_ISSUES:
             raise ValueError("code graph exceeds the issue limit")
+
+    _add_test_edges(nodes, edges, seen_edges, parsed)
+    if len(edges) > MAX_GRAPH_EDGES:
+        raise ValueError("code graph exceeds the edge limit")
 
     nodes.sort(
         key=lambda node: (

@@ -329,8 +329,8 @@ pytest tests/ -v
 当前测试基线（Python 3.11/3.12 均纳入 GitHub Actions）：
 
 ```text
-551 tests collected
-547 passed, 4 skipped
+578 tests collected
+574 passed, 4 skipped
 ```
 
 测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git

@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～003 四类结构关系完成；下一项 GRAPH-004 tests映射 |
+| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～004 五类结构关系完成；下一项 GRAPH-005 一跳扩展 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -322,7 +322,7 @@
 - [x] `GRAPH-001` `DONE`：定义文件、类、函数节点模型。
 - [x] `GRAPH-002` `DONE`：解析 contains/imports 边。
 - [x] `GRAPH-003` `DONE`：解析简单 calls/inherits 边。
-- [ ] `GRAPH-004` `PLANNED`：建立 tests 关系映射。
+- [x] `GRAPH-004` `DONE`：建立 tests 关系映射。
 - [ ] `GRAPH-005` `PLANNED`：实现种子 Chunk 一跳扩展。
 - [ ] `GRAPH-006` `PLANNED`：实现上下文预算和去重。
 - [ ] `GRAPH-007` `PLANNED`：跨模块专项评测。
@@ -364,6 +364,20 @@
 - 范围：不实现tests边，不接入Indexer或Retriever，不运行图质量评测或宣称检索收益。
 - 测试：节点/结构构图定向76 passed；节点/结构构图/Indexer相关回归82 passed；全量547 passed、4 skipped；`git diff --check`通过。
 - 下一任务：`GRAPH-004`。
+
+### GRAPH-004 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph.py`、`rag/code_graph_builder.py`、`tests/test_code_graph_builder.py`、`tests/test_code_graph_tests_mapping.py`、README和项目管理文档。
+- 识别：只从默认pytest文件名`test_*.py`/`*_test.py`收集顶层`test_*`函数和顶层`Test*`类的`test_*`方法；异步测试和Windows规范化路径同样支持。
+- 映射：tests边由测试节点指向测试支持文件外、通过calls可达的生产函数/类/方法；pytest文件及`test/`、`tests/`目录内helper可穿透最多8层，循环有visited去重，总映射步数硬限100万。
+- fixture：识别同文件明确导入的`pytest.fixture`及别名、参数依赖、fixture链和`autouse=True`；不按参数名猜测conftest或插件fixture。
+- 保守边界：只导入未调用、动态对象调用、普通文件中的同名函数、普通类测试方法及嵌套伪测试均不构tests边；同测试文件目标视为helper而非生产目标。
+- 范围：仍为纯内存构图，不读取覆盖率、测试结果、冻结数据或文件系统；不接入Indexer/Retriever，不宣称检索收益。
+- 验证：节点/五类结构边定向103 passed；节点/构图/Indexer相关回归109 passed；全量574 passed、4 skipped；`git diff --check`通过。
+- 真实源码smoke：仅加载`rag/`与`tests/`的56个Python文件，生成867个节点和408条tests边；仅证明可构建性和规模，不是质量评测。
+- 下一任务：`GRAPH-005`。
 
 ## 10. 模型服务任务
 

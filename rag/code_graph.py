@@ -36,6 +36,7 @@ class GraphEdgeKind(str, Enum):
     IMPORTS = "imports"
     CALLS = "calls"
     INHERITS = "inherits"
+    TESTS = "tests"
 
 
 def normalize_graph_path(value: object) -> str:

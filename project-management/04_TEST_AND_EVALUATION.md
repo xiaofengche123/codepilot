@@ -76,6 +76,8 @@ GRAPH-002 新增纯内存 Python AST 构图和 contains/imports 边。53个节�
 
 GRAPH-003 增加保守 calls/inherits 解析。76个节点/结构构图定向测试覆盖同文件和嵌套调用、递归、`self`/`cls`、直接/模块/相对导入、构造和静态方法调用、本地/跨模块/多继承/泛型基类、作用域隔离、遮蔽与global重绑定、装饰器归属、动态引用拒绝、去重和内容最小化；节点/结构构图/Indexer相关回归82 passed，全量547 passed、4 skipped。未解析引用为结构化issue而非伪边；lambda、推导式与动态分派未纳入简单解析。代码图仍未接入Retriever，因此没有新的Recall、延迟或端到端收益结论。
 
+GRAPH-004 增加pytest tests关系映射。103个节点/五类结构边定向测试覆盖默认测试文件/函数/`Test*`类识别、异步与Windows路径、方向、直接调用、pytest及`test/`/`tests/`支持模块helper链、循环/深度与总步数上限、同文件fixture/别名/依赖链/autouse、作用域隔离、动态引用拒绝、去重、确定性和内容最小化；节点/构图/Indexer相关回归109 passed，全量574 passed、4 skipped。仅加载`rag/`和`tests/`的56文件smoke生成867节点、408条tests边。该smoke没有相关性标注，且不解析conftest/插件fixture或覆盖率，因此不能作为映射准确率或检索收益证据。
+
 ROUTE-005 当前已验证：
 
 ```text

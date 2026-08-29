@@ -273,6 +273,16 @@ search_semantic
 - 自环：递归calls是有效关系并允许自环；contains/imports/inherits自环仍为非法，自继承记录issue而不构边。
 - 代价与边界：这不是完整名称解析器或类型推断器，可能漏掉动态合法关系，但优先避免错误扩展上下文。本轮不建立tests边、不接入Retriever；收益由GRAPH-007独立评测。
 
+### ADR-026：tests边以pytest收集约定和已解析调用为证据
+
+- 日期：2026-08-29
+- 状态：`ACCEPTED`
+- 测试源：采用默认pytest文件模式`test_*.py`/`*_test.py`，只收集顶层`test_*`函数及顶层`Test*`类的`test_*`方法；不新增test节点类型，继续使用function节点。
+- 方向与目标：tests边从测试函数/方法指向测试支持文件外的生产符号。直接calls是首要证据；pytest文件及`test/`、`tests/`目录内helper可以有界穿透，边按测试与最终目标去重。
+- fixture：只解析同文件、通过明确pytest导入识别的fixture，支持显式别名、参数依赖、fixture链和autouse；conftest层级、插件fixture及运行时参数化需要pytest收集器或覆盖率证据，本轮不猜测。
+- 边界与上限：helper深度最多8层，总映射步骤最多100万；循环visited去重。仅导入、动态对象属性、普通类伪测试、嵌套函数和同测试文件目标不直接生成tests边。
+- 隐私与上线：只消费内存AST和已有calls边，不读取覆盖率、测试结果或源码外数据。未接入Retriever；GRAPH-007前不据此宣称质量收益。
+
 ### ADR-009：结构图只做检索后扩展
 
 - 状态：`PLANNED`

@@ -269,6 +269,7 @@ def test_builder_does_not_guess_unresolved_relation_edges():
         "contains",
         "imports",
         "inherits",
+        "tests",
     }
 
 
