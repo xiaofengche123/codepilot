@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M6已经建立不可变、可序列化且不依赖模型/线程/队列的Rerank Worker生命周期契约，下一项是`MODEL-002`有界请求队列；超时回退、熔断、预热、指标和压力测试仍未实现，不能把状态契约描述成已完成服务化。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-002` 已完成。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M6现有不可变生命周期契约和独立的线程安全有界FIFO：生产者非阻塞入队，满载/关闭返回稳定原因码，消费者可被关闭唤醒且已有请求可排空。下一项是`MODEL-003`推理超时和队列满RRF回退；当前队列尚未接入Reranker/Retriever，不能宣称服务化或回退闭环完成。

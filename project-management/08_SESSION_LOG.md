@@ -844,3 +844,11 @@
 - reason code仅允许有界snake-case标识符，不保存query、异常消息、源码或模型输出。模块不加载模型，不导入config、线程或队列，不读取文件和时钟。
 - 未接入现有Reranker/Retriever；队列、超时、熔断计数、后台预热和指标仍待MODEL-002～006，不能宣称服务化完成。
 - 状态机定向22 passed；Reranker/RerankPolicy/Retriever相关94 passed；全量697 passed、4 skipped；下一项MODEL-002。
+
+## 2026-08-30 / MODEL-002 有界Rerank请求队列
+
+- 新增`rag.rerank_request_queue`：固定容量、线程安全FIFO；生产者非阻塞offer，稳定区分accepted/full/closed并报告操作后队列大小。
+- close幂等并唤醒等待消费者，新请求被拒绝，已排队请求仍按FIFO排空；容量和消费者显式等待有硬上界，`None`不能作为隐式哨兵。
+- 队列承载不透明对象，快照仅含size/capacity/closed，不保存query、候选或模型内容；不导入模型、config或Retriever。
+- 未创建Worker线程、未接入Reranker/Retriever，满载尚不执行RRF回退，消费者队列等待也不是推理超时；这些边界留给MODEL-003。
+- 队列定向24 passed；相关回归118 passed；全量721 passed、4 skipped；实现提交`fe2daad`；下一项MODEL-003。

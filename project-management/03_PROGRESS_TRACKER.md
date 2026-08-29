@@ -20,7 +20,7 @@
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
-| M6 模型服务化 | `IN_PROGRESS` | MODEL-001生命周期契约完成；队列、超时、熔断、预热和观测待实施 |
+| M6 模型服务化 | `IN_PROGRESS` | MODEL-001～002状态与有界队列完成；超时、熔断、预热和观测待实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
 ## 3. 已完成任务
@@ -419,7 +419,7 @@
 ## 10. 模型服务任务
 
 - [x] `MODEL-001` `DONE`：定义 Rerank Worker 状态机。
-- [ ] `MODEL-002` `PLANNED`：有界请求队列。
+- [x] `MODEL-002` `DONE`：有界请求队列。
 - [ ] `MODEL-003` `PLANNED`：推理超时和队列满回退。
 - [ ] `MODEL-004` `PLANNED`：连续失败熔断和冷却探测。
 - [ ] `MODEL-005` `PLANNED`：后台预热。
@@ -438,6 +438,19 @@
 - 实现提交：`e42d28c`。
 - 遗留问题：当前只是生命周期契约，不提供线程安全执行器、排队、超时、熔断计数、预热或指标，默认Rerank运行时行为不变。
 - 下一任务：`MODEL-002`有界请求队列。
+
+### MODEL-002 完成记录
+
+- 状态：`DONE`
+- 日期：2026-08-30
+- 修改文件：`rag/rerank_request_queue.py`、`tests/test_rerank_request_queue.py`、README和项目管理文档。
+- 队列：固定容量、线程安全FIFO；生产者只使用非阻塞`offer`，不会因模型繁忙继续堆积调用线程。接受、满载和关闭分别返回`rerank_queue_accepted/full/closed`及操作后的size/capacity。
+- 生命周期：消费者可阻塞或使用有界等待取出最早请求；`close`幂等，立即拒绝新请求、保留并允许排空已有请求，同时唤醒空队列上的等待消费者。显式`None`被拒绝，不能偷偷充当关闭哨兵。
+- 有界与隐私：容量限制为1～10000，显式等待限制为0～86400秒；不可变快照仅含size/capacity/closed，不序列化不透明请求、query或候选内容。队列本身不导入模型、config、Retriever或MODEL-001状态机。
+- 验证：队列定向24 passed；队列/状态机/Reranker/RerankPolicy/Retriever相关回归118 passed；全量721 passed、4 skipped；`git diff --check`通过。
+- 实现提交：`fe2daad`。
+- 遗留问题：尚未定义运行时请求/结果信封，未接入Reranker/Retriever；满载只产生结构化拒绝，不执行RRF回退；消费者等待上限不是推理超时。
+- 下一任务：`MODEL-003`推理超时和队列满回退。
 
 ## 11. 每个任务完成时填写
 
