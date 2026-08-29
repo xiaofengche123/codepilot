@@ -4,6 +4,7 @@
 
 - `codepilot-dev.json`：30 条开发集，只用于诊断和调参，不对外作为最终指标。
 - `codepilot-validation-v1.json`：50 条 ROUTE-007 独立验证集，五类各10条；在运行策略比较前冻结，同时封存 ROUTE-006 路由参数。它独立于参数选择，但仍是同一项目、同一标注流程的内部数据，不等同外部泛化基准。
+- `codepilot-graph-cross-module-v1.json`：20条GRAPH-007跨模块专项集；每题包含一个检索种子Chunk和由真实跨文件一跳`calls`边可达的required目标。它在比较前同时冻结完整5+5合并、边方向、评分、token预算和验收阈值，仍是同仓库内部构造集。
 - `codepilot-test-v1.json`：150 条内部冻结集，五类各 30 条。每条分别标注必须命中的 `required` 和仅提供帮助的 `supporting`；测试代码原则上只属于 supporting。
 - CodeSearchNet：外部可比基准，使用官方 99 条自然语言查询和人工 0–3 级相关性判断。
 - `agent-tasks-v1.json`：20 个隔离的缺陷修复任务，用于比较 Hybrid 与 Rerank 对实际 Agent 成功率的影响。
@@ -23,6 +24,8 @@ ROUTE-007 只冻结未评分验证集，不执行检索：
 检查同时验证数据集 SHA-256 与 ROUTE-006 路由参数画像；任何策略对比均留待 ROUTE-008，结果不得反向修改 query、required 或 supporting。
 
 ROUTE-008 已在强制离线、增量更新后的本地索引上完成唯一一次比较，完整结果见 `adaptive-routing-validation-2026-08-28.json`，可读摘要见同名 Markdown。固定 RRF、纯 Vector、冻结自适应的 Recall@10/MRR@10 分别为 `0.466667/0.248905`、`0.380000/0.196333`、`0.486667/0.265857`。自适应相对固定方案为 `+0.020000/+0.016952`，但 MRR 成对95%区间跨0，Recall 也只有1条改善；不得描述为稳定或外部泛化收益。
+
+GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的Recall@10为`0.567500/0.656667`，点差`+0.089167`，但成对95% CI为`[-0.045833,+0.222500]`。图阶段P95额外耗时`32.754ms`，88个新增Chunk仅9个命中标注相关项，无关新增单题P95为5；测试和文档新增均为0。召回点估计达到5pp门槛，但性能与无关上下文门槛失败，因此M5为`DONE_WITH_GAP`，不得宣称整体验收通过或外部泛化收益。完整结果见`graph-cross-module-validation-2026-08-29.json`及同名Markdown。
 
 ## 冻结规则
 

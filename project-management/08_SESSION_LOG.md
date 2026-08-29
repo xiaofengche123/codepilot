@@ -828,3 +828,11 @@
 - 调用方提供精确token成本，支持reserved tokens、总token预算和Chunk上限；确定性贪心选择永不超限，装不下的候选不会阻止后续较小候选。
 - 结果不含query、document、源码或AST；未接入Indexer/Retriever，未运行正式评测或声明质量收益。
 - 定向50 passed；代码图/Indexer/Retriever相关197 passed；全量648 passed、4 skipped；下一项GRAPH-007。
+
+## 2026-08-29 / GRAPH-007 跨模块专项评测
+
+- 新增冻结评测工具、27项定向测试及20条内部cross_module专项集；52个required标签中32个跨文件目标均由种子Chunk沿真实一跳calls边可达，与开发集query重合0。
+- 检索前冻结数据集SHA`adc8e9bb…dfcc`和5+5策略SHA`ad354bde…597b`；强制离线更新本地索引后只运行一次比较，未修改标注或策略。
+- 固定Hybrid/图增强Recall@10 `0.567500/0.656667`，点差`+0.089167`、95% CI `[-0.045833,+0.222500]`；MRR点差`-0.010476`。
+- 图阶段P95额外耗时`32.754ms`；新增88个Chunk仅9个标注相关，无关新增单题P95为5；测试/文档新增均为0。召回点门槛通过，性能和污染门槛失败，M5为`DONE_WITH_GAP`。
+- 相关回归232 passed；全量675 passed、4 skipped。结果不含query、Top结果、document或源码；图仍未接入产品Retriever。下一项M6 MODEL-001。

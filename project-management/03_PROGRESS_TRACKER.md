@@ -19,7 +19,7 @@
 | M2 Agent 状态机 | `DONE` | STATE-001～008 完成；恢复、预算门控、最新证据与 Diff Review 已接管循环 |
 | M3 Trace 与失败分析 | `DONE` | 有界脱敏 Trace、十级漏斗、唯一失败分类及 Dashboard/Prometheus 已完成 |
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
-| M5 AST 结构图扩展 | `IN_PROGRESS` | GRAPH-001～006 构图、扩展、评分、预算与去重完成；下一项 GRAPH-007 专项评测 |
+| M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
 | M6 模型服务化 | `PLANNED` | 在自适应 Rerank 后实施 |
 | M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
 
@@ -325,7 +325,7 @@
 - [x] `GRAPH-004` `DONE`：建立 tests 关系映射。
 - [x] `GRAPH-005` `DONE`：实现种子 Chunk 一跳扩展。
 - [x] `GRAPH-006` `DONE`：实现上下文预算和去重。
-- [ ] `GRAPH-007` `PLANNED`：跨模块专项评测。
+- [x] `GRAPH-007` `DONE_WITH_GAP`：跨模块专项评测完成；性能与无关上下文验收未通过。
 
 ### GRAPH-001 完成记录
 
@@ -402,6 +402,19 @@
 - 边界：选择结果只含Chunk引用、token计数、分数组件和最佳结构证据，不含query、document、源码或AST；固定权重未经开发集或冻结集调参。未接入Indexer/Retriever，未运行正式评测，不宣称质量收益。
 - 验证：结构评分/预算/去重定向50 passed；代码图/Indexer/Retriever相关回归197 passed；全量648 passed、4 skipped；`git diff --check`通过。
 - 下一任务：`GRAPH-007`。
+
+### GRAPH-007 完成记录
+
+- 状态：`DONE_WITH_GAP`
+- 日期：2026-08-29
+- 修改文件：`rag/code_graph_evaluation.py`、`tests/test_code_graph_evaluation.py`、`.rag-eval/codepilot-graph-cross-module-v1.{json,manifest.json}`、`.rag-eval/graph-cross-module-validation-2026-08-29.{json,md}`、README和项目管理文档。
+- 冻结：20条cross_module查询、52个required标签，其中32个跨文件目标均由种子Chunk沿真实一跳calls边可达；与开发集规范化query重合为0。检索前冻结数据集SHA`adc8e9bb…dfcc`和完整策略SHA`ad354bde…597b`，结果未回调查询、标注、权重、预算或5+5合并。
+- 策略：固定Hybrid Top-10对比“前5个固定命中+最多5个生产Python outgoing calls邻居+固定命中回填”；图预算2048本地embedding-tokenizer token、最多5个Chunk，排除测试种子/目标、文档和已在基线Top-10的UID。未启用Rerank或自适应Router。
+- 质量：固定Hybrid与图增强Recall@10 `0.567500/0.656667`，点差`+0.089167`，95% CI `[-0.045833,+0.222500]`；7题改善、3题下降、10题持平。MRR点差`-0.010476`，95% CI `[-0.029286,0.000000]`。只说明同仓库内部专项点估计，不是独立外部泛化收益。
+- 性能与污染：图阶段P95额外耗时`32.754ms`，超过10ms门槛；新增88个Chunk中标注相关9、无关79，单题无关新增P95为5，超过门槛3；测试与文档新增均为0。总体验收未完全通过。
+- 运行边界：强制离线，使用已有本地模型和增量索引；未调用付费API。结果不保存query、Top结果、document或源码。图路径仍未接入产品Retriever，普通查询运行时不变。
+- 验证：GRAPH-007定向27 passed；代码图/Indexer/Retriever/Evaluate相关回归232 passed；全量675 passed、4 skipped；`git diff --check`通过。
+- 下一任务：M6 `MODEL-001`；图上线前仍需邻接预索引、意图相关评分和更严格候选控制。
 
 ## 10. 模型服务任务
 

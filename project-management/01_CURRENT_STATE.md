@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-006` 已完成。代码图可生成五类结构边，将有序种子Chunk扩展为一跳邻居，并使用可解释固定权重、调用方提供的精确token成本、稳定UID去重及严格token/Chunk上限选择图上下文。下一项 `GRAPH-007` 建立跨模块专项评测；图扩展与预算层仍未接入Retriever，当前检索行为不变。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001` 与 `GRAPH-001`～`GRAPH-007` 已完成。M5标记`DONE_WITH_GAP`：20条冻结内部跨模块专项集上，固定Hybrid+图相对固定Hybrid的Recall@10点差`+0.089167`，但95% CI跨0；图阶段P95额外耗时`32.754ms`且无关新增Chunk单题P95为5，未通过预设性能和污染门槛。图路径仍未接入Retriever，普通运行时不变。下一项进入M6 `MODEL-001`，同时保留图邻接预索引、意图相关评分和更严格候选控制的后续缺口。
