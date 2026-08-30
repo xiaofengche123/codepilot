@@ -98,6 +98,8 @@ M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`
 
 低成本v2修订保留上述DeepSeek v1历史协议，正式模型改为`qwen3.7-flash`并冻结实现提交`cf3be67…`；建议上限降为10 CNY。新增`glm-4.7-flash`免费预跑路由、显式模型不可用禁止回退、逐轮provider Token记录和条件级汇总；GLM预跑不得计入正式统计。模型/用量定向38 passed，Protocol定向13 passed，全量811 passed、4 skipped；未创建密钥、授权、结果或Worktree，未联网、未调用任何API。
 
+2026-08-31执行协议限定的GLM四项免费预跑：1/4 Oracle成功，Hybrid 0/2、Rerank 1/2。A01-Hybrid为429限流，A02-Hybrid为400 messages参数非法，A01-Rerank修复/测试成功但无完成状态，A02-Rerank耗尽10轮。28/28轮usage完整，输入112,478、输出2,672；四个Worker正常退出且无清理失败。该结果只证明部分接口/工具兼容并暴露故障，不进入正式M7统计，也不改变千问v2冻结协议。
+
 ROUTE-005 当前已验证：
 
 ```text

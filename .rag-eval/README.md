@@ -75,3 +75,5 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 ```
 
 当前状态为`frozen_unfunded`，建议费用硬上限10 CNY，每40次运行暂停检查实际费用、Token计量完整性和失败。正式执行还必须存在单独的`agent-repeat-v2.authorization.json`并通过`--require-authorization`。GLM预跑最多覆盖A01/A02的Hybrid/Rerank四项，只用于兼容和排障，也需要用户明确开始网络执行。当前没有创建授权、结果目录或Worktree，也没有调用API；禁止覆盖三轮固定结果目录。
+
+GLM四项预跑已于2026-08-31完成，详见`glm-preflight-2026-08-31.md`及`results/m7-agent-repeat-v2-glm-preflight/`。结果为1/4 Oracle成功，28/28模型轮次usage完整；同时发现429限流、400消息兼容错误和迭代预算耗尽。该目录不是正式结果目录，不得并入三轮千问统计。正式授权和三轮千问结果目录仍不存在。

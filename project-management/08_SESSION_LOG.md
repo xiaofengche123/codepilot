@@ -903,3 +903,10 @@
 - 新增智谱OpenAI兼容路由、流式Token usage、报告聚合和显式模型不可用禁止回退；实现提交`cf3be67`，冻结tree`3823ceb3…`。
 - v2仍为20任务×Hybrid/Rerank×3次=120正式运行；费用建议上限降至10 CNY，价格须在授权前复核，未计量模型轮次立即停止。GLM最多4项预跑且禁止并入正式统计。
 - 模型/用量定向38 passed；Protocol定向13 passed；全量811 passed、4 skipped。未创建密钥、授权、结果或Worktree，未联网、未调用任何API；`resume-output/`未读取、未修改、未暂存。
+
+## 2026-08-31 / M7-v2 GLM免费预跑
+
+- 用户在本地`.env`配置千问和智谱Key；只检查两模型available=true，没有输出、读取或提交密钥内容。
+- 按协议执行A01/A02×Hybrid/Rerank四项GLM预跑，1/4 Oracle成功；发现429/1305限流、400/1214 messages非法、修复后无完成响应和迭代预算耗尽。
+- 28/28模型轮次usage完整，输入112,478、输出2,672；Agent耗时1056.161秒，runner墙钟约27分47秒；四个Worker退出码0，manifest completed，无清理失败。
+- 结论：GLM可作兼容和故障探针，但当前不能替代千问正式M7。未创建千问授权或正式结果目录，未覆盖旧结果；`resume-output/`未读取、未修改、未暂存。

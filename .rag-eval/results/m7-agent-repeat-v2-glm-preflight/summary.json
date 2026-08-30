@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "report_count": 4,
+  "conditions": {
+    "hybrid": {
+      "run_count": 2,
+      "success_count": 0,
+      "success_rate": 0.0,
+      "agent_completed_count": 0,
+      "classified_failure_count": 2,
+      "modified_expected_file_count": 0,
+      "modified_expected_file_rate": 0.0,
+      "mutation_restored_count": 0,
+      "tasks_with_unexpected_files": 0,
+      "edit_attempted_task_count": 0,
+      "transactional_edit_task_count": 0,
+      "legacy_write_task_count": 0,
+      "edit_attempt_count": 0,
+      "edit_success_count": 0,
+      "edit_precondition_failure_count": 0,
+      "edit_write_failure_count": 0,
+      "edit_rollback_count": 0,
+      "edit_error_codes": {},
+      "semantic_search_calls": 1,
+      "tool_call_count": 10,
+      "model_usage": {
+        "reports_with_usage": 2,
+        "reports_with_complete_usage": 2,
+        "complete": true,
+        "model_turns": 8,
+        "metered_turns": 8,
+        "unmetered_turns": 0,
+        "input_tokens": 23703,
+        "output_tokens": 560,
+        "total_tokens": 24263
+      },
+      "trace_funnel": {
+        "tasks_total": 2,
+        "retrieval_hit_required": 1,
+        "correct_file_inspected": 1,
+        "relevant_test_inspected": 0,
+        "edit_attempted": 0,
+        "target_file_modified": 0,
+        "oracle_satisfied": 0,
+        "test_executed": 0,
+        "test_passed": 0,
+        "no_unexpected_files": 2,
+        "rates": {
+          "retrieval_hit_required": 0.5,
+          "correct_file_inspected": 0.5,
+          "relevant_test_inspected": 0.0,
+          "edit_attempted": 0.0,
+          "target_file_modified": 0.0,
+          "oracle_satisfied": 0.0,
+          "test_executed": 0.0,
+          "test_passed": 0.0,
+          "no_unexpected_files": 1.0
+        }
+      },
+      "failure_stages": {
+        "no_edit_attempt": 1,
+        "retrieval_miss": 1
+      },
+      "failure_domains": {
+        "code": 2
+      },
+      "elapsed_seconds": {
+        "average": 216.79812860002858,
+        "median": 216.79812860002858,
+        "p95": 246.15096250001807,
+        "maximum": 246.15096250001807,
+        "total": 433.59625720005715
+      },
+      "failures": [
+        {
+          "task_id": "A01",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": "RateLimitError: Error code: 429 - {'error': {'code': '1305', 'message': '该模型当前访问量过大，请您稍后再试'}}",
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "no_edit_attempt",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "no_edit_attempt"
+        },
+        {
+          "task_id": "A02",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": "BadRequestError: Error code: 400 - {'error': {'code': '1214', 'message': 'messages 参数非法。请检查文档。'}}",
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "retrieval_miss",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "retrieval_miss"
+        }
+      ]
+    },
+    "rerank": {
+      "run_count": 2,
+      "success_count": 1,
+      "success_rate": 0.5,
+      "agent_completed_count": 0,
+      "classified_failure_count": 2,
+      "modified_expected_file_count": 1,
+      "modified_expected_file_rate": 0.5,
+      "mutation_restored_count": 1,
+      "tasks_with_unexpected_files": 0,
+      "edit_attempted_task_count": 1,
+      "transactional_edit_task_count": 1,
+      "legacy_write_task_count": 0,
+      "edit_attempt_count": 1,
+      "edit_success_count": 1,
+      "edit_precondition_failure_count": 0,
+      "edit_write_failure_count": 0,
+      "edit_rollback_count": 0,
+      "edit_error_codes": {},
+      "semantic_search_calls": 1,
+      "tool_call_count": 18,
+      "model_usage": {
+        "reports_with_usage": 2,
+        "reports_with_complete_usage": 2,
+        "complete": true,
+        "model_turns": 20,
+        "metered_turns": 20,
+        "unmetered_turns": 0,
+        "input_tokens": 88775,
+        "output_tokens": 2112,
+        "total_tokens": 90887
+      },
+      "trace_funnel": {
+        "tasks_total": 2,
+        "retrieval_hit_required": 1,
+        "correct_file_inspected": 1,
+        "relevant_test_inspected": 1,
+        "edit_attempted": 1,
+        "target_file_modified": 1,
+        "oracle_satisfied": 1,
+        "test_executed": 1,
+        "test_passed": 1,
+        "no_unexpected_files": 2,
+        "rates": {
+          "retrieval_hit_required": 0.5,
+          "correct_file_inspected": 0.5,
+          "relevant_test_inspected": 0.5,
+          "edit_attempted": 0.5,
+          "target_file_modified": 0.5,
+          "oracle_satisfied": 0.5,
+          "test_executed": 0.5,
+          "test_passed": 0.5,
+          "no_unexpected_files": 1.0
+        }
+      },
+      "failure_stages": {
+        "environment_failure": 1,
+        "iteration_budget_exhausted": 1
+      },
+      "failure_domains": {
+        "control": 1,
+        "environment": 1
+      },
+      "elapsed_seconds": {
+        "average": 311.2822346500179,
+        "median": 311.2822346500179,
+        "p95": 328.63455590000376,
+        "maximum": 328.63455590000376,
+        "total": 622.5644693000359
+      },
+      "failures": [
+        {
+          "task_id": "A01",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "environment_failure",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted"
+          ],
+          "failure_domain": "environment",
+          "failure_reason_code": "verification_timeout"
+        },
+        {
+          "task_id": "A02",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        }
+      ]
+    }
+  },
+  "paired": {
+    "complete_pair_count": 2,
+    "both_success": 0,
+    "both_failed": 1,
+    "hybrid_only_success": 0,
+    "rerank_only_success": 1
+  },
+  "run_id": "m7-agent-repeat-v2-glm-preflight",
+  "model": "glm-4.7-flash",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "code_commit": "39a5170b483820e41eeb1ffbaf46c17e00b367d2",
+  "generated_at": "2026-08-30T16:24:38.124797+00:00"
+}
