@@ -252,13 +252,13 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
-M7 重复 Agent 评测协议已冻结但尚未获得费用授权。以下命令只校验120次运行矩阵、任务/协议哈希、评测Git树、结果目录和独立授权文件，不会运行 Agent：
+M7 重复 Agent 评测的当前v2协议已冻结但尚未获得费用授权。正式模型固定为`qwen3.7-flash`；`glm-4.7-flash`只用于最多4次免费兼容预跑，结果不得计入正式统计。以下命令只校验120次正式运行矩阵、任务/协议哈希、评测Git树、结果目录和独立授权文件，不会运行 Agent：
 
 ```powershell
 .\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
 ```
 
-协议提出50 USD硬上限并要求每40次暂停复核；冻结协议本身不构成付费授权。
+v2协议提出10 CNY硬上限并要求每40次暂停复核；冻结协议和选择模型本身都不构成API执行或付费授权。DeepSeek v1协议保留为历史证据，不得原地修改或复用结果目录。
 
 ### 离线评估
 

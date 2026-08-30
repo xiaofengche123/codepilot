@@ -896,3 +896,10 @@
 - 提出50 USD硬上限、1200模型轮次、每40次暂停复核及费用/漂移/冲突/连续失败停止条件。manifest为`frozen_unfunded`，协议冻结不等于付费授权。
 - 新增只读协议校验器；授权必须来自单独、绑定protocol SHA且不超过上限的文件。当前授权和结果目录不存在，执行检查稳定返回`m7_authorization_missing`。
 - 定向13 passed；相关58 passed；全量805 passed、4 skipped；`git diff --check`通过；未修改/覆盖旧结果，未创建Worktree/新结果/授权，未联网或调用API；实现提交`0176ef2`；下一项M7-002需用户明确授权。
+
+## 2026-08-30 / M7-001 低成本模型与v2协议修订
+
+- 用户决定正式M7改用`qwen3.7-flash`，`glm-4.7-flash`仅作免费预跑和排障；DeepSeek v1协议保留为历史证据，未原地修改。
+- 新增智谱OpenAI兼容路由、流式Token usage、报告聚合和显式模型不可用禁止回退；实现提交`cf3be67`，冻结tree`3823ceb3…`。
+- v2仍为20任务×Hybrid/Rerank×3次=120正式运行；费用建议上限降至10 CNY，价格须在授权前复核，未计量模型轮次立即停止。GLM最多4项预跑且禁止并入正式统计。
+- 模型/用量定向38 passed；Protocol定向13 passed；全量811 passed、4 skipped。未创建密钥、授权、结果或Worktree，未联网、未调用任何API；`resume-output/`未读取、未修改、未暂存。

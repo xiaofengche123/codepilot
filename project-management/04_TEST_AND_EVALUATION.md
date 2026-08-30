@@ -96,6 +96,8 @@ MODEL-007使用纯离线fake sleep推理完成控制面压力验收。11项定�
 
 M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`7917e00…`、任务SHA`71caa70e…`、DeepSeek Chat/temperature 0.3、20任务×2条件×3次=120个新运行，并提出50 USD硬上限和每40次暂停点。旧40次事务评测来自不同代码提交，不能复用。manifest状态`frozen_unfunded`；独立授权文件和结果目录均不存在，`--require-authorization`按预期失败。Protocol定向13 passed，相关58 passed，全量805 passed、4 skipped。校验器不读取结果内容；本轮未修改或覆盖旧结果，没有创建Worktree、新结果或授权文件，也未调用网络或付费API。
 
+低成本v2修订保留上述DeepSeek v1历史协议，正式模型改为`qwen3.7-flash`并冻结实现提交`cf3be67…`；建议上限降为10 CNY。新增`glm-4.7-flash`免费预跑路由、显式模型不可用禁止回退、逐轮provider Token记录和条件级汇总；GLM预跑不得计入正式统计。模型/用量定向38 passed，Protocol定向13 passed，全量811 passed、4 skipped；未创建密钥、授权、结果或Worktree，未联网、未调用任何API。
+
 ROUTE-005 当前已验证：
 
 ```text

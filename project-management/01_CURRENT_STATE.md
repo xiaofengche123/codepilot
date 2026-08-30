@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker、有界FIFO、熔断/预热和内容最小化观测运行；离线fake-inference压力未检测到死锁，但不代表真实Cross-Encoder性能，运行中PyTorch仍不能强杀。M7已完成`M7-001`：冻结M6提交`7917e00…`、任务SHA、DeepSeek Chat/temperature 0.3、20任务×Hybrid/Rerank×3次的120运行矩阵、50 USD建议硬上限、每40次暂停点和停止条件。旧40次结果来自不同代码提交，不能复用。协议状态`frozen_unfunded`，授权文件和结果目录均不存在，尚未运行付费API；下一项`M7-002`必须先获得独立费用授权再执行三轮。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker、有界FIFO、熔断/预热和内容最小化观测运行；离线fake-inference压力未检测到死锁，但不代表真实Cross-Encoder性能，运行中PyTorch仍不能强杀。M7已完成`M7-001`及低成本v2修订：正式模型固定`qwen3.7-flash`，冻结提交`cf3be67…`、任务SHA、20任务×Hybrid/Rerank×3次的120运行矩阵、10 CNY建议硬上限、逐轮Token审计和每40次暂停点；`glm-4.7-flash`仅用于最多4项免费预跑且不得并入正式统计。DeepSeek v1保留为历史证据。v2状态`frozen_unfunded`，授权和结果目录均不存在，尚未运行任何API；下一项`M7-002`必须先获得独立费用授权再执行三轮。

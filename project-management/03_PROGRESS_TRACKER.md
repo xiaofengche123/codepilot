@@ -21,7 +21,7 @@
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
 | M6 模型服务化 | `DONE` | MODEL-001～007完成；fake-inference持续/过载/deadline压力无死锁，真实模型性能不由此宣称 |
-| M7 重复和独立评测 | `IN_PROGRESS` | M7-001协议已冻结且未授权；120次付费运行、新仓库集和外部抽审待执行 |
+| M7 重复和独立评测 | `IN_PROGRESS` | M7-v2已冻结千问正式评测且未授权；智谱预跑、120次正式运行、新仓库集和外部抽审待执行 |
 
 ## 3. 已完成任务
 
@@ -527,7 +527,15 @@
 - 防护：新增只读`rag.agent_repeat_protocol`，验证协议/任务双哈希、冻结commit/tree中的任务blob、固定矩阵、禁止覆盖的三轮结果路径及独立授权文件。当前manifest为`frozen_unfunded`，授权文件和三个结果目录均不存在；`--require-authorization`稳定拒绝为`m7_authorization_missing`。
 - 验证：Protocol定向13 passed；Agent Eval/Report/Metrics/Evaluate/Trace相关58 passed；全量805 passed、4 skipped；protocol `--check-pristine`和`git diff --check`通过。校验器不读取结果内容；本轮未修改或覆盖旧正式结果，未创建Worktree/新结果/授权文件，未加载模型、未联网、未调用付费API。
 - 实现提交：`0176ef2`。
-- 下一任务：`M7-002`，但必须先获得用户对独立授权文件和不高于50 USD费用上限的明确授权。
+- 下一任务：`M7-002`，但必须先获得用户对独立授权文件和不高于10 CNY费用上限的明确授权。
+
+### M7-001 低成本v2修订
+
+- 用户选择：正式M7统一使用`qwen3.7-flash`；`glm-4.7-flash`只用于A01/A02×Hybrid/Rerank最多4项免费兼容预跑和排障，预跑结果禁止并入正式统计。
+- 冻结基线：实现提交`cf3be67…`、Git tree`3823ceb3…`、任务SHA不变；v1原样保留，v2使用新协议、manifest、授权路径、三轮run-id及结果目录。
+- 成本与审计：按当前32K内千问Flash价格冻结0.2/0.8 CNY每百万输入/输出Token，建议硬上限10 CNY；授权前必须复核价格。每轮报告记录provider usage，出现未计量轮次立即停止。
+- 路由防护：新增智谱OpenAI兼容路由；显式模型不可用时稳定失败，不再静默回退到其他模型。智谱和千问均启用流式usage请求，评测报告汇总输入、输出、总Token和未计量轮次。
+- 当前边界：未创建`.env`密钥、v2授权、结果目录或Worktree，未联网、未调用免费或付费API，未修改旧正式结果和冻结任务。
 
 ## 12. 每个任务完成时填写
 

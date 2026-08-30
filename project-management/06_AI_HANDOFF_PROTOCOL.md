@@ -48,7 +48,8 @@ git diff --check
 - 用户已有的 `install.py`。
 - `.rag-eval/codepilot-test-v1.json`。
 - `.rag-eval/codepilot-test-v1.manifest.json`。
-- `.rag-eval/agent-repeat-v1.protocol.json`与对应manifest；变更必须创建新版本。
+- `.rag-eval/agent-repeat-v1.protocol.json`与对应manifest是历史冻结证据；不得修改。
+- `.rag-eval/agent-repeat-v2.protocol.json`与对应manifest是当前千问正式评测协议；变更必须创建新版本。
 - `.rag-eval/results` 中的原始正式结果。
 - 用户当前未提交的实现。
 - `.env` 中的配置和密钥。

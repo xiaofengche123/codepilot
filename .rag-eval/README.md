@@ -68,10 +68,10 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 
 ### M7 三次重复协议
 
-`agent-repeat-v1.protocol.json`与manifest冻结M6完成提交`7917e00…`、20个Agent任务、Hybrid/Rerank、每任务条件3次，共120个新运行。旧`agent-v2-transactional`来自不同代码提交，不能计入重复样本。
+`agent-repeat-v1.protocol.json`与manifest保留最初的DeepSeek冻结方案作为历史证据，不得原地修改。当前有效的`agent-repeat-v2.protocol.json`与manifest冻结提交`cf3be67…`、`qwen3.7-flash`、20个Agent任务、Hybrid/Rerank、每任务条件3次，共120个新正式运行。旧DeepSeek结果和任何GLM预跑都不能计入重复样本。
 
 ```powershell
 .\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
 ```
 
-当前状态为`frozen_unfunded`，建议费用硬上限50 USD，每40次运行暂停检查实际费用和失败。执行还必须存在单独的`agent-repeat-v1.authorization.json`并通过`--require-authorization`；M7-001没有创建该文件、结果目录或Worktree，也没有调用API。协议或任务变更必须创建新版本，禁止覆盖三轮固定结果目录。
+当前状态为`frozen_unfunded`，建议费用硬上限10 CNY，每40次运行暂停检查实际费用、Token计量完整性和失败。正式执行还必须存在单独的`agent-repeat-v2.authorization.json`并通过`--require-authorization`。GLM预跑最多覆盖A01/A02的Hybrid/Rerank四项，只用于兼容和排障，也需要用户明确开始网络执行。当前没有创建授权、结果目录或Worktree，也没有调用API；禁止覆盖三轮固定结果目录。

@@ -15,13 +15,13 @@ def _copy_frozen_files(tmp_path: Path, monkeypatch) -> Path:
     eval_dir = tmp_path / ".rag-eval"
     eval_dir.mkdir()
     for name in (
-        "agent-repeat-v1.protocol.json",
-        "agent-repeat-v1.manifest.json",
+        "agent-repeat-v2.protocol.json",
+        "agent-repeat-v2.manifest.json",
         "agent-tasks-v1.json",
     ):
         shutil.copy2(protocol.PROJECT_ROOT / ".rag-eval" / name, eval_dir / name)
     frozen = json.loads(
-        (eval_dir / "agent-repeat-v1.protocol.json").read_text(encoding="utf-8")
+        (eval_dir / "agent-repeat-v2.protocol.json").read_text(encoding="utf-8")
     )
     task_bytes = (eval_dir / "agent-tasks-v1.json").read_bytes()
     monkeypatch.setattr(
@@ -32,11 +32,11 @@ def _copy_frozen_files(tmp_path: Path, monkeypatch) -> Path:
 
 
 def _rewrite_protocol(root: Path, mutate) -> dict:
-    path = root / ".rag-eval/agent-repeat-v1.protocol.json"
+    path = root / ".rag-eval/agent-repeat-v2.protocol.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     mutate(data)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    manifest_path = root / ".rag-eval/agent-repeat-v1.manifest.json"
+    manifest_path = root / ".rag-eval/agent-repeat-v2.manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["protocol_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -48,7 +48,8 @@ def test_checked_in_protocol_is_frozen_pristine_and_unfunded():
 
     assert result["status"] == "frozen_unfunded"
     assert result["expected_runs"] == 120
-    assert result["proposed_cost_cap_usd"] == 50.0
+    assert result["cost_currency"] == "CNY"
+    assert result["proposed_cost_cap_cny"] == 10.0
     assert result["results_pristine"] is True
     assert result["execution_authorized"] is False
 
@@ -61,7 +62,7 @@ def test_execution_requires_separate_authorization_file():
 
 def test_protocol_hash_drift_is_rejected(tmp_path, monkeypatch):
     root = _copy_frozen_files(tmp_path, monkeypatch)
-    path = root / ".rag-eval/agent-repeat-v1.protocol.json"
+    path = root / ".rag-eval/agent-repeat-v2.protocol.json"
     path.write_bytes(path.read_bytes() + b" ")
 
     with pytest.raises(AgentRepeatProtocolError) as caught:
@@ -91,7 +92,7 @@ def test_task_dataset_drift_is_rejected_before_git_check(tmp_path, monkeypatch):
             "m7_conditions_mismatch",
         ),
         (
-            lambda data: data["budget"].update(proposed_cost_cap_usd=500.0),
+            lambda data: data["budget"].update(proposed_cost_cap_cny=500.0),
             "m7_cost_cap_mismatch",
         ),
         (
@@ -115,7 +116,7 @@ def test_existing_result_directory_is_a_collision_without_reading_results(
     tmp_path, monkeypatch
 ):
     root = _copy_frozen_files(tmp_path, monkeypatch)
-    (root / ".rag-eval/results/m7-agent-repeat-v1-r1").mkdir(parents=True)
+    (root / ".rag-eval/results/m7-agent-repeat-v2-qwen-r1").mkdir(parents=True)
 
     with pytest.raises(AgentRepeatProtocolError) as caught:
         protocol.validate_repeat_protocol(root=root, require_pristine_results=True)
@@ -125,15 +126,15 @@ def test_existing_result_directory_is_a_collision_without_reading_results(
 def test_valid_bounded_authorization_can_be_checked(tmp_path, monkeypatch):
     root = _copy_frozen_files(tmp_path, monkeypatch)
     manifest = json.loads(
-        (root / ".rag-eval/agent-repeat-v1.manifest.json").read_text(encoding="utf-8")
+        (root / ".rag-eval/agent-repeat-v2.manifest.json").read_text(encoding="utf-8")
     )
     authorization = {
         "schema_version": 1,
         "protocol_sha256": manifest["protocol_sha256"],
-        "approved_cost_cap_usd": 25.0,
+        "approved_cost_cap_cny": 5.0,
         "authorized_at": "2026-08-30T12:00:00+08:00",
     }
-    (root / ".rag-eval/agent-repeat-v1.authorization.json").write_text(
+    (root / ".rag-eval/agent-repeat-v2.authorization.json").write_text(
         json.dumps(authorization), encoding="utf-8"
     )
 
@@ -146,15 +147,15 @@ def test_valid_bounded_authorization_can_be_checked(tmp_path, monkeypatch):
 def test_authorization_cannot_exceed_frozen_cost_cap(tmp_path, monkeypatch):
     root = _copy_frozen_files(tmp_path, monkeypatch)
     manifest = json.loads(
-        (root / ".rag-eval/agent-repeat-v1.manifest.json").read_text(encoding="utf-8")
+        (root / ".rag-eval/agent-repeat-v2.manifest.json").read_text(encoding="utf-8")
     )
     authorization = {
         "schema_version": 1,
         "protocol_sha256": manifest["protocol_sha256"],
-        "approved_cost_cap_usd": 50.01,
+        "approved_cost_cap_cny": 10.01,
         "authorized_at": "2026-08-30T12:00:00+08:00",
     }
-    (root / ".rag-eval/agent-repeat-v1.authorization.json").write_text(
+    (root / ".rag-eval/agent-repeat-v2.authorization.json").write_text(
         json.dumps(authorization), encoding="utf-8"
     )
 

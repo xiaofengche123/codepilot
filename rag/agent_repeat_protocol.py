@@ -15,15 +15,17 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v1.protocol.json"
-MANIFEST_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v1.manifest.json"
+PROTOCOL_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v2.protocol.json"
+MANIFEST_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v2.manifest.json"
 TASK_PATH = PROJECT_ROOT / ".rag-eval/agent-tasks-v1.json"
-AUTHORIZATION_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v1.authorization.json"
+AUTHORIZATION_PATH = PROJECT_ROOT / ".rag-eval/agent-repeat-v2.authorization.json"
+PROTOCOL_ID = "m7-agent-repeat-v2-qwen37flash"
+RUN_ID_PREFIX = "m7-agent-repeat-v2-qwen"
 CONDITIONS = ("hybrid", "rerank")
 REPETITIONS = 3
 TASK_COUNT = 20
 EXPECTED_RUNS = TASK_COUNT * len(CONDITIONS) * REPETITIONS
-PROPOSED_COST_CAP_USD = 50.0
+PROPOSED_COST_CAP_CNY = 10.0
 
 
 class AgentRepeatProtocolError(ValueError):
@@ -46,8 +48,8 @@ def validate_repeat_protocol(
 ) -> dict[str, Any]:
     """Validate hashes, matrix, frozen Git tree, result paths and authorization."""
     root = root.resolve()
-    protocol_path = protocol_path or root / ".rag-eval/agent-repeat-v1.protocol.json"
-    manifest_path = manifest_path or root / ".rag-eval/agent-repeat-v1.manifest.json"
+    protocol_path = protocol_path or root / ".rag-eval/agent-repeat-v2.protocol.json"
+    manifest_path = manifest_path or root / ".rag-eval/agent-repeat-v2.manifest.json"
     task_path = root / ".rag-eval/agent-tasks-v1.json"
     protocol_bytes = _read_required(protocol_path, "m7_protocol_missing")
     manifest_bytes = _read_required(manifest_path, "m7_manifest_missing")
@@ -77,7 +79,8 @@ def validate_repeat_protocol(
         "protocol_sha256": manifest["protocol_sha256"],
         "evaluation_code_commit": protocol["evaluation"]["code_commit"],
         "expected_runs": protocol["matrix"]["expected_runs"],
-        "proposed_cost_cap_usd": protocol["budget"]["proposed_cost_cap_usd"],
+        "cost_currency": protocol["budget"]["currency"],
+        "proposed_cost_cap_cny": protocol["budget"]["proposed_cost_cap_cny"],
         "results_pristine": not any(path.exists() for path in result_dirs),
         "execution_authorized": _authorization_exists(root, protocol),
     }
@@ -86,7 +89,7 @@ def validate_repeat_protocol(
 def _validate_matrix(protocol: dict[str, Any], tasks: list[Any]) -> None:
     if protocol.get("schema_version") != 1:
         raise AgentRepeatProtocolError("m7_protocol_schema_mismatch")
-    if protocol.get("protocol_id") != "m7-agent-repeat-v1":
+    if protocol.get("protocol_id") != PROTOCOL_ID:
         raise AgentRepeatProtocolError("m7_protocol_id_mismatch")
     ids = [task.get("id") for task in tasks if isinstance(task, dict)]
     expected_ids = [f"A{index:02d}" for index in range(1, TASK_COUNT + 1)]
@@ -101,7 +104,7 @@ def _validate_matrix(protocol: dict[str, Any], tasks: list[Any]) -> None:
         raise AgentRepeatProtocolError("m7_repetitions_mismatch")
     if matrix.get("expected_runs") != EXPECTED_RUNS:
         raise AgentRepeatProtocolError("m7_expected_runs_mismatch")
-    expected_run_ids = [f"m7-agent-repeat-v1-r{index}" for index in range(1, 4)]
+    expected_run_ids = [f"{RUN_ID_PREFIX}-r{index}" for index in range(1, 4)]
     execution = protocol.get("execution", {})
     if execution.get("run_ids") != expected_run_ids:
         raise AgentRepeatProtocolError("m7_run_ids_mismatch")
@@ -115,8 +118,20 @@ def _validate_matrix(protocol: dict[str, Any], tasks: list[Any]) -> None:
         raise AgentRepeatProtocolError("m7_run_budget_mismatch")
     if budget.get("maximum_model_turns") != EXPECTED_RUNS * 10:
         raise AgentRepeatProtocolError("m7_turn_budget_mismatch")
-    if budget.get("proposed_cost_cap_usd") != PROPOSED_COST_CAP_USD:
+    if budget.get("currency") != "CNY":
+        raise AgentRepeatProtocolError("m7_cost_currency_mismatch")
+    if budget.get("proposed_cost_cap_cny") != PROPOSED_COST_CAP_CNY:
         raise AgentRepeatProtocolError("m7_cost_cap_mismatch")
+    evaluation = protocol.get("evaluation", {})
+    if evaluation.get("model") != "qwen3.7-flash":
+        raise AgentRepeatProtocolError("m7_evaluation_model_mismatch")
+    if evaluation.get("provider_usage_required") is not True:
+        raise AgentRepeatProtocolError("m7_usage_policy_mismatch")
+    preflight = protocol.get("preflight", {})
+    if preflight.get("model") != "glm-4.7-flash":
+        raise AgentRepeatProtocolError("m7_preflight_model_mismatch")
+    if preflight.get("formal_results_reusable") is not False:
+        raise AgentRepeatProtocolError("m7_preflight_reuse_policy_mismatch")
 
 
 def _validate_manifest(protocol: dict[str, Any], manifest: dict[str, Any]) -> None:
@@ -155,10 +170,10 @@ def _validate_authorization(
         "protocol_sha256"
     ):
         raise AgentRepeatProtocolError("m7_authorization_protocol_mismatch")
-    cap = data.get("approved_cost_cap_usd")
+    cap = data.get("approved_cost_cap_cny")
     if isinstance(cap, bool) or not isinstance(cap, (int, float)) or cap <= 0:
         raise AgentRepeatProtocolError("m7_authorization_cost_invalid")
-    if float(cap) > float(protocol["budget"]["proposed_cost_cap_usd"]):
+    if float(cap) > float(protocol["budget"]["proposed_cost_cap_cny"]):
         raise AgentRepeatProtocolError("m7_authorization_cost_exceeds_protocol")
     if not isinstance(data.get("authorized_at"), str) or not data["authorized_at"]:
         raise AgentRepeatProtocolError("m7_authorization_timestamp_missing")
