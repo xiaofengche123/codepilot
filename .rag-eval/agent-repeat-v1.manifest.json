@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "frozen_unfunded",
+  "frozen_at": "2026-08-30T00:00:00+08:00",
+  "protocol": ".rag-eval/agent-repeat-v1.protocol.json",
+  "protocol_sha256": "98f93cf982c41c1060ea565d4a62edcf5d48794ce03c1c58e3d7f3ad955a5706",
+  "task_dataset": ".rag-eval/agent-tasks-v1.json",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "code_commit": "7917e004a2574afb536a512afd20ed00a4d6db42",
+  "code_tree": "42fd3899c986dfc9d8db395e858666931015e981",
+  "expected_runs": 120,
+  "execution_authorized": false,
+  "policy": {
+    "protocol_changes_require_new_version": true,
+    "task_changes_require_new_version": true,
+    "existing_results_must_not_be_overwritten": true,
+    "authorization_must_be_separate_from_protocol_freeze": true,
+    "paid_api_calls_must_not_run_during_m7_001": true
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "protocol_id": "m7-agent-repeat-v1",
+  "created_at": "2026-08-30T00:00:00+08:00",
+  "status": "frozen_unfunded",
+  "task_dataset": ".rag-eval/agent-tasks-v1.json",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "evaluation": {
+    "code_commit": "7917e004a2574afb536a512afd20ed00a4d6db42",
+    "code_tree": "42fd3899c986dfc9d8db395e858666931015e981",
+    "model": "deepseek-chat",
+    "temperature": 0.3,
+    "max_iterations": 10,
+    "task_mode": "mutation_required",
+    "worker_timeout_seconds": 900,
+    "local_model_downloads_allowed": false
+  },
+  "matrix": {
+    "task_ids": [
+      "A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10",
+      "A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19", "A20"
+    ],
+    "conditions": ["hybrid", "rerank"],
+    "repetitions_per_task_condition": 3,
+    "expected_runs": 120,
+    "existing_runs_reusable": false,
+    "existing_runs_rejected_reason": "code_commit_mismatch"
+  },
+  "execution": {
+    "run_ids": [
+      "m7-agent-repeat-v1-r1",
+      "m7-agent-repeat-v1-r2",
+      "m7-agent-repeat-v1-r3"
+    ],
+    "result_dirs": [
+      ".rag-eval/results/m7-agent-repeat-v1-r1",
+      ".rag-eval/results/m7-agent-repeat-v1-r2",
+      ".rag-eval/results/m7-agent-repeat-v1-r3"
+    ],
+    "condition_order": ["hybrid", "rerank"],
+    "overwrite_existing_results": false,
+    "resume_requires_exact_manifest": true,
+    "pause_after_each_repetition": true,
+    "maximum_consecutive_worker_failures": 3,
+    "maximum_consecutive_api_failures": 3
+  },
+  "budget": {
+    "currency": "USD",
+    "proposed_cost_cap_usd": 50.0,
+    "maximum_agent_runs": 120,
+    "maximum_model_turns_per_run": 10,
+    "maximum_model_turns": 1200,
+    "maximum_worker_seconds": 108000,
+    "stop_at_cost_cap": true,
+    "provider_cost_metering_required": true,
+    "cost_review_after_each_repetition": true
+  },
+  "authorization": {
+    "required": true,
+    "path": ".rag-eval/agent-repeat-v1.authorization.json",
+    "currently_authorized": false,
+    "protocol_freeze_is_not_spend_authorization": true
+  },
+  "stop_conditions": [
+    "cost_cap_reached",
+    "authorization_missing_or_invalid",
+    "task_hash_mismatch",
+    "evaluation_commit_or_tree_mismatch",
+    "result_path_collision",
+    "three_consecutive_worker_failures",
+    "three_consecutive_api_failures"
+  ],
+  "reporting": {
+    "required_metrics": [
+      "pass_at_1",
+      "pass_at_3",
+      "average_elapsed_seconds",
+      "p95_elapsed_seconds",
+      "modified_expected_file_rate",
+      "unexpected_file_rate"
+    ],
+    "required_failure_domains": ["code", "environment", "control"],
+    "required_failure_stages": [
+      "retrieval",
+      "inspection",
+      "edit",
+      "test",
+      "review",
+      "completion",
+      "worker"
+    ],
+    "paired_by_task_and_repetition": true,
+    "raw_reports_must_be_preserved": true
+  },
+  "independence": {
+    "task_labels_immutable": true,
+    "test_v1_must_not_be_modified": true,
+    "new_labels_require_new_version": true,
+    "new_repository_dataset_deferred_to": "M7-003",
+    "external_twenty_percent_audit_deferred_to": "M7-004"
+  }
+}
