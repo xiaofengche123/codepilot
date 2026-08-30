@@ -151,6 +151,9 @@ def main() -> None:
         "execution_trace": (
             session.execution_state.trace_snapshot() if session is not None else None
         ),
+        "model_usage": (
+            session.model_usage_snapshot() if session is not None else None
+        ),
         **edit_metrics,
     }
     report["agent_final_status"] = (

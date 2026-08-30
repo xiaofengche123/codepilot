@@ -47,6 +47,15 @@ def _report(task_id, condition, success, *, elapsed=1.0, unexpected=None):
         "edit_error_codes": {} if success else {"match_count_mismatch": 1},
         "semantic_search_calls": 2,
         "tool_call_count": 5,
+        "model_usage": {
+            "model_turns": 3,
+            "metered_turns": 3,
+            "unmetered_turns": 0,
+            "input_tokens": 1200,
+            "output_tokens": 300,
+            "total_tokens": 1500,
+            "complete": True,
+        },
         "test_returncode": 0 if success else 1,
         "agent_error": None,
         "expected_files": ["src/app.py"],
@@ -85,6 +94,17 @@ def test_summary_reports_condition_metrics_failures_and_pairs():
     assert hybrid["edit_precondition_failure_count"] == 2
     assert hybrid["edit_error_codes"] == {"match_count_mismatch": 2}
     assert hybrid["tasks_with_unexpected_files"] == 1
+    assert hybrid["model_usage"] == {
+        "reports_with_usage": 4,
+        "reports_with_complete_usage": 4,
+        "complete": True,
+        "model_turns": 12,
+        "metered_turns": 12,
+        "unmetered_turns": 0,
+        "input_tokens": 4800,
+        "output_tokens": 1200,
+        "total_tokens": 6000,
+    }
     assert hybrid["elapsed_seconds"] == {
         "average": 40.0,
         "median": 40.0,
@@ -122,3 +142,21 @@ def test_load_reports_ignores_manifest_and_summary(tmp_path):
     reports = load_reports(tmp_path)
 
     assert reports == [{"task_id": "A01", "condition": "hybrid"}]
+
+
+def test_summary_marks_usage_incomplete_when_any_report_is_unmetered():
+    reports = [
+        _report("A01", "hybrid", True),
+        _report("A02", "hybrid", True),
+    ]
+    reports[1]["model_usage"].update(
+        complete=False, metered_turns=2, unmetered_turns=1
+    )
+
+    usage = summarize_reports(reports, ("hybrid",))["conditions"]["hybrid"][
+        "model_usage"
+    ]
+
+    assert usage["reports_with_complete_usage"] == 1
+    assert usage["unmetered_turns"] == 1
+    assert usage["complete"] is False

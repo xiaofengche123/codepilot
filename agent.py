@@ -90,12 +90,15 @@ class AgentSession:
         self.execution_state = self._new_execution_state()
         self._confirm = confirm or _confirm_dangerous
         self._llm = None
+        self.requested_model_name = model_name
         self.model_unavailable = False
         if model_name:
             from model_router import get_router
             self._llm = get_router().create(model_name)
             self.model_unavailable = self._llm is None
         self.mcp_client = None
+        self._model_usage_records = []
+        self._unmetered_model_turns = 0
         self._init_mcp()
 
     def _new_execution_state(self) -> TaskExecutionState:
@@ -146,6 +149,12 @@ class AgentSession:
         # Interactive sessions reuse history and model connections, but every
         # user turn receives independent task execution evidence.
         self.execution_state = self._new_execution_state()
+        self._model_usage_records = []
+        self._unmetered_model_turns = 0
+        if self.requested_model_name and self.model_unavailable:
+            raise RuntimeError(
+                f"requested model is unavailable: {self.requested_model_name}"
+            )
         llm = self._llm or router_get_llm()
         llm_with_tools = llm.bind_tools(self._get_all_tools())
 
@@ -162,6 +171,7 @@ class AgentSession:
             response, tool_calls = self._stream_llm(
                 llm_with_tools, call_messages, on_stream,
             )
+            self._record_model_usage(response)
 
             messages.append(response)
 
@@ -223,6 +233,48 @@ class AgentSession:
         if self.execution_state.terminal_reason == "max_iterations_exhausted":
             return f"已达到最大执行步数（{self.max_iterations}步），任务可能未完成。请拆分任务后重试。"
         return f"任务未完成：{self.execution_state.terminal_reason or 'agent_execution_failed'}"
+
+    def _record_model_usage(self, response) -> None:
+        """Record provider-reported token usage without retaining prompt content."""
+        usage = getattr(response, "usage_metadata", None) or {}
+        if not usage:
+            metadata = getattr(response, "response_metadata", None) or {}
+            usage = metadata.get("token_usage") or metadata.get("usage") or {}
+
+        input_tokens = usage.get("input_tokens", usage.get("prompt_tokens"))
+        output_tokens = usage.get("output_tokens", usage.get("completion_tokens"))
+        total_tokens = usage.get("total_tokens")
+        if input_tokens is None and output_tokens is None and total_tokens is None:
+            self._unmetered_model_turns += 1
+            return
+
+        input_tokens = int(input_tokens or 0)
+        output_tokens = int(output_tokens or 0)
+        total_tokens = int(total_tokens or input_tokens + output_tokens)
+        self._model_usage_records.append({
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+        })
+
+    def model_usage_snapshot(self) -> dict:
+        """Return aggregate token counts suitable for evaluation cost auditing."""
+        metered = len(self._model_usage_records)
+        return {
+            "model_turns": metered + self._unmetered_model_turns,
+            "metered_turns": metered,
+            "unmetered_turns": self._unmetered_model_turns,
+            "input_tokens": sum(
+                item["input_tokens"] for item in self._model_usage_records
+            ),
+            "output_tokens": sum(
+                item["output_tokens"] for item in self._model_usage_records
+            ),
+            "total_tokens": sum(
+                item["total_tokens"] for item in self._model_usage_records
+            ),
+            "complete": self._unmetered_model_turns == 0,
+        }
 
     @staticmethod
     def _tool_rejection(error_code: str) -> str:

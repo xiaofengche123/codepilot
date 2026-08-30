@@ -57,6 +57,15 @@ DEFAULT_MODELS = [
         display_name="Qwen 3.7 Flash",
     ),
     ModelInfo(
+        name="glm-4.7-flash",
+        provider="zhipu",
+        cost_tier="free",
+        env_key="ZAI_API_KEY",
+        base_url_env="ZAI_BASE_URL",
+        model_id="glm-4.7-flash",
+        display_name="GLM 4.7 Flash",
+    ),
+    ModelInfo(
         name="claude-sonnet-4-6",
         provider="anthropic",
         cost_tier="premium",
@@ -106,6 +115,7 @@ class ModelRouter:
         default_bases = {
             "deepseek": "https://api.deepseek.com",
             "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "zhipu": "https://open.bigmodel.cn/api/paas/v4/",
         }
         default_base = default_bases.get(info.provider, "https://api.openai.com")
         return ChatOpenAI(
@@ -114,6 +124,7 @@ class ModelRouter:
             base_url=base_url or default_base,
             temperature=config.get("model.temperature", 0.3),
             max_tokens=config.get("model.max_tokens", 4096),
+            stream_usage=True,
         )
 
     def _auto_select(self):

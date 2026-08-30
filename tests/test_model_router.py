@@ -5,6 +5,7 @@ def test_qwen_flash_is_listed_without_changing_existing_priority(monkeypatch):
     for name in (
         "DEEPSEEK_API_KEY",
         "DASHSCOPE_API_KEY",
+        "ZAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
     ):
@@ -59,3 +60,39 @@ def test_qwen_flash_respects_custom_endpoint(monkeypatch):
     model_router.ModelRouter().create("qwen3.7-flash")
 
     assert captured["base_url"] == "https://workspace.example/compatible-mode/v1"
+
+
+def test_glm_flash_uses_openai_compatible_endpoint(monkeypatch):
+    monkeypatch.setenv("ZAI_API_KEY", "zhipu-test-key")
+    monkeypatch.delenv("ZAI_BASE_URL", raising=False)
+    captured = {}
+
+    class FakeChatOpenAI:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(model_router, "ChatOpenAI", FakeChatOpenAI)
+
+    llm = model_router.ModelRouter().create("glm-4.7-flash")
+
+    assert isinstance(llm, FakeChatOpenAI)
+    assert captured["model"] == "glm-4.7-flash"
+    assert captured["api_key"] == "zhipu-test-key"
+    assert captured["base_url"] == "https://open.bigmodel.cn/api/paas/v4/"
+    assert captured["stream_usage"] is True
+
+
+def test_glm_flash_respects_custom_endpoint(monkeypatch):
+    monkeypatch.setenv("ZAI_API_KEY", "zhipu-test-key")
+    monkeypatch.setenv("ZAI_BASE_URL", "https://coding.example/paas/v4")
+    captured = {}
+
+    class FakeChatOpenAI:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(model_router, "ChatOpenAI", FakeChatOpenAI)
+
+    model_router.ModelRouter().create("glm-4.7-flash")
+
+    assert captured["base_url"] == "https://coding.example/paas/v4"

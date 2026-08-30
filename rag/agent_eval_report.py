@@ -70,6 +70,14 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
     failure_domains = Counter(
         item["failure_domain"] for item in analyzed if item["failure_domain"]
     )
+    usage_records = [
+        report.get("model_usage")
+        for report in reports
+        if isinstance(report.get("model_usage"), dict)
+    ]
+    usage_complete_count = sum(
+        usage.get("complete") is True for usage in usage_records
+    )
     return {
         "run_count": count,
         "success_count": success_count,
@@ -122,6 +130,29 @@ def _condition_summary(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "tool_call_count": sum(
             int(report.get("tool_call_count", 0)) for report in reports
         ),
+        "model_usage": {
+            "reports_with_usage": len(usage_records),
+            "reports_with_complete_usage": usage_complete_count,
+            "complete": count > 0 and usage_complete_count == count,
+            "model_turns": sum(
+                int(usage.get("model_turns", 0)) for usage in usage_records
+            ),
+            "metered_turns": sum(
+                int(usage.get("metered_turns", 0)) for usage in usage_records
+            ),
+            "unmetered_turns": sum(
+                int(usage.get("unmetered_turns", 0)) for usage in usage_records
+            ),
+            "input_tokens": sum(
+                int(usage.get("input_tokens", 0)) for usage in usage_records
+            ),
+            "output_tokens": sum(
+                int(usage.get("output_tokens", 0)) for usage in usage_records
+            ),
+            "total_tokens": sum(
+                int(usage.get("total_tokens", 0)) for usage in usage_records
+            ),
+        },
         "trace_funnel": aggregate_trace_funnel(reports),
         "failure_stages": dict(sorted(failure_stages.items())),
         "failure_domains": dict(sorted(failure_domains.items())),
