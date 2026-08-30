@@ -889,3 +889,10 @@
 - 持续1000请求全部成功，完成吞吐380.208 req/s、完成P95 23.676ms；过载8成功/992 queue-full；deadline场景248 queue-full/8 timeout。三场景均0未完成调用、单Worker、队列不越界、监控和关闭完成且无死锁。
 - 数字仅代表本机2ms/30ms fake操作，不代表真实Cross-Encoder性能；未加载模型、未联网、未运行冻结评测或付费API，PyTorch永久卡死仍需进程隔离才能恢复。
 - 定向11 passed；相关143 passed、3 skipped；全量792 passed、4 skipped；`git diff --check`通过；实现提交`85b88e9`；M6完成，下一里程碑M7。
+
+## 2026-08-30 / M7-001 冻结重复评测协议与预算
+
+- 冻结M6提交`7917e00…`及Git tree、任务SHA、DeepSeek Chat/0.3、20任务×Hybrid/Rerank×3次=120新运行；旧事务结果因代码提交不同不复用。
+- 提出50 USD硬上限、1200模型轮次、每40次暂停复核及费用/漂移/冲突/连续失败停止条件。manifest为`frozen_unfunded`，协议冻结不等于付费授权。
+- 新增只读协议校验器；授权必须来自单独、绑定protocol SHA且不超过上限的文件。当前授权和结果目录不存在，执行检查稳定返回`m7_authorization_missing`。
+- 定向13 passed；相关58 passed；全量805 passed、4 skipped；`git diff --check`通过；未修改/覆盖旧结果，未创建Worktree/新结果/授权，未联网或调用API；实现提交`0176ef2`；下一项M7-002需用户明确授权。

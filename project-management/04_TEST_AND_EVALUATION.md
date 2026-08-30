@@ -94,6 +94,8 @@ MODEL-004以注入单调时钟和fake loader/inference验证熔断，不等待�
 
 MODEL-007使用纯离线fake sleep推理完成控制面压力验收。11项定向测试覆盖持续与过载吞吐、调用/完成P95、deadline饱和、5轮重复启停、submit/close/snapshot竞争、32并发single half-open探测、64并发Retriever回退与`rrf_rank`不变量。持续场景1000请求全部成功，完成吞吐380.208 req/s、P95 23.676ms；过载场景8成功/992 queue-full；deadline场景248 queue-full/8 timeout。三类实测均0未完成调用、单Worker线程、队列不超容量、监控与关闭完成且无死锁。相关回归143 passed、3 skipped，全量792 passed、4 skipped。数字只代表注入的2ms/30ms fake操作和本机控制面，不代表真实Cross-Encoder性能或永久卡死进程恢复。
 
+M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`7917e00…`、任务SHA`71caa70e…`、DeepSeek Chat/temperature 0.3、20任务×2条件×3次=120个新运行，并提出50 USD硬上限和每40次暂停点。旧40次事务评测来自不同代码提交，不能复用。manifest状态`frozen_unfunded`；独立授权文件和结果目录均不存在，`--require-authorization`按预期失败。Protocol定向13 passed，相关58 passed，全量805 passed、4 skipped。校验器不读取结果内容；本轮未修改或覆盖旧结果，没有创建Worktree、新结果或授权文件，也未调用网络或付费API。
+
 ROUTE-005 当前已验证：
 
 ```text

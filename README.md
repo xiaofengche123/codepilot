@@ -252,6 +252,14 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
+M7 重复 Agent 评测协议已冻结但尚未获得费用授权。以下命令只校验120次运行矩阵、任务/协议哈希、评测Git树、结果目录和独立授权文件，不会运行 Agent：
+
+```powershell
+.\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
+```
+
+协议提出50 USD硬上限并要求每40次暂停复核；冻结协议本身不构成付费授权。
+
 ### 离线评估
 
 评估集采用 JSON 数组，每条数据包含查询和相关文件路径（也支持精确 chunk ID）：

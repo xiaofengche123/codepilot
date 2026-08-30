@@ -21,7 +21,7 @@
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
 | M6 模型服务化 | `DONE` | MODEL-001～007完成；fake-inference持续/过载/deadline压力无死锁，真实模型性能不由此宣称 |
-| M7 重复和独立评测 | `PLANNED` | 各阶段完成后执行 |
+| M7 重复和独立评测 | `IN_PROGRESS` | M7-001协议已冻结且未授权；120次付费运行、新仓库集和外部抽审待执行 |
 
 ## 3. 已完成任务
 
@@ -512,7 +512,24 @@
 - 边界：本轮验证Python控制面并发和回退不变量，不加载真实Cross-Encoder，不能替代生产硬件上的真实模型吞吐/P95、进程崩溃恢复或永久卡死推理隔离。底层运行中PyTorch仍不能强杀。
 - 下一里程碑：`M7`重复和独立评测。
 
-## 11. 每个任务完成时填写
+## 11. M7重复与独立评测任务
+
+- [x] `M7-001` `DONE`：冻结重复评测协议、预算和停止条件。
+- [ ] `M7-002` `PLANNED_REQUIRES_AUTHORIZATION`：执行三轮120次付费Agent评测。
+- [ ] `M7-003` `PLANNED`：建立不同仓库的小型独立冻结集。
+- [ ] `M7-004` `PLANNED`：完成至少20%外部抽审和最终统计报告。
+
+### M7-001 完成记录
+
+- 冻结矩阵：固定评测提交`7917e004…db42`及Git tree`42fd3899…e981`、`agent-tasks-v1.json` SHA-256 `71caa70e…ac09`、20个A01～A20任务、Hybrid/Rerank、每任务条件3次，共120个新Agent运行。固定`deepseek-chat`、temperature 0.3、10轮上限、mutation_required和900秒Worker上限。
+- 独立性：旧`agent-v2-transactional`固定在`daee3cc…`，与当前评测提交不同，明确禁止复用为重复样本。任务标签和test-v1不得修改；新仓库集及20%外部抽审分别留给M7-003/004。
+- 预算与停止：提出50 USD硬上限、最多120次Agent/1200模型轮次/108000 Worker秒，每40次暂停复核；费用封顶、授权缺失、任务/Git树漂移、结果路径冲突、连续3次Worker或API失败均停止。50 USD只是协议上限，不是用户付费授权。
+- 防护：新增只读`rag.agent_repeat_protocol`，验证协议/任务双哈希、冻结commit/tree中的任务blob、固定矩阵、禁止覆盖的三轮结果路径及独立授权文件。当前manifest为`frozen_unfunded`，授权文件和三个结果目录均不存在；`--require-authorization`稳定拒绝为`m7_authorization_missing`。
+- 验证：Protocol定向13 passed；Agent Eval/Report/Metrics/Evaluate/Trace相关58 passed；全量805 passed、4 skipped；protocol `--check-pristine`和`git diff --check`通过。校验器不读取结果内容；本轮未修改或覆盖旧正式结果，未创建Worktree/新结果/授权文件，未加载模型、未联网、未调用付费API。
+- 实现提交：`0176ef2`。
+- 下一任务：`M7-002`，但必须先获得用户对独立授权文件和不高于50 USD费用上限的明确授权。
+
+## 12. 每个任务完成时填写
 
 复制以下模板到任务下面或开发日志：
 

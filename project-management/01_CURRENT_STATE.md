@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker和有界FIFO执行，连续3次真实加载/推理失败后开路60秒，冷却后只允许一个恢复探测；成功清零并关闭，失败重新冷却。Rerank启用时，服务启动会向同一Worker幂等投递后台预热且不等待模型加载；失败只更新Worker状态。开路、探测占用、队列满、错误或deadline均稳定回退原始RRF；queue full和调用方timeout不计连续失败。`/health`输出内容最小化Worker/队列/熔断状态，`/metrics`覆盖七类RAG运行指标。离线fake-inference压力验收覆盖持续、过载、deadline、关闭/快照竞争、单恢复探测和并发RRF回退，未检测到死锁。默认Rerank仍关闭；压力数字不代表真实Cross-Encoder性能，运行中的PyTorch调用仍不能强杀。下一里程碑为M7重复和独立评测。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker、有界FIFO、熔断/预热和内容最小化观测运行；离线fake-inference压力未检测到死锁，但不代表真实Cross-Encoder性能，运行中PyTorch仍不能强杀。M7已完成`M7-001`：冻结M6提交`7917e00…`、任务SHA、DeepSeek Chat/temperature 0.3、20任务×Hybrid/Rerank×3次的120运行矩阵、50 USD建议硬上限、每40次暂停点和停止条件。旧40次结果来自不同代码提交，不能复用。协议状态`frozen_unfunded`，授权文件和结果目录均不存在，尚未运行付费API；下一项`M7-002`必须先获得独立费用授权再执行三轮。
