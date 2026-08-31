@@ -100,6 +100,8 @@ M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`
 
 2026-08-31执行协议限定的GLM四项免费预跑：1/4 Oracle成功，Hybrid 0/2、Rerank 1/2。A01-Hybrid为429限流，A02-Hybrid为400 messages参数非法，A01-Rerank修复/测试成功但无完成状态，A02-Rerank耗尽10轮。28/28轮usage完整，输入112,478、输出2,672；四个Worker正常退出且无清理失败。该结果只证明部分接口/工具兼容并暴露故障，不进入正式M7统计，也不改变千问v2冻结协议。
 
+2026-08-31获得10 CNY上限授权并完成千问正式r1的40/40。Hybrid成功5/20、Rerank成功3/20，成对结果为both success 2、Hybrid-only 3、Rerank-only 1、both failed 14；只有一次重复，不能报告pass@3或稳定收益。352/352实际模型回合usage完整，输入1,692,644、输出71,182 Token，目录价估算0.395474 CNY，无Agent API或清理失败。A06两条件因冻结mutation旧文本在目标文件出现2次而在模型调用前worker failure，导致每条件19/20报告含usage及汇总`complete=false`，但未计量模型回合为0。首次FreeTierOnly中断批次独立归档且不入正式统计；r2/r3未执行。
+
 ROUTE-005 当前已验证：
 
 ```text

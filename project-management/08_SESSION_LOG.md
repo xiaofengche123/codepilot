@@ -910,3 +910,13 @@
 - 按协议执行A01/A02×Hybrid/Rerank四项GLM预跑，1/4 Oracle成功；发现429/1305限流、400/1214 messages非法、修复后无完成响应和迭代预算耗尽。
 - 28/28模型轮次usage完整，输入112,478、输出2,672；Agent耗时1056.161秒，runner墙钟约27分47秒；四个Worker退出码0，manifest completed，无清理失败。
 - 结论：GLM可作兼容和故障探针，但当前不能替代千问正式M7。未创建千问授权或正式结果目录，未覆盖旧结果；`resume-output/`未读取、未修改、未暂存。
+
+## 2026-08-31 / M7-002 千问正式r1
+
+- 用户明确授权`qwen3.7-flash`正式评测，费用上限10 CNY；复核北京地域32K内目录价并创建绑定v2 protocol SHA的独立授权文件。
+- 修正本地百炼业务空间OpenAI兼容Endpoint；新Key鉴权成功。首次执行因“免费额度用完即停”在25/40触发连续403后按协议停止，结果独立归档且不入正式统计。
+- 用户关闭FreeTierOnly后验证付费访问，从空正式目录重跑r1；40/40完成，Hybrid 5/20、Rerank 3/20，合计8/40。manifest为`completed_with_worker_failures`，无清理失败。
+- 352/352实际模型回合usage完整，输入1,692,644、输出71,182 Token，正式r1目录价估算0.395474 CNY；授权期中断批次、探针和正式r1合计目录价估算约0.598 CNY，远低于10 CNY，实际账单以阿里云为准。
+- A06两项调用前worker failure稳定复现：冻结mutation旧文本在`config/settings.yaml`出现2次，无法唯一注入。两份零回合报告无usage对象，因此条件汇总`complete=false`但未计量回合为0。
+- 已按协议在40项后暂停，未执行r2/r3；冻结任务、Oracle和正式r1结果未覆盖，`resume-output/`未读取、未修改、未暂存。
+- 提交前Protocol/Agent Report/Model Router定向30 passed；全量811 passed、4 skipped；68个正式/中断JSON均可解析，敏感信息扫描和`git diff --check`通过。

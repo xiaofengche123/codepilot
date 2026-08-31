@@ -43,20 +43,21 @@ def _rewrite_protocol(root: Path, mutate) -> dict:
     return data
 
 
-def test_checked_in_protocol_is_frozen_pristine_and_unfunded():
-    result = protocol.validate_repeat_protocol(require_pristine_results=True)
+def test_checked_in_protocol_is_frozen_authorized_and_has_formal_results():
+    result = protocol.validate_repeat_protocol(require_authorization=True)
 
     assert result["status"] == "frozen_unfunded"
     assert result["expected_runs"] == 120
     assert result["cost_currency"] == "CNY"
     assert result["proposed_cost_cap_cny"] == 10.0
-    assert result["results_pristine"] is True
-    assert result["execution_authorized"] is False
+    assert result["results_pristine"] is False
+    assert result["execution_authorized"] is True
 
 
-def test_execution_requires_separate_authorization_file():
+def test_execution_requires_separate_authorization_file(tmp_path, monkeypatch):
+    root = _copy_frozen_files(tmp_path, monkeypatch)
     with pytest.raises(AgentRepeatProtocolError) as caught:
-        protocol.validate_repeat_protocol(require_authorization=True)
+        protocol.validate_repeat_protocol(root=root, require_authorization=True)
     assert caught.value.reason_code == "m7_authorization_missing"
 
 

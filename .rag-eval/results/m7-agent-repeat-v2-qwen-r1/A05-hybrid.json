@@ -1,0 +1,505 @@
+{
+  "schema_version": 2,
+  "task_id": "A05",
+  "condition": "hybrid",
+  "model": "qwen3.7-flash",
+  "success": false,
+  "elapsed_seconds": 21.40927589999046,
+  "semantic_search_calls": 1,
+  "tool_call_count": 10,
+  "changed_by_agent": [
+    "config/settings.yaml",
+    "rag/retriever.py"
+  ],
+  "modified_expected_file": true,
+  "mutation_restored": true,
+  "unexpected_files": [
+    "rag/retriever.py"
+  ],
+  "expected_files": [
+    "config/settings.yaml"
+  ],
+  "test_returncode": 1,
+  "test_output": "......................F                                                  [100%]\n================================== FAILURES ===================================\n__________ test_rerank_uses_rrf_top_30_then_truncates_to_requested_k __________\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000213DEB44B60>\n\n    def test_rerank_uses_rrf_top_30_then_truncates_to_requested_k(monkeypatch):\n        candidates = [_hit(f\"chunk-{i}\") for i in range(30)]\n        observed = {}\n        monkeypatch.setattr(retriever, \"_get_collection\", lambda _project: object())\n        monkeypatch.setattr(retriever, \"_collection_documents\", lambda *_args: [])\n    \n        def fake_candidates(*_args):\n            observed[\"candidate_limit\"] = _args[3]\n            return candidates\n    \n        def fake_rerank(_query, hits, limit):\n            observed[\"rerank_count\"] = len(hits)\n            observed[\"final_limit\"] = limit\n            return hits[:limit]\n    \n        monkeypatch.setattr(retriever, \"_hybrid_candidates\", fake_candidates)\n        monkeypatch.setattr(\"rag.reranker.rerank\", fake_rerank)\n        hits = retriever.retrieve(\"query\", \".\", n=10, mode=\"rerank\")\n        assert len(hits) == 10\n>       assert observed == {\n            \"candidate_limit\": 30,\n            \"rerank_count\": 30,\n            \"final_limit\": 10,\n        }\nE       AssertionError: assert {'candidate_limit': 30} == {'candidate_l...al_limit': 10}\nE         \nE         Omitting 1 identical items, use -vv to show\nE         Right contains 2 more items:\nE         {'final_limit': 10, 'rerank_count': 30}\nE         Use -v to get more diff\n\ntests\\test_retriever.py:301: AssertionError\n============================== warnings summary ===============================\ntests/test_retriever.py::test_rerank_uses_rrf_top_30_then_truncates_to_requested_k\n  D:\\codepilot\\.rag-eval\\formal-runners\\m7-v2-r1\\.rag-eval\\worktrees\\m7-agent-repeat-v2-qwen-r1-A05-hybrid\\rag\\retriever.py:367: RuntimeWarning: Cross-Encoder rerank failed; falling back to RRF (rerank_load_error)\n    return _retrieve_impl(query, project_dir, n, mode)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_retriever.py::test_rerank_uses_rrf_top_30_then_truncates_to_requested_k\n1 failed, 22 passed, 1 warning in 18.77s\n",
+  "agent_error": null,
+  "answer": "diff 正确，两个文件都已修复：\n\n- `config/settings.yaml` — yaml 配置从 `1.0` → `2.0`\n- `rag/retriever.py` — fallback 默认值从 `1.0` → `2.0`\n\n需要我帮你提交吗？",
+  "tool_calls": [
+    {
+      "name": "index_project",
+      "arguments": {},
+      "result_preview": "[完成] 索引已是最新，没有需要更新的文件"
+    },
+    {
+      "name": "search_semantic",
+      "arguments": {
+        "query": "BM25 fusion weight configuration"
+      },
+      "result_preview": "混合检索: 找到 10 条相关结果:\n  rag/retriever.py:247 (RRF:0.1117, 向量#2, BM25#1) | def _fixed_fusion(     vector_hits: list[SearchHit],     keyword_hits: list[SearchHit],     limit: int, ) -> list[SearchHit]:     from config import c\n  rag/retrieval_validation.py:63 (RRF:0.0859, 向量#18, BM25#3) | def router_prof"
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "bm25.*weight"
+      },
+      "result_preview": "找到 50 条结果:\n  config.py:49: \"bm25_weight\": 2.0,\n  config\\settings.yaml:47: bm25_weight: 1.0\n  project-management\\01_CURRENT_STATE.md:85: bm25_weight: 2.0\n  project-management\\01_CURRENT_STATE.md:134: 外部结果说明当前 `bm25_weight=2.0`、`vector_weight=0.25` 带有 CodePilot 内部代码库偏好，不是通用最优参数。\n  project-management\\0"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "config/settings.yaml"
+      },
+      "result_preview": "   1 | # 码搭 CodePilot · 配置文件\n   2 | # 此文件为可选，不存在时使用内置默认值。\n   3 | # 只写需要覆盖的项即可，未写的项保持默认。\n   4 | \n   5 | # Agent 循环配置\n   6 | agent:\n   7 |   max_iterations: 10\n   8 |   max_context_tokens: 8000\n   9 |   # M2 状态机在执行前强制各阶段预算；总迭代数仍是硬上限。\n  10 |   phase_budgets:\n  11 |     discovery_budget: 3\n  12 |     in"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "config.py"
+      },
+      "result_preview": "   1 | \"\"\"\n   2 | 码搭 CodePilot · 配置管理\n   3 | \n   4 | 从 config/settings.yaml 加载，不存在时用内置默认值。\n   5 | 支持点号路径: config.get(\"agent.max_iterations\")\n   6 | \"\"\"\n   7 | \n   8 | import os\n   9 | from pathlib import Path\n  10 | from typing import Any\n  11 | \n  12 | PROJECT_ROOT = Path(__file__).parent\n  13 | CO"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "start_line": 250,
+        "end_line": 270
+      },
+      "result_preview": " 251 | ) -> list[SearchHit]:\n 252 |     from config import config\n 253 | \n 254 |     return reciprocal_rank_fusion(\n 255 |         vector_hits,\n 256 |         keyword_hits,\n 257 |         limit,\n 258 |         rrf_k=max(1, int(config.get(\"rag.rrf_k\", 60))),\n 259 |         vector_weight=float(config."
+    },
+    {
+      "name": "edit_file_transaction",
+      "arguments": {
+        "path": "config/settings.yaml",
+        "edits": [
+          {
+            "expected_count": 1,
+            "old_text": "  bm25_weight: 1.0",
+            "new_text": "  bm25_weight: 2.0"
+          }
+        ]
+      },
+      "result_preview": "{\"success\": true, \"path\": \"config/settings.yaml\", \"before_sha256\": \"91e9c115a3220113745006883cb3471f6f28c93a82e49e553aa4640542dcd2f8\", \"after_sha256\": \"1612d7558d77662384c15ab2234778b5c5828bc3345e54816f6f4cb2c250845b\", \"replacements\": 1, \"diff\": \"--- a/config/settings.yaml\\n+++ b/config/settings.yam",
+      "structured_result": {
+        "success": true,
+        "path": "config/settings.yaml",
+        "before_sha256": "91e9c115a3220113745006883cb3471f6f28c93a82e49e553aa4640542dcd2f8",
+        "after_sha256": "1612d7558d77662384c15ab2234778b5c5828bc3345e54816f6f4cb2c250845b",
+        "replacements": 1,
+        "rolled_back": false,
+        "error_code": null,
+        "message": "transaction committed"
+      }
+    },
+    {
+      "name": "edit_file_transaction",
+      "arguments": {
+        "path": "rag/retriever.py",
+        "edits": [
+          {
+            "expected_count": 1,
+            "old_text": "        bm25_weight=float(config.get(\"rag.bm25_weight\", 1.0)),",
+            "new_text": "        bm25_weight=float(config.get(\"rag.bm25_weight\", 2.0)),"
+          }
+        ]
+      },
+      "result_preview": "{\"success\": true, \"path\": \"rag/retriever.py\", \"before_sha256\": \"a6ba6f43d98195de2ac948c653b4e7e5de4cf211d4ffd0b114351986391313b0\", \"after_sha256\": \"e26ab63368997f8927f10bfd1cf9764ea8663ef8c94ae1eb176f8d7807531850\", \"replacements\": 1, \"diff\": \"--- a/rag/retriever.py\\n+++ b/rag/retriever.py\\n@@ -257,7",
+      "structured_result": {
+        "success": true,
+        "path": "rag/retriever.py",
+        "before_sha256": "a6ba6f43d98195de2ac948c653b4e7e5de4cf211d4ffd0b114351986391313b0",
+        "after_sha256": "e26ab63368997f8927f10bfd1cf9764ea8663ef8c94ae1eb176f8d7807531850",
+        "replacements": 1,
+        "rolled_back": false,
+        "error_code": null,
+        "message": "transaction committed"
+      }
+    },
+    {
+      "name": "run_shell",
+      "arguments": {
+        "command": "python -m pytest tests/test_config.py tests/test_retrieval_plan.py -v"
+      },
+      "result_preview": "============================= test session starts =============================\nplatform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- D:\\codepilot\\.rag-eval\\formal-runners\\m7-v2-r1\\venv\\Scripts\\python.exe\ncachedir: .pytest_cache\nrootdir: D:\\codepilot\\.rag-eval\\formal-runners\\m7-v2-r1\\.rag-"
+    },
+    {
+      "name": "git_diff",
+      "arguments": {},
+      "result_preview": "diff --git a/config/settings.yaml b/config/settings.yaml\nindex bc71ed4..57600d7 100644\n--- a/config/settings.yaml\n+++ b/config/settings.yaml\n@@ -44,7 +44,7 @@ rag:\n   # 兼容性固定 RRF。独立验证中自适应方案只有小幅点估计提升，默认不切换。\n   rrf_k: 10\n   vector_weight: 0.25\n-  bm25_weight: 1.0\n+  bm25_weight: 2.0\n   adaptive_routin"
+    }
+  ],
+  "index_message": "[完成] 索引 116 个文件，1209 个片段，耗时 30.6s",
+  "execution_trace": {
+    "schema_version": 1,
+    "task_id": "A05-hybrid",
+    "session_id": "A05-hybrid",
+    "phases": [
+      {
+        "event_type": "iteration_started",
+        "iteration": 1,
+        "phase": "init",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185383.6649044
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 2,
+        "phase": "init",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185386.4575117
+      },
+      {
+        "event_type": "transition",
+        "iteration": 2,
+        "phase": "discover",
+        "from_phase": "init",
+        "to_phase": "discover",
+        "reason": "search_tool_completed",
+        "triggering_tool": "search_semantic",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185387.8470917
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 3,
+        "phase": "discover",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185387.9357715
+      },
+      {
+        "event_type": "transition",
+        "iteration": 3,
+        "phase": "inspect",
+        "from_phase": "discover",
+        "to_phase": "inspect",
+        "reason": "read_tool_completed",
+        "triggering_tool": "read_file",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185390.2647355
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 4,
+        "phase": "inspect",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185390.2664516
+      },
+      {
+        "event_type": "transition",
+        "iteration": 4,
+        "phase": "plan",
+        "from_phase": "inspect",
+        "to_phase": "plan",
+        "reason": "edit_tool_selected",
+        "triggering_tool": "edit_file_transaction",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185393.6588893
+      },
+      {
+        "event_type": "transition",
+        "iteration": 4,
+        "phase": "edit",
+        "from_phase": "plan",
+        "to_phase": "edit",
+        "reason": "edit_tool_completed",
+        "triggering_tool": "edit_file_transaction",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185393.6588893
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 5,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185393.6730115
+      },
+      {
+        "event_type": "transition",
+        "iteration": 5,
+        "phase": "verify",
+        "from_phase": "edit",
+        "to_phase": "verify",
+        "reason": "test_command_completed",
+        "triggering_tool": "run_shell",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185398.1008375
+      },
+      {
+        "event_type": "transition",
+        "iteration": 5,
+        "phase": "review",
+        "from_phase": "verify",
+        "to_phase": "review",
+        "reason": "tests_passed",
+        "triggering_tool": "run_shell",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185398.1008375
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 6,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185398.1008375
+      },
+      {
+        "event_type": "completion_decision",
+        "iteration": 6,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": false,
+        "missing_evidence": [
+          "fresh_diff_review"
+        ],
+        "timestamp": 1788185399.9729064
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 7,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185399.9729064
+      },
+      {
+        "event_type": "review",
+        "iteration": 7,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": "diff_review_recorded",
+        "triggering_tool": "git_diff",
+        "success": true,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185401.450866
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 8,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185401.450866
+      },
+      {
+        "event_type": "completion_decision",
+        "iteration": 8,
+        "phase": "review",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": true,
+        "missing_evidence": [],
+        "timestamp": 1788185403.3458462
+      },
+      {
+        "event_type": "transition",
+        "iteration": 8,
+        "phase": "complete",
+        "from_phase": "review",
+        "to_phase": "complete",
+        "reason": "model_response_finished",
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788185403.3458462
+      }
+    ],
+    "retrieval_calls": [
+      {
+        "tool_name": "search_semantic",
+        "iteration": 2,
+        "success": true,
+        "error_code": null,
+        "result_files": [
+          "rag/retriever.py",
+          "rag/retrieval_validation.py",
+          "rag/retrieval_tuning.py",
+          "rag/retrieval_comparison.py",
+          "tests/test_retrieval_plan.py",
+          "tests/test_retrieval_router.py",
+          "rag/retrieval_plan.py"
+        ],
+        "timestamp": 1788185387.8470917
+      },
+      {
+        "tool_name": "search_code",
+        "iteration": 2,
+        "success": true,
+        "error_code": null,
+        "result_files": [
+          "config.py",
+          "config/settings.yaml",
+          "project-management/01_CURRENT_STATE.md",
+          "project-management/02_ROADMAP.md",
+          "project-management/05_ARCHITECTURE_AND_DECISIONS.md",
+          "rag/codesearchnet.py",
+          "rag/rerank_policy.py",
+          "rag/retrieval_comparison.py",
+          "rag/retrieval_plan.py",
+          "rag/retrieval_router.py",
+          "rag/retrieval_tuning.py",
+          "rag/retrieval_validation.py",
+          "rag/retriever.py",
+          "tests/test_config.py",
+          "tests/test_retrieval_plan.py"
+        ],
+        "timestamp": 1788185387.9357715
+      }
+    ],
+    "inspected_files": [
+      "config/settings.yaml",
+      "config.py",
+      "rag/retriever.py"
+    ],
+    "edit_attempts": [
+      {
+        "tool_name": "edit_file_transaction",
+        "path": "config/settings.yaml",
+        "iteration": 4,
+        "success": true,
+        "byte_changed": true,
+        "rolled_back": false,
+        "legacy": false,
+        "revision": 1,
+        "error_code": null,
+        "timestamp": 1788185393.6588893
+      },
+      {
+        "tool_name": "edit_file_transaction",
+        "path": "rag/retriever.py",
+        "iteration": 4,
+        "success": true,
+        "byte_changed": true,
+        "rolled_back": false,
+        "legacy": false,
+        "revision": 2,
+        "error_code": null,
+        "timestamp": 1788185393.6730115
+      }
+    ],
+    "test_runs": [
+      {
+        "tool_name": "run_shell",
+        "iteration": 5,
+        "returncode": 0,
+        "success": true,
+        "revision": 2,
+        "error_code": null,
+        "timestamp": 1788185398.1008375
+      }
+    ],
+    "changed_files": [
+      "config/settings.yaml",
+      "rag/retriever.py"
+    ],
+    "final_status": "complete",
+    "failure_stage": "unexpected_file_change",
+    "secondary_failure_reasons": [
+      "test_assertion_failure"
+    ],
+    "failure_domain": "code",
+    "failure_reason_code": "unexpected_file_change"
+  },
+  "model_usage": {
+    "model_turns": 8,
+    "metered_turns": 8,
+    "unmetered_turns": 0,
+    "input_tokens": 51237,
+    "output_tokens": 1367,
+    "total_tokens": 52604,
+    "complete": true
+  },
+  "edit_attempted": true,
+  "edit_attempt_count": 2,
+  "transactional_edit_attempt_count": 2,
+  "legacy_write_attempt_count": 0,
+  "edit_success_count": 2,
+  "edit_precondition_failure_count": 0,
+  "edit_write_failure_count": 0,
+  "edit_rollback_count": 0,
+  "edit_unparseable_result_count": 0,
+  "edit_error_codes": {},
+  "edit_target_files": [
+    "config/settings.yaml",
+    "rag/retriever.py"
+  ],
+  "edit_modified_files": [
+    "config/settings.yaml",
+    "rag/retriever.py"
+  ],
+  "edit_modified_expected_file": true,
+  "agent_final_status": "complete",
+  "agent_completed": true,
+  "failure_stage": "unexpected_file_change",
+  "secondary_failure_reasons": [
+    "test_assertion_failure"
+  ],
+  "failure_domain": "code",
+  "failure_reason_code": "unexpected_file_change"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "protocol_sha256": "d02a1bef94c8c8775b63f3ec2723e07451e1d4326f03837346c4ff803c24c727",
+  "approved_cost_cap_cny": 10.0,
+  "authorized_at": "2026-08-31T16:23:23.3538421+08:00",
+  "authorized_by": "user_explicit_message",
+  "price_verified_at": "2026-08-31T16:23:23.3538421+08:00",
+  "price_source": "https://help.aliyun.com/zh/model-studio/model-pricing",
+  "pricing_region": "cn-beijing",
+  "model": "qwen3.7-flash",
+  "maximum_input_tokens_for_price_tier": 32000,
+  "input_cny_per_million_tokens": 0.2,
+  "output_cny_per_million_tokens": 0.8
+}
