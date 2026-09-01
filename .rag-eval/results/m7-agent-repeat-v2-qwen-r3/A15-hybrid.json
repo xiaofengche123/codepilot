@@ -1,0 +1,420 @@
+{
+  "schema_version": 2,
+  "task_id": "A15",
+  "condition": "hybrid",
+  "model": "qwen3.7-flash",
+  "success": false,
+  "elapsed_seconds": 19.018192999996245,
+  "semantic_search_calls": 0,
+  "tool_call_count": 13,
+  "changed_by_agent": [],
+  "modified_expected_file": false,
+  "mutation_restored": false,
+  "unexpected_files": [],
+  "expected_files": [
+    "rag/retriever.py"
+  ],
+  "test_returncode": 1,
+  "test_output": "..............F...............                                           [100%]\n================================== FAILURES ===================================\n__________ test_rerank_uses_rrf_top_30_then_truncates_to_requested_k __________\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E358F81790>\n\n    def test_rerank_uses_rrf_top_30_then_truncates_to_requested_k(monkeypatch):\n        candidates = [_hit(f\"chunk-{i}\") for i in range(30)]\n        observed = {}\n        monkeypatch.setattr(retriever, \"_get_collection\", lambda _project: object())\n        monkeypatch.setattr(retriever, \"_collection_documents\", lambda *_args: [])\n    \n        def fake_candidates(*_args):\n            observed[\"candidate_limit\"] = _args[3]\n            return candidates\n    \n        def fake_rerank(_query, hits, limit):\n            observed[\"rerank_count\"] = len(hits)\n            observed[\"final_limit\"] = limit\n            return hits[:limit]\n    \n        monkeypatch.setattr(retriever, \"_hybrid_candidates\", fake_candidates)\n        monkeypatch.setattr(\"rag.reranker.rerank\", fake_rerank)\n        hits = retriever.retrieve(\"query\", \".\", n=10, mode=\"rerank\")\n        assert len(hits) == 10\n>       assert observed == {\n            \"candidate_limit\": 30,\n            \"rerank_count\": 30,\n            \"final_limit\": 10,\n        }\nE       AssertionError: assert {'candidate_limit': 10} == {'candidate_l...al_limit': 10}\nE         \nE         Differing items:\nE         {'candidate_limit': 10} != {'candidate_limit': 30}\nE         Right contains 2 more items:\nE         {'final_limit': 10, 'rerank_count': 30}\nE         Use -v to get more diff\n\ntests\\test_retriever.py:301: AssertionError\n============================== warnings summary ===============================\ntests/test_retriever.py::test_rerank_uses_rrf_top_30_then_truncates_to_requested_k\n  D:\\codepilot\\.rag-eval\\formal-runners\\m7-v2-r3\\.rag-eval\\worktrees\\m7-agent-repeat-v2-qwen-r3-A15-hybrid\\rag\\retriever.py:367: RuntimeWarning: Cross-Encoder rerank failed; falling back to RRF (rerank_load_error)\n    return _retrieve_impl(query, project_dir, n, mode)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_retriever.py::test_rerank_uses_rrf_top_30_then_truncates_to_requested_k\n1 failed, 29 passed, 1 warning in 18.40s\n",
+  "agent_error": null,
+  "answer": "已达到最大执行步数（10步），任务可能未完成。请拆分任务后重试。",
+  "tool_calls": [
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": "."
+      },
+      "result_preview": "  .codepilot/\n  .dockerignore\n  .env.example\n  .git/\n  .github/\n  .gitignore\n  __pycache__/\n  agent.py\n  config/\n  config.py\n  context_mgr.py\n  docker-compose.yml\n  Dockerfile\n  events.py\n  execution_state.py\n  install.py\n  LICENSE\n  main.py\n  mcp/\n  mcp_servers.json\n  memory.py\n  model_router.py\n  "
+    },
+    {
+      "name": "search_code",
+      "arguments": {
+        "pattern": "rerank"
+      },
+      "result_preview": "找到 50 条结果:\n  config.py:54: \"reranker\": {\n  README.md:220: python -m rag.reranker\n  README.md:223: python -m rag.reranker --download\n  README.md:245: - Worker 压力验收：可用 `python -m rag.rerank_stress` 运行纯离线fake-inference压力夹具，报告吞吐、调用/完成P95、队列峰值、终态原因、未退出线程和死锁判定；该结果不代表真实Cross-\n  README.md:246: - 回退：模型未安装或推理"
+    },
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": "rag"
+      },
+      "result_preview": "  __init__.py\n  __pycache__/\n  agent_eval_metrics.py\n  agent_eval_report.py\n  agent_repeat_protocol.py\n  code_graph.py\n  code_graph_builder.py\n  code_graph_context.py\n  code_graph_evaluation.py\n  code_graph_expansion.py\n  codesearchnet.py\n  eval_dataset.py\n  evaluate.py\n  indexer.py\n  query_features"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/reranker.py"
+      },
+      "result_preview": "   1 | \"\"\"Cross-Encoder 精排层。\n   2 | \n   3 | 只处理多路召回后的少量候选，不参与全库召回。模型懒加载并在进程内复用；\n   4 | 加载或推理失败时由调用方决定是否回退到 RRF 排名。\n   5 | \"\"\"\n   6 | \n   7 | from __future__ import annotations\n   8 | \n   9 | from dataclasses import dataclass\n  10 | import copy\n  11 | import os\n  12 | from pathlib import Path\n  13 | "
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/rerank_worker.py"
+      },
+      "result_preview": "   1 | \"\"\"Single-thread rerank worker with bounded admission and caller deadlines.\n   2 | \n   3 | The worker serializes model access without spawning one inference thread per\n   4 | request.  A caller timeout abandons its result but cannot forcibly interrupt a\n   5 | running Python/PyTorch call; the"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "rag/rerank_policy.py"
+      },
+      "result_preview": "   1 | \"\"\"Deterministic, budget-aware policy for optional cross-encoder reranking.\n   2 | \n   3 | The policy consumes already-computed query and ranking evidence.  It does not\n   4 | measure time, load a model, execute retrieval, or call the reranker.  Latency\n   5 | budgets and cost estimates are e"
+    },
+    {
+      "name": "git_status",
+      "arguments": {},
+      "result_preview": "warning: unable to access 'C:\\Users\\26211/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\26211/.config/git/ignore': Permission denied\n"
+    },
+    {
+      "name": "list_files",
+      "arguments": {},
+      "result_preview": "  .codepilot/\n  .dockerignore\n  .env.example\n  .git/\n  .github/\n  .gitignore\n  __pycache__/\n  agent.py\n  config/\n  config.py\n  context_mgr.py\n  docker-compose.yml\n  Dockerfile\n  events.py\n  execution_state.py\n  install.py\n  LICENSE\n  main.py\n  mcp/\n  mcp_servers.json\n  memory.py\n  model_router.py\n  "
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "main.py"
+      },
+      "result_preview": "   1 | \"\"\"\n   2 | 码搭 CodePilot · CLI 入口\n   3 | \n   4 | 用法:\n   5 |   python main.py                        # 交互模式\n   6 |   python main.py \"帮我看看这个项目\"       # 单次模式\n   7 |   python main.py -d /d/myproject         # 指定工作目录\n   8 | \"\"\"\n   9 | \n  10 | import sys\n  11 | import os\n  12 | from pathlib import P"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "config.py"
+      },
+      "result_preview": "   1 | \"\"\"\n   2 | 码搭 CodePilot · 配置管理\n   3 | \n   4 | 从 config/settings.yaml 加载，不存在时用内置默认值。\n   5 | 支持点号路径: config.get(\"agent.max_iterations\")\n   6 | \"\"\"\n   7 | \n   8 | import os\n   9 | from pathlib import Path\n  10 | from typing import Any\n  11 | \n  12 | PROJECT_ROOT = Path(__file__).parent\n  13 | CO"
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "README.md"
+      },
+      "result_preview": "   1 | # 码搭 CodePilot\n   2 | \n   3 | [![tests](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml/badge.svg)](https://github.com/xiaofengche123/codepilot/actions/workflows/test.yml)\n   4 | [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=w"
+    },
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": "."
+      },
+      "result_preview": "  .codepilot/\n  .dockerignore\n  .env.example\n  .git/\n  .github/\n  .gitignore\n  __pycache__/\n  agent.py\n  config/\n  config.py\n  context_mgr.py\n  docker-compose.yml\n  Dockerfile\n  events.py\n  execution_state.py\n  install.py\n  LICENSE\n  main.py\n  mcp/\n  mcp_servers.json\n  memory.py\n  model_router.py\n  "
+    },
+    {
+      "name": "git_status",
+      "arguments": {
+        "path": "."
+      },
+      "result_preview": "warning: unable to access 'C:\\Users\\26211/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\26211/.config/git/ignore': Permission denied\n"
+    }
+  ],
+  "index_message": "[完成] 索引 116 个文件，1209 个片段，耗时 28.9s",
+  "execution_trace": {
+    "schema_version": 1,
+    "task_id": "A15-hybrid",
+    "session_id": "A15-hybrid",
+    "phases": [
+      {
+        "event_type": "iteration_started",
+        "iteration": 1,
+        "phase": "init",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271036.7411082
+      },
+      {
+        "event_type": "transition",
+        "iteration": 1,
+        "phase": "discover",
+        "from_phase": "init",
+        "to_phase": "discover",
+        "reason": "search_tool_completed",
+        "triggering_tool": "search_code",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271039.8786805
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 2,
+        "phase": "discover",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271039.8786805
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 3,
+        "phase": "discover",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271040.9245632
+      },
+      {
+        "event_type": "transition",
+        "iteration": 3,
+        "phase": "inspect",
+        "from_phase": "discover",
+        "to_phase": "inspect",
+        "reason": "read_tool_completed",
+        "triggering_tool": "read_file",
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271041.64831
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 4,
+        "phase": "inspect",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271041.649329
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 5,
+        "phase": "inspect",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271043.5129006
+      },
+      {
+        "event_type": "completion_decision",
+        "iteration": 5,
+        "phase": "inspect",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": false,
+        "missing_evidence": [
+          "successful_edit",
+          "fresh_verification",
+          "fresh_diff_review"
+        ],
+        "timestamp": 1788271045.041779
+      },
+      {
+        "event_type": "transition",
+        "iteration": 5,
+        "phase": "edit",
+        "from_phase": "inspect",
+        "to_phase": "edit",
+        "reason": "completion_evidence_missing",
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271045.041779
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 6,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271045.041779
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 7,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271046.8140106
+      },
+      {
+        "event_type": "completion_decision",
+        "iteration": 7,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": false,
+        "missing_evidence": [
+          "successful_edit",
+          "fresh_verification",
+          "fresh_diff_review"
+        ],
+        "timestamp": 1788271049.4827266
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 8,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271049.4827266
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 9,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271050.8028173
+      },
+      {
+        "event_type": "completion_decision",
+        "iteration": 9,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": false,
+        "missing_evidence": [
+          "successful_edit",
+          "fresh_verification",
+          "fresh_diff_review"
+        ],
+        "timestamp": 1788271052.590383
+      },
+      {
+        "event_type": "iteration_started",
+        "iteration": 10,
+        "phase": "edit",
+        "from_phase": null,
+        "to_phase": null,
+        "reason": null,
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271052.590383
+      },
+      {
+        "event_type": "transition",
+        "iteration": 10,
+        "phase": "failed",
+        "from_phase": "edit",
+        "to_phase": "failed",
+        "reason": "max_iterations_exhausted",
+        "triggering_tool": null,
+        "success": null,
+        "completion_allowed": null,
+        "missing_evidence": [],
+        "timestamp": 1788271054.2115688
+      }
+    ],
+    "retrieval_calls": [
+      {
+        "tool_name": "search_code",
+        "iteration": 1,
+        "success": true,
+        "error_code": null,
+        "result_files": [
+          "config.py",
+          "README.md",
+          "server.py",
+          ".codepilot/index_state.json",
+          "config/settings.yaml",
+          "project-management/01_CURRENT_STATE.md",
+          "project-management/02_ROADMAP.md",
+          "project-management/03_PROGRESS_TRACKER.md"
+        ],
+        "timestamp": 1788271039.8786805
+      }
+    ],
+    "inspected_files": [
+      "rag/reranker.py",
+      "rag/rerank_worker.py",
+      "rag/rerank_policy.py",
+      "main.py",
+      "config.py",
+      "README.md"
+    ],
+    "edit_attempts": [],
+    "test_runs": [],
+    "changed_files": [],
+    "final_status": "failed",
+    "failure_stage": "iteration_budget_exhausted",
+    "secondary_failure_reasons": [
+      "wrong_file_inspected",
+      "test_assertion_failure"
+    ],
+    "failure_domain": "control",
+    "failure_reason_code": "iteration_budget_exhausted"
+  },
+  "model_usage": {
+    "model_turns": 10,
+    "metered_turns": 10,
+    "unmetered_turns": 0,
+    "input_tokens": 35060,
+    "output_tokens": 1437,
+    "total_tokens": 36497,
+    "complete": true
+  },
+  "edit_attempted": false,
+  "edit_attempt_count": 0,
+  "transactional_edit_attempt_count": 0,
+  "legacy_write_attempt_count": 0,
+  "edit_success_count": 0,
+  "edit_precondition_failure_count": 0,
+  "edit_write_failure_count": 0,
+  "edit_rollback_count": 0,
+  "edit_unparseable_result_count": 0,
+  "edit_error_codes": {},
+  "edit_target_files": [],
+  "edit_modified_files": [],
+  "edit_modified_expected_file": false,
+  "agent_final_status": "failed",
+  "agent_completed": false,
+  "failure_stage": "iteration_budget_exhausted",
+  "secondary_failure_reasons": [
+    "wrong_file_inspected",
+    "test_assertion_failure"
+  ],
+  "failure_domain": "control",
+  "failure_reason_code": "iteration_budget_exhausted"
+}

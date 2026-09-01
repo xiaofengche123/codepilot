@@ -930,3 +930,12 @@
 - 两轮中间结果为Hybrid 9/40、Rerank 7/40；各有6/20个任务至少成功一次。已按第二轮暂停点停止，未创建或执行r3，不能报告最终pass@3。
 - 冻结worktree中的42个JSON复制到主仓库后逐文件SHA-256一致，临时junction和worktree已安全移除；冻结任务、Oracle、r1结果及`resume-output/`未读取、未修改。
 - 提交前Protocol/Agent Report/Model Router定向30 passed；全量811 passed、4 skipped；42个r2 JSON可解析，敏感信息扫描和`git diff --check`通过。
+
+## 2026-09-01 / M7-002 千问正式r3与三轮完成
+
+- 冻结预检通过后完成r3 40/40：Hybrid 4/20、Rerank 3/20；353/353模型回合usage完整，目录价0.423410 CNY。
+- 三轮120/120项完成：Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；点差方向不一致，不宣称稳定优势。
+- 三轮输入5,095,205、输出235,178 Token，1,039/1,039实际回合计量完整，目录价1.207183 CNY；授权期含中断与探针约1.409744 CNY。
+- r3仍只有A06两条调用前worker failure，无API/清理失败；A16 Rerank本地推理失败后回退RRF。42个结果文件复制后哈希一致，临时worktree已清理。
+- `M7-002`标记DONE；下一任务`M7-003`不同仓库独立冻结集。
+- 提交前定向30 passed；全量811 passed、4 skipped；42个r3 JSON可解析，敏感扫描和`git diff --check`通过。

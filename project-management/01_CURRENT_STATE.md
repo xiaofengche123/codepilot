@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。显式Rerank经单模型Worker、有界FIFO、熔断/预热和内容最小化观测运行；离线fake-inference压力未检测到死锁，但不代表真实Cross-Encoder性能，运行中PyTorch仍不能强杀。M7已完成`M7-001`及低成本v2修订，并获得不高于10 CNY的独立授权。千问正式r1/r2均完成40/40：两轮Hybrid 9/40、Rerank 7/40，686/686实际模型回合计量完整，目录价估算0.783773 CNY；每轮A06两条件都因冻结mutation文本不唯一形成2个调用前worker failure。首次FreeTierOnly中断批次独立归档且不入统计。`M7-002`当前完成2/3轮并按协议暂停，r3尚未执行；`M7-003/004`仍待执行。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M7的`M7-001/002`已完成：千问三轮120/120项，Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；1,039/1,039实际模型回合计量完整，目录价估算1.207183 CNY。5pp的pass@3点差与反向5pp的pass@1点差不足以宣称稳定优势。每轮A06两条件因冻结夹具歧义形成调用前worker failure。下一项为`M7-003`不同仓库独立冻结集，之后执行`M7-004`外部抽审与总报告。

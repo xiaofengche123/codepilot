@@ -1,0 +1,800 @@
+{
+  "schema_version": 1,
+  "report_count": 40,
+  "conditions": {
+    "hybrid": {
+      "run_count": 20,
+      "success_count": 4,
+      "success_rate": 0.2,
+      "agent_completed_count": 2,
+      "classified_failure_count": 18,
+      "modified_expected_file_count": 10,
+      "modified_expected_file_rate": 0.5,
+      "mutation_restored_count": 5,
+      "tasks_with_unexpected_files": 4,
+      "edit_attempted_task_count": 10,
+      "transactional_edit_task_count": 10,
+      "legacy_write_task_count": 1,
+      "edit_attempt_count": 19,
+      "edit_success_count": 16,
+      "edit_precondition_failure_count": 3,
+      "edit_write_failure_count": 0,
+      "edit_rollback_count": 0,
+      "edit_error_codes": {
+        "edit_budget_exhausted": 1,
+        "match_count_mismatch": 2
+      },
+      "semantic_search_calls": 25,
+      "tool_call_count": 180,
+      "model_usage": {
+        "reports_with_usage": 19,
+        "reports_with_complete_usage": 19,
+        "complete": false,
+        "model_turns": 168,
+        "metered_turns": 168,
+        "unmetered_turns": 0,
+        "input_tokens": 820233,
+        "output_tokens": 45340,
+        "total_tokens": 865573
+      },
+      "trace_funnel": {
+        "tasks_total": 20,
+        "retrieval_hit_required": 15,
+        "correct_file_inspected": 14,
+        "relevant_test_inspected": 9,
+        "edit_attempted": 10,
+        "target_file_modified": 10,
+        "oracle_satisfied": 5,
+        "test_executed": 5,
+        "test_passed": 4,
+        "no_unexpected_files": 16,
+        "rates": {
+          "retrieval_hit_required": 0.75,
+          "correct_file_inspected": 0.7,
+          "relevant_test_inspected": 0.45,
+          "edit_attempted": 0.5,
+          "target_file_modified": 0.5,
+          "oracle_satisfied": 0.25,
+          "test_executed": 0.25,
+          "test_passed": 0.2,
+          "no_unexpected_files": 0.8
+        }
+      },
+      "failure_stages": {
+        "edit_precondition_failed": 1,
+        "environment_failure": 1,
+        "iteration_budget_exhausted": 9,
+        "no_edit_attempt": 1,
+        "unexpected_file_change": 4,
+        "wrong_file_inspected": 2
+      },
+      "failure_domains": {
+        "code": 8,
+        "control": 9,
+        "environment": 1
+      },
+      "elapsed_seconds": {
+        "average": 25.401004010014002,
+        "median": 19.67299460002687,
+        "p95": 64.3466669000918,
+        "maximum": 78.8147869000677,
+        "total": 508.02008020028006
+      },
+      "failures": [
+        {
+          "task_id": "A01",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "incorrect_edit"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A02",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A03",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "no_edit_attempt",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "no_edit_attempt"
+        },
+        {
+          "task_id": "A04",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {
+            "match_count_mismatch": 1
+          },
+          "unexpected_files": [],
+          "failure_stage": "edit_precondition_failed",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "edit_precondition_failed"
+        },
+        {
+          "task_id": "A05",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "wrong_file_inspected",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "wrong_file_inspected"
+        },
+        {
+          "task_id": "A06",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": null,
+          "agent_error": "worker_exit_1",
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "environment_failure",
+          "secondary_failure_reasons": [
+            "retrieval_miss"
+          ],
+          "failure_domain": "environment",
+          "failure_reason_code": "worker_failure"
+        },
+        {
+          "task_id": "A07",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            "tests/test_memory.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted",
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A09",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A10",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {
+            "edit_budget_exhausted": 1
+          },
+          "unexpected_files": [
+            "tests/test_events.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "incorrect_edit",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A12",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A13",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            "test_dangerous_patterns.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted",
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A14",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A15",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A16",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {
+            "match_count_mismatch": 1
+          },
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "edit_precondition_failed"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A17",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A18",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            ".gitignore"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted",
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A19",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "wrong_file_inspected",
+          "secondary_failure_reasons": [
+            "test_assertion_failure"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "wrong_file_inspected"
+        },
+        {
+          "task_id": "A20",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        }
+      ]
+    },
+    "rerank": {
+      "run_count": 20,
+      "success_count": 3,
+      "success_rate": 0.15,
+      "agent_completed_count": 4,
+      "classified_failure_count": 19,
+      "modified_expected_file_count": 10,
+      "modified_expected_file_rate": 0.5,
+      "mutation_restored_count": 4,
+      "tasks_with_unexpected_files": 3,
+      "edit_attempted_task_count": 11,
+      "transactional_edit_task_count": 11,
+      "legacy_write_task_count": 1,
+      "edit_attempt_count": 16,
+      "edit_success_count": 15,
+      "edit_precondition_failure_count": 1,
+      "edit_write_failure_count": 0,
+      "edit_rollback_count": 0,
+      "edit_error_codes": {
+        "invalid_expected_count": 1
+      },
+      "semantic_search_calls": 19,
+      "tool_call_count": 186,
+      "model_usage": {
+        "reports_with_usage": 19,
+        "reports_with_complete_usage": 19,
+        "complete": false,
+        "model_turns": 185,
+        "metered_turns": 185,
+        "unmetered_turns": 0,
+        "input_tokens": 953136,
+        "output_tokens": 40580,
+        "total_tokens": 993716
+      },
+      "trace_funnel": {
+        "tasks_total": 20,
+        "retrieval_hit_required": 15,
+        "correct_file_inspected": 15,
+        "relevant_test_inspected": 8,
+        "edit_attempted": 11,
+        "target_file_modified": 10,
+        "oracle_satisfied": 4,
+        "test_executed": 8,
+        "test_passed": 6,
+        "no_unexpected_files": 17,
+        "rates": {
+          "retrieval_hit_required": 0.75,
+          "correct_file_inspected": 0.75,
+          "relevant_test_inspected": 0.4,
+          "edit_attempted": 0.55,
+          "target_file_modified": 0.5,
+          "oracle_satisfied": 0.2,
+          "test_executed": 0.4,
+          "test_passed": 0.3,
+          "no_unexpected_files": 0.85
+        }
+      },
+      "failure_stages": {
+        "environment_failure": 1,
+        "incorrect_edit": 2,
+        "iteration_budget_exhausted": 12,
+        "test_assertion_failure": 1,
+        "unexpected_file_change": 3
+      },
+      "failure_domains": {
+        "code": 6,
+        "control": 12,
+        "environment": 1
+      },
+      "elapsed_seconds": {
+        "average": 34.503475230006735,
+        "median": 30.72014545003185,
+        "p95": 53.95207360002678,
+        "maximum": 75.93075489997864,
+        "total": 690.0695046001347
+      },
+      "failures": [
+        {
+          "task_id": "A01",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A02",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A03",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A04",
+          "modified_expected_file": true,
+          "mutation_restored": true,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {
+            "invalid_expected_count": 1
+          },
+          "unexpected_files": [],
+          "failure_stage": "test_assertion_failure",
+          "secondary_failure_reasons": [],
+          "failure_domain": "code",
+          "failure_reason_code": "test_assertion_failure"
+        },
+        {
+          "task_id": "A05",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A06",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": null,
+          "agent_error": "worker_exit_1",
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "environment_failure",
+          "secondary_failure_reasons": [
+            "retrieval_miss"
+          ],
+          "failure_domain": "environment",
+          "failure_reason_code": "worker_failure"
+        },
+        {
+          "task_id": "A07",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            "tests/test_memory.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A08",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "incorrect_edit",
+          "secondary_failure_reasons": [],
+          "failure_domain": "code",
+          "failure_reason_code": "incorrect_edit"
+        },
+        {
+          "task_id": "A09",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A10",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "incorrect_edit"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A12",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "incorrect_edit",
+          "secondary_failure_reasons": [],
+          "failure_domain": "code",
+          "failure_reason_code": "incorrect_edit"
+        },
+        {
+          "task_id": "A13",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            "tools/test_dangerous_commands.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted",
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        },
+        {
+          "task_id": "A14",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A15",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A16",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "no_edit_attempt",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A17",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A18",
+          "modified_expected_file": true,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "incorrect_edit",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A19",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 1,
+          "agent_error": null,
+          "edit_attempted": false,
+          "edit_error_codes": {},
+          "unexpected_files": [],
+          "failure_stage": "iteration_budget_exhausted",
+          "secondary_failure_reasons": [
+            "wrong_file_inspected",
+            "test_assertion_failure"
+          ],
+          "failure_domain": "control",
+          "failure_reason_code": "iteration_budget_exhausted"
+        },
+        {
+          "task_id": "A20",
+          "modified_expected_file": false,
+          "mutation_restored": false,
+          "test_returncode": 0,
+          "agent_error": null,
+          "edit_attempted": true,
+          "edit_error_codes": {},
+          "unexpected_files": [
+            "tests/test_indexer.py"
+          ],
+          "failure_stage": "unexpected_file_change",
+          "secondary_failure_reasons": [
+            "iteration_budget_exhausted",
+            "incorrect_edit"
+          ],
+          "failure_domain": "code",
+          "failure_reason_code": "unexpected_file_change"
+        }
+      ]
+    }
+  },
+  "paired": {
+    "complete_pair_count": 20,
+    "both_success": 1,
+    "both_failed": 14,
+    "hybrid_only_success": 3,
+    "rerank_only_success": 2
+  },
+  "run_id": "m7-agent-repeat-v2-qwen-r3",
+  "model": "qwen3.7-flash",
+  "task_sha256": "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09",
+  "code_commit": "cf3be67fd4969e23440967be4b25d23def031519",
+  "generated_at": "2026-09-01T14:18:16.512890+00:00"
+}
