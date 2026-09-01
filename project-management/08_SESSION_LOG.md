@@ -920,3 +920,13 @@
 - A06两项调用前worker failure稳定复现：冻结mutation旧文本在`config/settings.yaml`出现2次，无法唯一注入。两份零回合报告无usage对象，因此条件汇总`complete=false`但未计量回合为0。
 - 已按协议在40项后暂停，未执行r2/r3；冻结任务、Oracle和正式r1结果未覆盖，`resume-output/`未读取、未修改、未暂存。
 - 提交前Protocol/Agent Report/Model Router定向30 passed；全量811 passed、4 skipped；68个正式/中断JSON均可解析，敏感信息扫描和`git diff --check`通过。
+
+## 2026-09-01 / M7-002 千问正式r2
+
+- 复核北京地域32K内`qwen3.7-flash`目录价仍为输入0.2、输出0.8 CNY/百万Token；授权文件、冻结提交/tree、任务SHA、r1完整性及空r2路径均通过预检。
+- 在冻结提交`cf3be67…`的独立worktree完成r2 40/40：Hybrid 4/20、Rerank 4/20，合计8/40；manifest为`completed_with_worker_failures`，无cleanup failure。
+- 334/334实际模型回合usage完整，输入1,629,192、输出78,076 Token，r2目录价估算0.388299 CNY；正式r1+r2合计0.783773 CNY，连同不入正式统计的中断批次和鉴权探针约0.986334 CNY，远低于10 CNY。
+- A06两条件因冻结mutation旧文本出现2次而在调用模型前worker failure；A16 Rerank一次本地Cross-Encoder推理失败后回退RRF并正常结束。没有Agent API失败、连续3次worker失败或未计量回合。
+- 两轮中间结果为Hybrid 9/40、Rerank 7/40；各有6/20个任务至少成功一次。已按第二轮暂停点停止，未创建或执行r3，不能报告最终pass@3。
+- 冻结worktree中的42个JSON复制到主仓库后逐文件SHA-256一致，临时junction和worktree已安全移除；冻结任务、Oracle、r1结果及`resume-output/`未读取、未修改。
+- 提交前Protocol/Agent Report/Model Router定向30 passed；全量811 passed、4 skipped；42个r2 JSON可解析，敏感信息扫描和`git diff --check`通过。

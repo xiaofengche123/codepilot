@@ -74,6 +74,6 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 .\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
 ```
 
-用户已于2026-08-31授权不高于10 CNY的正式千问评测，独立授权文件已绑定v2协议SHA。正式r1已完成40/40并按协议暂停：Hybrid 5/20、Rerank 3/20，352/352个实际模型回合usage完整，目录价估算0.395474 CNY。A06两条件因冻结mutation文本出现两次而在调用模型前形成2个worker failure；没有清理或Agent API失败。详见`qwen-r1-2026-08-31.md`及`results/m7-agent-repeat-v2-qwen-r1/`。r2/r3尚未执行，禁止覆盖已有r1目录。
+用户已于2026-08-31授权不高于10 CNY的正式千问评测，独立授权文件已绑定v2协议SHA。正式r1/r2各完成40/40并按协议在第二轮后暂停：两轮Hybrid 9/40、Rerank 7/40，686/686个实际模型回合usage完整，目录价估算0.783773 CNY。每轮A06两条件都因冻结mutation文本出现两次而在调用模型前形成2个worker failure；没有清理或Agent API失败。详见`qwen-r1-2026-08-31.md`、`qwen-r2-2026-09-01.md`及对应results目录。r3尚未执行，禁止覆盖已有r1/r2目录；两轮中间统计不得作为最终pass@3。
 
 GLM四项预跑已于2026-08-31完成，详见`glm-preflight-2026-08-31.md`及`results/m7-agent-repeat-v2-glm-preflight/`。结果为1/4 Oracle成功，28/28模型轮次usage完整；同时发现429限流、400消息兼容错误和迭代预算耗尽。该目录不是正式结果目录，不得并入三轮千问统计。千问首次因免费额度用完即停而中断的25项也已独立归档为`results/m7-qwen-aborted-free-tier-2026-08-31/`，不得并入正式统计。
