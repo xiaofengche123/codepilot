@@ -38,6 +38,11 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _canonical_frozen_text(data: bytes) -> bytes:
+    """Keep frozen text hashes stable across Git LF/CRLF checkouts."""
+    return data.replace(b"\r\n", b"\n")
+
+
 def validate_repeat_protocol(
     *,
     root: Path = PROJECT_ROOT,
@@ -58,9 +63,11 @@ def validate_repeat_protocol(
     manifest = _load_object(manifest_bytes, "m7_manifest_invalid_json")
     tasks = _load_array(task_bytes, "m7_task_dataset_invalid_json")
 
-    if sha256_bytes(protocol_bytes) != manifest.get("protocol_sha256"):
+    if sha256_bytes(_canonical_frozen_text(protocol_bytes)) != manifest.get(
+        "protocol_sha256"
+    ):
         raise AgentRepeatProtocolError("m7_protocol_hash_mismatch")
-    task_sha256 = sha256_bytes(task_bytes)
+    task_sha256 = sha256_bytes(_canonical_frozen_text(task_bytes))
     if task_sha256 != manifest.get("task_sha256"):
         raise AgentRepeatProtocolError("m7_task_hash_mismatch")
     _validate_matrix(protocol, tasks)
@@ -153,7 +160,7 @@ def _validate_frozen_git(root: Path, protocol: dict[str, Any], task_bytes: bytes
     if tree != evaluation["code_tree"]:
         raise AgentRepeatProtocolError("m7_code_tree_mismatch")
     frozen_tasks = _git_bytes(root, "show", f"{commit}:.rag-eval/agent-tasks-v1.json")
-    if frozen_tasks != task_bytes:
+    if _canonical_frozen_text(frozen_tasks) != _canonical_frozen_text(task_bytes):
         raise AgentRepeatProtocolError("m7_frozen_task_drift")
 
 

@@ -38,7 +38,8 @@ def _rewrite_protocol(root: Path, mutate) -> dict:
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     manifest_path = root / ".rag-eval/agent-repeat-v2.manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["protocol_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    canonical = path.read_bytes().replace(b"\r\n", b"\n")
+    manifest["protocol_sha256"] = hashlib.sha256(canonical).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return data
 
@@ -69,6 +70,21 @@ def test_protocol_hash_drift_is_rejected(tmp_path, monkeypatch):
     with pytest.raises(AgentRepeatProtocolError) as caught:
         protocol.validate_repeat_protocol(root=root)
     assert caught.value.reason_code == "m7_protocol_hash_mismatch"
+
+
+def test_frozen_hashes_accept_git_crlf_checkout(tmp_path, monkeypatch):
+    root = _copy_frozen_files(tmp_path, monkeypatch)
+    for name in ("agent-repeat-v2.protocol.json", "agent-tasks-v1.json"):
+        path = root / ".rag-eval" / name
+        lf_bytes = path.read_bytes().replace(b"\r\n", b"\n")
+        path.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+
+    result = protocol.validate_repeat_protocol(root=root)
+
+    assert result["expected_runs"] == 120
+    assert result["task_sha256"] == (
+        "71caa70e7b441380c79745c701bb02a77f8b4d0efcfb2d892b3a91f053d7ac09"
+    )
 
 
 def test_task_dataset_drift_is_rejected_before_git_check(tmp_path, monkeypatch):
