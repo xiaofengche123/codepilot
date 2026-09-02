@@ -252,7 +252,7 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
-M7 重复 Agent 评测已经完成：正式模型固定为`qwen3.7-flash`，20个任务在Hybrid/Rerank两种条件下各重复3次，共120/120项；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%。正式目录的1,039/1,039个实际模型回合均有usage，目录价估算1.207183 CNY。`glm-4.7-flash`预跑和免费额度中断批次不计入正式统计。M7以`DONE_WITH_GAP`关闭，缺口是外部冻结集标签未经过独立人工审计，不能宣称已完成人工独立验证。以下命令校验冻结矩阵、任务/协议哈希、评测Git树和正式授权，不会运行 Agent：
+M7 重复 Agent 评测已经完成：正式模型固定为`qwen3.7-flash`，20个任务在Hybrid/Rerank两种条件下各重复3次，共120/120项；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%。正式目录的1,039/1,039个实际模型回合均有usage，目录价估算1.207183 CNY。`glm-4.7-flash`预跑和免费额度中断批次不计入正式统计。以下命令校验冻结矩阵、任务/协议哈希、评测Git树和正式授权，不会运行 Agent：
 
 ```powershell
 .\venv\Scripts\python.exe -m rag.agent_repeat_protocol --require-authorization
