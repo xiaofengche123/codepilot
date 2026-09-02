@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "frozen_evaluated_awaiting_external_audit",
+  "frozen_at": "2026-09-02",
+  "dataset": "external-repo-v1.json",
+  "dataset_sha256": "752c15d724abd825b996c827d5adc6209146a77ba681e0cafbb0795115e878e8",
+  "evaluation_git_head": "b378cc716a3c4916c7a9a21590ed8013bb0521c1",
+  "evaluation_git_tree": "517b8edc10633e45437f92c04b8a4a33158575b8",
+  "evaluator_source_sha256": "62af8b342e1334ed95502bc8f11ceda7b3a1780ea83621f80a825e531f03445d",
+  "evaluation_git_dirty": true,
+  "query_count": 12,
+  "repository_counts": {
+    "itsdangerous": 4,
+    "markupsafe": 4,
+    "click": 4
+  },
+  "repositories": {
+    "itsdangerous": {
+      "url": "https://github.com/pallets/itsdangerous.git",
+      "commit": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "corpus_sha256": "caa98ffbad924dd4f8df1f3e59cf1dfaa9104bf7010778dea3c27d9df27da859"
+    },
+    "markupsafe": {
+      "url": "https://github.com/pallets/markupsafe.git",
+      "commit": "b2e4d9c7687be25695fffbe93a37622302b24fb1",
+      "corpus_sha256": "c9e55ff0b08cbadd1e76967ca2ff3a26177f0c9ff918a63981fdfc3c967ca427"
+    },
+    "click": {
+      "url": "https://github.com/pallets/click.git",
+      "commit": "36baa15ff831b939a22bc527cd76ce653ef6f66d",
+      "corpus_sha256": "29a5e9e27d569803c350c8a1e13d148ad9acc00b7e450caa21f2aa716e76b414"
+    }
+  },
+  "retrieval_modes": ["hybrid", "rerank"],
+  "cutoffs": [5, 10],
+  "local_files_only": true,
+  "network_during_index_and_evaluation": false,
+  "paid_api_calls": 0,
+  "audit_sample": {
+    "method": "fixed_one_per_repository",
+    "ids": ["EXT-I02", "EXT-M03", "EXT-C04"],
+    "count": 3,
+    "fraction": 0.25,
+    "review_status": "awaiting_independent_developer"
+  }
+}

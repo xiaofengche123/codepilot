@@ -1,6 +1,6 @@
 # CodePilot 测试与评测规范
 
-更新时间：2026-09-01
+更新时间：2026-09-02
 
 ## 1. 目的
 
@@ -99,6 +99,12 @@ M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`
 低成本v2修订保留上述DeepSeek v1历史协议，正式模型改为`qwen3.7-flash`并冻结实现提交`cf3be67…`；建议上限降为10 CNY。新增`glm-4.7-flash`免费预跑路由、显式模型不可用禁止回退、逐轮provider Token记录和条件级汇总；GLM预跑不得计入正式统计。模型/用量定向38 passed，Protocol定向13 passed，全量811 passed、4 skipped；未创建密钥、授权、结果或Worktree，未联网、未调用任何API。
 
 2026-08-31执行协议限定的GLM四项免费预跑：1/4 Oracle成功，Hybrid 0/2、Rerank 1/2。A01-Hybrid为429限流，A02-Hybrid为400 messages参数非法，A01-Rerank修复/测试成功但无完成状态，A02-Rerank耗尽10轮。28/28轮usage完整，输入112,478、输出2,672；四个Worker正常退出且无清理失败。该结果只证明部分接口/工具兼容并暴露故障，不进入正式M7统计，也不改变千问v2冻结协议。
+
+### M7-003/004 不同仓库独立集
+
+2026-09-02固定itsdangerous、MarkupSafe、Click精确commit与corpus SHA，建立12题独立检索集。离线结果为Hybrid/Rerank Recall@10均1.0，MRR@10 0.8083/0.7333，graded nDCG@10 0.7660/0.7400，平均延迟159.0/6783.0ms。Rerank-Hybrid的MRR@10均值差-0.075，95% bootstrap CI [-0.325, 0.150]；nDCG@10差-0.026，CI [-0.1911, 0.1241]。小样本与跨零区间不支持稳定收益结论。
+
+固定3/12（25%）标注已形成盲审包，但尚未由另一名开发者签署；最终报告保持草稿状态。审计前不得修改v1标签，修订必须新建v2。
 
 2026-08-31获得10 CNY上限授权并完成千问正式r1的40/40。Hybrid成功5/20、Rerank成功3/20，成对结果为both success 2、Hybrid-only 3、Rerank-only 1、both failed 14；只有一次重复，不能报告pass@3或稳定收益。352/352实际模型回合usage完整，输入1,692,644、输出71,182 Token，目录价估算0.395474 CNY，无Agent API或清理失败。A06两条件因冻结mutation旧文本在目标文件出现2次而在模型调用前worker failure，导致每条件19/20报告含usage及汇总`complete=false`，但未计量模型回合为0。首次FreeTierOnly中断批次独立归档且不入正式统计；r2/r3未执行。
 

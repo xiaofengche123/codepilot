@@ -1,6 +1,6 @@
 # CodePilot 进度跟踪表
 
-更新时间：2026-09-01
+更新时间：2026-09-02
 
 ## 1. 使用方法
 
@@ -21,7 +21,7 @@
 | M4 自适应检索 | `DONE_WITH_GAP` | Router 已通过默认关闭的特性开关接入；剩余 RerankPolicy、灰度与线上观测缺口 |
 | M5 AST 结构图扩展 | `DONE_WITH_GAP` | GRAPH-001～007完成；Recall点差+8.92pp，但图P95开销32.754ms、无关新增P95=5未达门槛 |
 | M6 模型服务化 | `DONE` | MODEL-001～007完成；fake-inference持续/过载/deadline压力无死锁，真实模型性能不由此宣称 |
-| M7 重复和独立评测 | `IN_PROGRESS` | 三轮120/120完成；新仓库集和外部抽审待执行 |
+| M7 重复和独立评测 | `IN_PROGRESS_AWAITING_EXTERNAL_REVIEW` | M7-001～003完成；M7-004报告与25%盲审包就绪，等待独立开发者签字 |
 
 ## 3. 已完成任务
 
@@ -516,8 +516,8 @@
 
 - [x] `M7-001` `DONE`：冻结重复评测协议、预算和停止条件。
 - [x] `M7-002` `DONE`：正式r1/r2/r3共120/120完成并生成pass@1/pass@3。
-- [ ] `M7-003` `PLANNED`：建立不同仓库的小型独立冻结集。
-- [ ] `M7-004` `PLANNED`：完成至少20%外部抽审和最终统计报告。
+- [x] `M7-003` `DONE`：建立并离线评测不同仓库的12题独立冻结集。
+- [ ] `M7-004` `IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`：最终统计报告草稿和固定25%盲审包已完成，等待另一名开发者实际抽审签字。
 
 ### M7-001 完成记录
 
@@ -569,6 +569,19 @@
 - 总用量：1,039/1,039回合，输入5,095,205、输出235,178 Token，目录价1.207183 CNY。
 - 故障：每轮A06两项均为调用前冻结夹具歧义；无Agent API、清理或未计量故障。r3 A16 Rerank本地推理失败后回退RRF并正常结束。
 - 结果：`M7-002 DONE`；下一任务`M7-003`不同仓库独立冻结集，完整报告见`.rag-eval/qwen-r3-final-2026-09-01.md`。
+
+### M7-003 独立仓库冻结集
+
+- 数据：冻结itsdangerous、MarkupSafe、Click三个公开仓库的精确commit和corpus SHA；每仓库4题，共12题，数据SHA-256为`752c15d…e8e8`。
+- 执行：使用本地索引和已有Embedding缓存，强制离线；没有下载模型、调用API或使用结果调参。
+- 结果：Hybrid/Rerank Recall@10均为1.0；MRR@10为0.8083/0.7333；graded nDCG@10为0.7660/0.7400；平均延迟159.0/6783.0ms。MRR与nDCG配对差的95% CI均跨0，不宣称Rerank收益。
+- 证据：`.rag-eval/external-repo-v1.json`、manifest、原始results和`m7-final-report-2026-09-02.md`。
+
+### M7-004 外部抽审和最终报告
+
+- 已完成：固定EXT-I02、EXT-M03、EXT-C04三项作为3/12=25%盲审样本；报告已汇总配置、模型、代码/数据/仓库SHA、Agent故障分类、配对CI和局限。
+- 待完成：必须由另一名开发者检查固定源码版本并填写、签署`.rag-eval/external-repo-v1-audit.md`。AI不能冒充独立开发者，因此当前状态保持`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`。
+- 版本纪律：如审计要求修订标签，只能新增`external-repo-v2.json`并重跑，不得覆盖v1或其结果。
 
 ## 12. 每个任务完成时填写
 

@@ -939,3 +939,10 @@
 - r3仍只有A06两条调用前worker failure，无API/清理失败；A16 Rerank本地推理失败后回退RRF。42个结果文件复制后哈希一致，临时worktree已清理。
 - `M7-002`标记DONE；下一任务`M7-003`不同仓库独立冻结集。
 - 提交前定向30 passed；全量811 passed、4 skipped；42个r3 JSON可解析，敏感扫描和`git diff --check`通过。
+
+## 2026-09-02 / M7-003独立仓库集与M7-004审计交付
+
+- 固定itsdangerous、MarkupSafe、Click三个仓库的精确commit和corpus SHA，建立各4题、共12题的`external-repo-v1`；数据SHA-256为`752c15d…e8e8`。
+- 使用忽略目录中的本地浅克隆、本地索引和已有Embedding缓存离线运行Hybrid/Rerank；没有下载模型、调用付费API或在结果后修改标签。
+- Hybrid/Rerank Recall@10均为1.0，MRR@10为0.8083/0.7333，graded nDCG@10为0.7660/0.7400；MRR和nDCG配对差的95% CI跨0，不宣称Rerank稳定收益。平均延迟为159.0/6783.0ms。
+- `M7-003`标记DONE。最终统计报告草稿和固定3/12（25%）盲审包已生成；由于验收要求“另一名开发者”实际复核，`M7-004`与M7保持`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`，AI未冒充签字。

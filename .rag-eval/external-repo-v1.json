@@ -1,0 +1,14 @@
+[
+  {"id":"EXT-I01","repository":"itsdangerous","category":"security","query":"How does the signer derive keys for concat, django-concat, hmac, and none modes?","required":["src/itsdangerous/signer.py:182-213"],"supporting":[]},
+  {"id":"EXT-I02","repository":"itsdangerous","category":"security","query":"Where does signature verification try rotated secret keys newest first?","required":["src/itsdangerous/signer.py:227-242"],"supporting":["src/itsdangerous/signer.py:175-180"]},
+  {"id":"EXT-I03","repository":"itsdangerous","category":"time","query":"How are expired and future timestamped signatures rejected using max_age?","required":["src/itsdangerous/timed.py:137-158"],"supporting":["src/itsdangerous/timed.py:29-51"]},
+  {"id":"EXT-I04","repository":"itsdangerous","category":"serialization","query":"When is a URL-safe payload compressed and how is compression marked?","required":["src/itsdangerous/url_safe.py:55-69"],"supporting":["src/itsdangerous/url_safe.py:23-53"]},
+  {"id":"EXT-M01","repository":"markupsafe","category":"escaping","query":"How does escape handle plain strings, objects with __html__, and other objects?","required":["src/markupsafe/__init__.py:24-45"],"supporting":["src/markupsafe/_native.py:1-13"]},
+  {"id":"EXT-M02","repository":"markupsafe","category":"escaping","query":"Why does soft_str preserve Markup values instead of escaping them twice?","required":["src/markupsafe/__init__.py:64-82"],"supporting":[]},
+  {"id":"EXT-M03","repository":"markupsafe","category":"formatting","query":"How does percent formatting escape tuple, mapping, and scalar values in Markup?","required":["src/markupsafe/__init__.py:154-165"],"supporting":["src/markupsafe/__init__.py:357-381"]},
+  {"id":"EXT-M04","repository":"markupsafe","category":"escaping","query":"How does striptags remove comments, HTML tags, and unescape entities?","required":["src/markupsafe/__init__.py:188-229"],"supporting":[]},
+  {"id":"EXT-C01","repository":"click","category":"context","query":"How does make_pass_decorator find or create the nearest typed context object?","required":["src/click/decorators.py:51-97"],"supporting":["src/click/decorators.py:28-48"]},
+  {"id":"EXT-C02","repository":"click","category":"decorators","query":"How do argument and option decorators attach parameter instances to a command callback?","required":["src/click/decorators.py:314-377"],"supporting":[]},
+  {"id":"EXT-C03","repository":"click","category":"formatting","query":"How does wrap_text preserve paragraphs and raw blocks marked with a backspace line?","required":["src/click/formatting.py:31-105"],"supporting":[]},
+  {"id":"EXT-C04","repository":"click","category":"errors","query":"How does BadParameter choose a parameter hint and format its invalid value message?","required":["src/click/exceptions.py:114-156"],"supporting":["src/click/exceptions.py:19-23"]}
+]

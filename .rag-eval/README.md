@@ -77,3 +77,9 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 用户已于2026-08-31授权不高于10 CNY的正式千问评测。正式r1/r2/r3共120/120项已完成：Hybrid pass@1 13/60、pass@3 6/20；Rerank pass@1 10/60、pass@3 7/20。1,039/1,039个实际模型回合usage完整，目录价估算1.207183 CNY。每轮A06两条件都因冻结mutation文本出现两次而在调用模型前形成2个worker failure；没有清理或Agent API失败。详见`qwen-r3-final-2026-09-01.md`及三个results目录。三轮结果禁止覆盖，也不得解释为外部泛化收益。
 
 GLM四项预跑已于2026-08-31完成，详见`glm-preflight-2026-08-31.md`及`results/m7-agent-repeat-v2-glm-preflight/`。结果为1/4 Oracle成功，28/28模型轮次usage完整；同时发现429限流、400消息兼容错误和迭代预算耗尽。该目录不是正式结果目录，不得并入三轮千问统计。千问首次因免费额度用完即停而中断的25项也已独立归档为`results/m7-qwen-aborted-free-tier-2026-08-31/`，不得并入正式统计。
+
+### M7 独立仓库冻结集与盲审
+
+`external-repo-v1.json`固定itsdangerous、MarkupSafe和Click各4题；`external-repo-v1.manifest.json`固定三个仓库commit、corpus SHA、数据SHA、代码基线和评测参数。`external-repo-v1-results-2026-09-02.json`是在本地索引、离线模型缓存下生成的原始结果。不要修改或覆盖v1数据和结果；标签修订必须创建v2。
+
+`external-repo-v1-audit.md`是固定3/12（25%）盲审包，必须由没有创建这些标签的另一名开发者填写和签署。签署前不要向审核者展示结果文件或`m7-final-report-2026-09-02.md`中的结论。当前M7状态为`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`。

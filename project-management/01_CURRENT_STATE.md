@@ -1,6 +1,6 @@
 # CodePilot 当前状态
 
-更新时间：2026-09-01
+更新时间：2026-09-02
 
 ## 1. 项目定位
 
@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M7的`M7-001/002`已完成：千问三轮120/120项，Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；1,039/1,039实际模型回合计量完整，目录价估算1.207183 CNY。5pp的pass@3点差与反向5pp的pass@1点差不足以宣称稳定优势。每轮A06两条件因冻结夹具歧义形成调用前worker failure。下一项为`M7-003`不同仓库独立冻结集，之后执行`M7-004`外部抽审与总报告。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M7的`M7-001/002/003`已完成：千问三轮120/120项，Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；三个外部仓库12题冻结集上两模式Recall@10均为1.0，Rerank MRR@10点估计低0.075且CI跨0。最终报告和25%盲审包已就绪；`M7-004`仅等待另一名开发者实际复核签字，因此M7状态为`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`。

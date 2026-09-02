@@ -1,0 +1,2086 @@
+{
+  "schema_version": 1,
+  "dataset": "external-repo-v1.json",
+  "dataset_sha256": "752c15d724abd825b996c827d5adc6209146a77ba681e0cafbb0795115e878e8",
+  "query_count": 12,
+  "repository_counts": {
+    "itsdangerous": 4,
+    "markupsafe": 4,
+    "click": 4
+  },
+  "repositories": {
+    "itsdangerous": {
+      "url": "https://github.com/pallets/itsdangerous.git",
+      "commit": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "corpus_sha256": "caa98ffbad924dd4f8df1f3e59cf1dfaa9104bf7010778dea3c27d9df27da859",
+      "git_head": "672971d66a2ef9f85151e53283113f33d642dabd"
+    },
+    "markupsafe": {
+      "url": "https://github.com/pallets/markupsafe.git",
+      "commit": "b2e4d9c7687be25695fffbe93a37622302b24fb1",
+      "corpus_sha256": "c9e55ff0b08cbadd1e76967ca2ff3a26177f0c9ff918a63981fdfc3c967ca427",
+      "git_head": "b2e4d9c7687be25695fffbe93a37622302b24fb1"
+    },
+    "click": {
+      "url": "https://github.com/pallets/click.git",
+      "commit": "36baa15ff831b939a22bc527cd76ce653ef6f66d",
+      "corpus_sha256": "29a5e9e27d569803c350c8a1e13d148ad9acc00b7e450caa21f2aa716e76b414",
+      "git_head": "36baa15ff831b939a22bc527cd76ce653ef6f66d"
+    }
+  },
+  "audit_ids": [
+    "EXT-I02",
+    "EXT-M03",
+    "EXT-C04"
+  ],
+  "modes": [
+    "hybrid",
+    "rerank"
+  ],
+  "overall": {
+    "hybrid": {
+      "metrics": {
+        "queries": 12,
+        "required_recall@5": 1.0,
+        "required_recall@5_ci95": [
+          1.0,
+          1.0
+        ],
+        "mrr@5": 0.8083333333333332,
+        "mrr@5_ci95": [
+          0.65,
+          0.9583333333333334
+        ],
+        "graded_ndcg@5": 0.7659623253064533,
+        "graded_ndcg@5_ci95": [
+          0.6556949708512095,
+          0.8714303675583347
+        ],
+        "required_recall@10": 1.0,
+        "required_recall@10_ci95": [
+          1.0,
+          1.0
+        ],
+        "mrr@10": 0.8083333333333332,
+        "mrr@10_ci95": [
+          0.6416666666666667,
+          0.9583333333333334
+        ],
+        "graded_ndcg@10": 0.7659623253064533,
+        "graded_ndcg@10_ci95": [
+          0.6554224762064613,
+          0.8714303675583347
+        ]
+      },
+      "latency_ms": {
+        "avg": 158.99220834641406,
+        "p95": 245.94250007066876,
+        "max": 245.94250007066876
+      },
+      "fallback_rate": 0.0
+    },
+    "rerank": {
+      "metrics": {
+        "queries": 12,
+        "required_recall@5": 0.9166666666666666,
+        "required_recall@5_ci95": [
+          0.75,
+          1.0
+        ],
+        "mrr@5": 0.725,
+        "mrr@5_ci95": [
+          0.5166666666666667,
+          0.9166666666666666
+        ],
+        "graded_ndcg@5": 0.7200603999104221,
+        "graded_ndcg@5_ci95": [
+          0.5590099143039736,
+          0.8684254036680558
+        ],
+        "required_recall@10": 1.0,
+        "required_recall@10_ci95": [
+          1.0,
+          1.0
+        ],
+        "mrr@10": 0.7333333333333334,
+        "mrr@10_ci95": [
+          0.5333333333333333,
+          0.9166666666666666
+        ],
+        "graded_ndcg@10": 0.7399633480488127,
+        "graded_ndcg@10_ci95": [
+          0.6057201935470252,
+          0.865420439777777
+        ]
+      },
+      "latency_ms": {
+        "avg": 6782.980500002547,
+        "p95": 7759.11530002486,
+        "max": 7759.11530002486
+      },
+      "fallback_rate": 0.0
+    },
+    "rerank_vs_hybrid": {
+      "required_recall@5": {
+        "mean": -0.08333333333333333,
+        "ci95": [
+          -0.25,
+          0.0
+        ],
+        "improved": 0,
+        "degraded": 1,
+        "tied": 11
+      },
+      "mrr@5": {
+        "mean": -0.08333333333333333,
+        "ci95": [
+          -0.3333333333333333,
+          0.15
+        ],
+        "improved": 3,
+        "degraded": 3,
+        "tied": 6
+      },
+      "graded_ndcg@5": {
+        "mean": -0.04590192539603111,
+        "ci95": [
+          -0.23364392797320707,
+          0.12134970416130042
+        ],
+        "improved": 4,
+        "degraded": 3,
+        "tied": 5
+      },
+      "required_recall@10": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "improved": 0,
+        "degraded": 0,
+        "tied": 12
+      },
+      "mrr@10": {
+        "mean": -0.07500000000000001,
+        "ci95": [
+          -0.325,
+          0.15
+        ],
+        "improved": 3,
+        "degraded": 3,
+        "tied": 6
+      },
+      "graded_ndcg@10": {
+        "mean": -0.025998977257640544,
+        "ci95": [
+          -0.1910761870347186,
+          0.12408278848421973
+        ],
+        "improved": 4,
+        "degraded": 3,
+        "tied": 5
+      }
+    }
+  },
+  "per_repository": {
+    "itsdangerous": {
+      "schema_version": 2,
+      "generated_at": "2026-09-02T11:21:27.764775+00:00",
+      "git_head": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "query_count": 4,
+      "ks": [
+        5,
+        10
+      ],
+      "results": {
+        "hybrid": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 1.0,
+            "required_recall@5_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@5": 0.875,
+            "mrr@5_ci95": [
+              0.625,
+              1.0
+            ],
+            "graded_ndcg@5": 0.79344133571786,
+            "graded_ndcg@5_ci95": [
+              0.5975306857428799,
+              0.95655866428214
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.875,
+            "mrr@10_ci95": [
+              0.625,
+              1.0
+            ],
+            "graded_ndcg@10": 0.79344133571786,
+            "graded_ndcg@10_ci95": [
+              0.5975306857428799,
+              0.95655866428214
+            ]
+          },
+          "by_category": {
+            "security": {
+              "queries": 2,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.91311732856428,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.91311732856428,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                1.0
+              ]
+            },
+            "serialization": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            },
+            "time": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.5,
+              "mrr@5_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@5": 0.52129602861432,
+              "graded_ndcg@5_ci95": [
+                0.52129602861432,
+                0.52129602861432
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.5,
+              "mrr@10_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@10": 0.52129602861432,
+              "graded_ndcg@10_ci95": [
+                0.52129602861432,
+                0.52129602861432
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 117.7987000264693,
+            "p50": 117.00110009405762,
+            "p95": 122.79850000049919,
+            "max": 122.79850000049919
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-I01",
+              "category": "security",
+              "query": "How does the signer derive keys for concat, django-concat, hmac, and none modes?",
+              "latency_ms": 122.79850000049919,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/signer.py:76-266",
+                "tests/test_itsdangerous/test_signer.py:18-102",
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/signer.py:15-28",
+                "src/itsdangerous/signer.py:31-37",
+                "src/itsdangerous/signer.py:48-64",
+                "src/itsdangerous/timed.py:170-228",
+                "src/itsdangerous/timed.py:22-167",
+                "src/itsdangerous/exc.py:36-57",
+                "src/itsdangerous/signer.py:67-73"
+              ]
+            },
+            {
+              "id": "EXT-I02",
+              "category": "security",
+              "query": "Where does signature verification try rotated secret keys newest first?",
+              "latency_ms": 121.02650001179427,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/signer.py:76-266",
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/signer.py:67-73",
+                "src/itsdangerous/signer.py:31-37",
+                "src/itsdangerous/exc.py:22-33",
+                "tests/test_itsdangerous/test_signer.py:18-102",
+                "tests/test_itsdangerous/test_serializer.py:35-183",
+                "src/itsdangerous/timed.py:170-228",
+                "tests/test_itsdangerous/test_timed.py:29-93",
+                "src/itsdangerous/timed.py:22-167"
+              ]
+            },
+            {
+              "id": "EXT-I03",
+              "category": "time",
+              "query": "How are expired and future timestamped signatures rejected using max_age?",
+              "latency_ms": 117.00110009405762,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/timed.py:170-228",
+                "src/itsdangerous/timed.py:22-167",
+                "tests/test_itsdangerous/test_timed.py:29-93",
+                "tests/test_itsdangerous/test_timed.py:96-115",
+                "src/itsdangerous/exc.py:60-63",
+                "src/itsdangerous/exc.py:36-57",
+                "src/itsdangerous/signer.py:76-266",
+                ".devcontainer/on-create-command.sh:1-18",
+                "src/itsdangerous/signer.py:48-64",
+                "src/itsdangerous/serializer.py:40-404"
+              ]
+            },
+            {
+              "id": "EXT-I04",
+              "category": "serialization",
+              "query": "When is a URL-safe payload compressed and how is compression marked?",
+              "latency_ms": 110.36869999952614,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/url_safe.py:15-69",
+                "src/itsdangerous/url_safe.py:72-76",
+                "src/itsdangerous/exc.py:36-57",
+                "src/itsdangerous/url_safe.py:79-83",
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/exc.py:92-106",
+                "src/itsdangerous/encoding.py:28-38",
+                "src/itsdangerous/signer.py:76-266",
+                "src/itsdangerous/__init__.py:1-18",
+                "tests/test_itsdangerous/test_url_safe.py:11-18"
+              ]
+            }
+          ]
+        },
+        "rerank": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 1.0,
+            "required_recall@5_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@5": 0.75,
+            "mrr@5_ci95": [
+              0.5,
+              1.0
+            ],
+            "graded_ndcg@5": 0.7172066785893,
+            "graded_ndcg@5_ci95": [
+              0.52129602861432,
+              0.91311732856428
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.75,
+            "mrr@10_ci95": [
+              0.5,
+              1.0
+            ],
+            "graded_ndcg@10": 0.7172066785893,
+            "graded_ndcg@10_ci95": [
+              0.52129602861432,
+              0.91311732856428
+            ]
+          },
+          "by_category": {
+            "security": {
+              "queries": 2,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.75,
+              "mrr@5_ci95": [
+                0.5,
+                1.0
+              ],
+              "graded_ndcg@5": 0.76064801430716,
+              "graded_ndcg@5_ci95": [
+                0.52129602861432,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.75,
+              "mrr@10_ci95": [
+                0.5,
+                1.0
+              ],
+              "graded_ndcg@10": 0.76064801430716,
+              "graded_ndcg@10_ci95": [
+                0.52129602861432,
+                1.0
+              ]
+            },
+            "serialization": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            },
+            "time": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.5,
+              "mrr@5_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@5": 0.52129602861432,
+              "graded_ndcg@5_ci95": [
+                0.52129602861432,
+                0.52129602861432
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.5,
+              "mrr@10_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@10": 0.52129602861432,
+              "graded_ndcg@10_ci95": [
+                0.52129602861432,
+                0.52129602861432
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 6988.575174997095,
+            "p50": 7072.094099945389,
+            "p95": 7479.254000005312,
+            "max": 7479.254000005312
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-I01",
+              "category": "security",
+              "query": "How does the signer derive keys for concat, django-concat, hmac, and none modes?",
+              "latency_ms": 7479.254000005312,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/signer.py:76-266",
+                "src/itsdangerous/signer.py:48-64",
+                "src/itsdangerous/signer.py:15-28",
+                "src/itsdangerous/serializer.py:40-404",
+                "tests/test_itsdangerous/test_signer.py:18-102",
+                "src/itsdangerous/timed.py:170-228",
+                "tests/test_itsdangerous/test_timed.py:29-93",
+                "tests/test_itsdangerous/test_serializer.py:35-183",
+                "src/itsdangerous/signer.py:67-73",
+                "src/itsdangerous/timed.py:22-167"
+              ]
+            },
+            {
+              "id": "EXT-I02",
+              "category": "security",
+              "query": "Where does signature verification try rotated secret keys newest first?",
+              "latency_ms": 7321.495900047012,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/signer.py:76-266",
+                "tests/test_itsdangerous/test_signer.py:18-102",
+                "tests/test_itsdangerous/test_timed.py:29-93",
+                "tests/test_itsdangerous/test_serializer.py:35-183",
+                "src/itsdangerous/timed.py:170-228",
+                "src/itsdangerous/signer.py:67-73",
+                "tests/test_itsdangerous/test_timed.py:96-115",
+                "tests/test_itsdangerous/test_serializer.py:186-196",
+                "src/itsdangerous/timed.py:22-167"
+              ]
+            },
+            {
+              "id": "EXT-I03",
+              "category": "time",
+              "query": "How are expired and future timestamped signatures rejected using max_age?",
+              "latency_ms": 7072.094099945389,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/timed.py:170-228",
+                "src/itsdangerous/timed.py:22-167",
+                "tests/test_itsdangerous/test_timed.py:29-93",
+                "src/itsdangerous/exc.py:60-63",
+                "tests/test_itsdangerous/test_timed.py:96-115",
+                "src/itsdangerous/exc.py:36-57",
+                "tests/test_itsdangerous/test_signer.py:18-102",
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/signer.py:76-266",
+                "src/itsdangerous/signer.py:15-28"
+              ]
+            },
+            {
+              "id": "EXT-I04",
+              "category": "serialization",
+              "query": "When is a URL-safe payload compressed and how is compression marked?",
+              "latency_ms": 6081.456699990667,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/itsdangerous/url_safe.py:15-69",
+                "src/itsdangerous/url_safe.py:79-83",
+                "src/itsdangerous/url_safe.py:72-76",
+                "tests/test_itsdangerous/test_url_safe.py:11-18",
+                "src/itsdangerous/exc.py:92-106",
+                "src/itsdangerous/serializer.py:40-404",
+                "src/itsdangerous/encoding.py:28-38",
+                "src/itsdangerous/timed.py:170-228",
+                "tests/test_itsdangerous/test_serializer.py:35-183",
+                "tests/test_itsdangerous/test_url_safe.py:21-24"
+              ]
+            }
+          ]
+        }
+      },
+      "paired_vs_hybrid": {
+        "rerank": {
+          "required_recall@5": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 0,
+            "tied": 4
+          },
+          "mrr@5": {
+            "mean": -0.125,
+            "ci95": [
+              -0.375,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 1,
+            "tied": 3
+          },
+          "graded_ndcg@5": {
+            "mean": -0.07623465712855998,
+            "ci95": [
+              -0.22870397138567994,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 1,
+            "tied": 3
+          },
+          "required_recall@10": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 0,
+            "tied": 4
+          },
+          "mrr@10": {
+            "mean": -0.125,
+            "ci95": [
+              -0.375,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 1,
+            "tied": 3
+          },
+          "graded_ndcg@10": {
+            "mean": -0.07623465712855998,
+            "ci95": [
+              -0.22870397138567994,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 1,
+            "tied": 3
+          }
+        }
+      }
+    },
+    "markupsafe": {
+      "schema_version": 2,
+      "generated_at": "2026-09-02T11:22:00.788356+00:00",
+      "git_head": "b2e4d9c7687be25695fffbe93a37622302b24fb1",
+      "query_count": 4,
+      "ks": [
+        5,
+        10
+      ],
+      "results": {
+        "hybrid": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 1.0,
+            "required_recall@5_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@5": 0.75,
+            "mrr@5_ci95": [
+              0.5,
+              1.0
+            ],
+            "graded_ndcg@5": 0.7446151098285844,
+            "graded_ndcg@5_ci95": [
+              0.5761128910928888,
+              0.91311732856428
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.75,
+            "mrr@10_ci95": [
+              0.5,
+              1.0
+            ],
+            "graded_ndcg@10": 0.7446151098285844,
+            "graded_ndcg@10_ci95": [
+              0.5761128910928888,
+              0.91311732856428
+            ]
+          },
+          "by_category": {
+            "escaping": {
+              "queries": 3,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.6666666666666666,
+              "mrr@5_ci95": [
+                0.5,
+                1.0
+              ],
+              "graded_ndcg@5": 0.7174085940619258,
+              "graded_ndcg@5_ci95": [
+                0.52129602861432,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.6666666666666666,
+              "mrr@10_ci95": [
+                0.5,
+                1.0
+              ],
+              "graded_ndcg@10": 0.7174085940619258,
+              "graded_ndcg@10_ci95": [
+                0.52129602861432,
+                1.0
+              ]
+            },
+            "formatting": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 117.42227498325519,
+            "p50": 116.48500000592321,
+            "p95": 119.26810001023114,
+            "max": 119.26810001023114
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-M01",
+              "category": "escaping",
+              "query": "How does escape handle plain strings, objects with __html__, and other objects?",
+              "latency_ms": 119.26810001023114,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.52129602861432,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "tests/test_escape.py:64-68",
+                "src/markupsafe/__init__.py:24-45",
+                "tests/test_leak.py:11-28",
+                "tests/test_markupsafe.py:169-174",
+                "src/markupsafe/__init__.py:332-354",
+                "tests/test_markupsafe.py:128-141",
+                "tests/test_ext_init.py:15-28",
+                "src/markupsafe/__init__.py:84-329",
+                "tests/test_escape.py:50-55",
+                "bench.py:1-30"
+              ]
+            },
+            {
+              "id": "EXT-M02",
+              "category": "escaping",
+              "query": "Why does soft_str preserve Markup values instead of escaping them twice?",
+              "latency_ms": 115.11529993731529,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.6309297535714574,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.6309297535714574,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "tests/test_markupsafe.py:205-208",
+                "src/markupsafe/__init__.py:64-81",
+                "src/markupsafe/__init__.py:24-45",
+                "tests/test_markupsafe.py:92-104",
+                "tests/test_escape.py:64-68",
+                "tests/test_escape.py:58-61",
+                "src/markupsafe/__init__.py:48-61",
+                "src/markupsafe/__init__.py:84-329",
+                "tests/test_markupsafe.py:77-89",
+                "tests/conftest.py:18-23"
+              ]
+            },
+            {
+              "id": "EXT-M03",
+              "category": "formatting",
+              "query": "How does percent formatting escape tuple, mapping, and scalar values in Markup?",
+              "latency_ms": 118.82069997955114,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:84-329",
+                "src/markupsafe/__init__.py:48-61",
+                "tests/test_markupsafe.py:128-141",
+                "src/markupsafe/__init__.py:24-45",
+                "tests/test_escape.py:64-68",
+                "tests/test_markupsafe.py:123-125",
+                "tests/test_leak.py:11-28",
+                "tests/test_markupsafe.py:61-64",
+                "src/markupsafe/__init__.py:64-81",
+                "tests/test_markupsafe.py:169-174"
+              ]
+            },
+            {
+              "id": "EXT-M04",
+              "category": "escaping",
+              "query": "How does striptags remove comments, HTML tags, and unescape entities?",
+              "latency_ms": 116.48500000592321,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:84-329",
+                "tests/test_markupsafe.py:92-104",
+                "tests/test_markupsafe.py:128-141",
+                "src/markupsafe/__init__.py:24-45",
+                "src/markupsafe/__init__.py:332-354",
+                "tests/test_markupsafe.py:77-89",
+                ".github/workflows/publish.yaml:1-30",
+                "tests/test_escape.py:64-68",
+                "tests/test_exception_custom_html.py:8-10",
+                "docs/conf.py:31-55"
+              ]
+            }
+          ]
+        },
+        "rerank": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 0.75,
+            "required_recall@5_ci95": [
+              0.25,
+              1.0
+            ],
+            "mrr@5": 0.55,
+            "mrr@5_ci95": [
+              0.1,
+              1.0
+            ],
+            "graded_ndcg@5": 0.5876983101377987,
+            "graded_ndcg@5_ci95": [
+              0.2622792917113175,
+              0.91311732856428
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.575,
+            "mrr@10_ci95": [
+              0.125,
+              1.0
+            ],
+            "graded_ndcg@10": 0.6474071545529704,
+            "graded_ndcg@10_ci95": [
+              0.3791190671952205,
+              0.95655866428214
+            ]
+          },
+          "by_category": {
+            "escaping": {
+              "queries": 3,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.7333333333333334,
+              "mrr@5_ci95": [
+                0.20000000000000004,
+                1.0
+              ],
+              "graded_ndcg@5": 0.7376958214543672,
+              "graded_ndcg@5_ci95": [
+                0.38685280723454163,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.7333333333333334,
+              "mrr@10_ci95": [
+                0.20000000000000004,
+                1.0
+              ],
+              "graded_ndcg@10": 0.7376958214543672,
+              "graded_ndcg@10_ci95": [
+                0.38685280723454163,
+                1.0
+              ]
+            },
+            "formatting": {
+              "queries": 1,
+              "required_recall@5": 0.0,
+              "required_recall@5_ci95": [
+                0.0,
+                0.0
+              ],
+              "mrr@5": 0.0,
+              "mrr@5_ci95": [
+                0.0,
+                0.0
+              ],
+              "graded_ndcg@5": 0.13770577618809332,
+              "graded_ndcg@5_ci95": [
+                0.13770577618809332,
+                0.13770577618809332
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.1,
+              "mrr@10_ci95": [
+                0.1,
+                0.1
+              ],
+              "graded_ndcg@10": 0.37654115384878006,
+              "graded_ndcg@10_ci95": [
+                0.37654115384878006,
+                0.37654115384878006
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 6342.8792000049725,
+            "p50": 6334.618800086901,
+            "p95": 6614.093799958937,
+            "max": 6614.093799958937
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-M01",
+              "category": "escaping",
+              "query": "How does escape handle plain strings, objects with __html__, and other objects?",
+              "latency_ms": 6334.618800086901,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:24-45",
+                "src/markupsafe/__init__.py:84-329",
+                "src/markupsafe/__init__.py:332-354",
+                "tests/test_escape.py:64-68",
+                "tests/test_escape.py:50-55",
+                "src/markupsafe/__init__.py:64-81",
+                "src/markupsafe/__init__.py:357-379",
+                "tests/test_markupsafe.py:194-202",
+                "src/markupsafe/__init__.py:48-61",
+                "tests/test_markupsafe.py:42-52"
+              ]
+            },
+            {
+              "id": "EXT-M02",
+              "category": "escaping",
+              "query": "Why does soft_str preserve Markup values instead of escaping them twice?",
+              "latency_ms": 5986.288500018418,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:64-81",
+                "src/markupsafe/__init__.py:84-329",
+                "src/markupsafe/__init__.py:24-45",
+                "src/markupsafe/__init__.py:357-379",
+                "src/markupsafe/__init__.py:48-61",
+                "tests/test_markupsafe.py:205-208",
+                "tests/test_markupsafe.py:92-104",
+                "src/markupsafe/__init__.py:332-354",
+                "tests/test_escape.py:33-34",
+                "src/markupsafe/_native.py:1-8"
+              ]
+            },
+            {
+              "id": "EXT-M03",
+              "category": "formatting",
+              "query": "How does percent formatting escape tuple, mapping, and scalar values in Markup?",
+              "latency_ms": 6436.515699955635,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 0.0,
+                  "mrr": 0.0,
+                  "graded_ndcg": 0.13770577618809332,
+                  "missing_required": [
+                    "src/markupsafe/__init__.py:154-165"
+                  ]
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.1,
+                  "graded_ndcg": 0.37654115384878006,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:332-354",
+                "tests/test_markupsafe.py:61-64",
+                "src/markupsafe/__init__.py:357-379",
+                "src/markupsafe/__init__.py:64-81",
+                "src/markupsafe/__init__.py:24-45",
+                "tests/test_escape.py:33-34",
+                "src/markupsafe/_speedups.c:121-150",
+                "src/markupsafe/__init__.py:48-61",
+                "src/markupsafe/_speedups.c:91-120",
+                "src/markupsafe/__init__.py:84-329"
+              ]
+            },
+            {
+              "id": "EXT-M04",
+              "category": "escaping",
+              "query": "How does striptags remove comments, HTML tags, and unescape entities?",
+              "latency_ms": 6614.093799958937,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.2,
+                  "graded_ndcg": 0.38685280723454163,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.2,
+                  "graded_ndcg": 0.38685280723454163,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/markupsafe/__init__.py:24-45",
+                "tests/test_markupsafe.py:77-89",
+                "tests/test_markupsafe.py:194-202",
+                "src/markupsafe/_native.py:1-8",
+                "src/markupsafe/__init__.py:84-329",
+                "src/markupsafe/__init__.py:332-354",
+                "docs/conf.py:31-55",
+                "src/markupsafe/__init__.py:48-61",
+                "src/markupsafe/__init__.py:64-81",
+                "pyproject.toml:1-30"
+              ]
+            }
+          ]
+        }
+      },
+      "paired_vs_hybrid": {
+        "rerank": {
+          "required_recall@5": {
+            "mean": -0.25,
+            "ci95": [
+              -0.75,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 1,
+            "tied": 3
+          },
+          "mrr@5": {
+            "mean": -0.2,
+            "ci95": [
+              -0.9,
+              0.5
+            ],
+            "improved": 2,
+            "degraded": 2,
+            "tied": 0
+          },
+          "graded_ndcg@5": {
+            "mean": -0.15691679969078562,
+            "ci95": [
+              -0.6508380368529625,
+              0.33700443747139125
+            ],
+            "improved": 2,
+            "degraded": 2,
+            "tied": 0
+          },
+          "required_recall@10": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 0,
+            "tied": 4
+          },
+          "mrr@10": {
+            "mean": -0.17500000000000002,
+            "ci95": [
+              -0.875,
+              0.5
+            ],
+            "improved": 2,
+            "degraded": 2,
+            "tied": 0
+          },
+          "graded_ndcg@10": {
+            "mean": -0.09720795527561393,
+            "ci95": [
+              -0.5314203480226192,
+              0.35303734194996694
+            ],
+            "improved": 2,
+            "degraded": 2,
+            "tied": 0
+          }
+        }
+      }
+    },
+    "click": {
+      "schema_version": 2,
+      "generated_at": "2026-09-02T11:22:38.355107+00:00",
+      "git_head": "36baa15ff831b939a22bc527cd76ce653ef6f66d",
+      "query_count": 4,
+      "ks": [
+        5,
+        10
+      ],
+      "results": {
+        "hybrid": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 1.0,
+            "required_recall@5_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@5": 0.8,
+            "mrr@5_ci95": [
+              0.4,
+              1.0
+            ],
+            "graded_ndcg@5": 0.7598305303729154,
+            "graded_ndcg@5_ci95": [
+              0.4966982697080462,
+              0.95655866428214
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.8,
+            "mrr@10_ci95": [
+              0.4,
+              1.0
+            ],
+            "graded_ndcg@10": 0.7598305303729154,
+            "graded_ndcg@10_ci95": [
+              0.4966982697080462,
+              0.95655866428214
+            ]
+          },
+          "by_category": {
+            "context": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            },
+            "decorators": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.2,
+              "mrr@5_ci95": [
+                0.2,
+                0.2
+              ],
+              "graded_ndcg@5": 0.38685280723454163,
+              "graded_ndcg@5_ci95": [
+                0.38685280723454163,
+                0.38685280723454163
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.2,
+              "mrr@10_ci95": [
+                0.2,
+                0.2
+              ],
+              "graded_ndcg@10": 0.38685280723454163,
+              "graded_ndcg@10_ci95": [
+                0.38685280723454163,
+                0.38685280723454163
+              ]
+            },
+            "errors": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            },
+            "formatting": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 1.0,
+              "graded_ndcg@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 1.0,
+              "graded_ndcg@10_ci95": [
+                1.0,
+                1.0
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 241.7556500295177,
+            "p50": 240.90790003538132,
+            "p95": 245.94250007066876,
+            "max": 245.94250007066876
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-C01",
+              "category": "context",
+              "query": "How does make_pass_decorator find or create the nearest typed context object?",
+              "latency_ms": 243.80100006237626,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/decorators.py:51-97",
+                "src/click/decorators.py:100-130",
+                "examples/repo/repo.py:44-57",
+                "tests/test_context.py:663-697",
+                "tests/test_context.py:85-107",
+                "tests/test_context.py:177-181",
+                "tests/test_context.py:162-174",
+                "tests/test_context.py:17-36",
+                "tests/test_context.py:39-59",
+                "tests/test_context.py:62-82"
+              ]
+            },
+            {
+              "id": "EXT-C02",
+              "category": "decorators",
+              "query": "How do argument and option decorators attach parameter instances to a command callback?",
+              "latency_ms": 240.90790003538132,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.2,
+                  "graded_ndcg": 0.38685280723454163,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.2,
+                  "graded_ndcg": 0.38685280723454163,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/decorators.py:380-401",
+                "src/click/decorators.py:561-600",
+                "src/click/decorators.py:168-255",
+                "src/click/exceptions.py:114-156",
+                "src/click/decorators.py:324-349",
+                "src/click/decorators.py:352-377",
+                "src/click/decorators.py:603-627",
+                "tests/test_arguments.py:269-281",
+                "tests/test_options.py:1600-1626",
+                "src/click/core.py:1649-2109"
+              ]
+            },
+            {
+              "id": "EXT-C03",
+              "category": "formatting",
+              "query": "How does wrap_text preserve paragraphs and raw blocks marked with a backspace line?",
+              "latency_ms": 236.3711999496445,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/formatting.py:31-107",
+                "src/click/formatting.py:110-299",
+                "tests/test_formatting.py:487-503",
+                "src/click/_textwrap.py:38-188",
+                "src/click/termui.py:61-76",
+                "examples/repo/repo.py:44-57",
+                "tests/test_options.py:982-1006",
+                "src/click/_termui_impl.py:383-420",
+                "src/click/_termui_impl.py:520-545",
+                "src/click/termui.py:85-105"
+              ]
+            },
+            {
+              "id": "EXT-C04",
+              "category": "errors",
+              "query": "How does BadParameter choose a parameter hint and format its invalid value message?",
+              "latency_ms": 245.94250007066876,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/exceptions.py:114-156",
+                "src/click/exceptions.py:159-229",
+                "examples/validation/validation.py:34-48",
+                "tests/test_types.py:300-305",
+                "tests/test_termui.py:1679-1728",
+                "src/click/types.py:331-504",
+                "tests/test_types.py:64-73",
+                "tests/test_types.py:50-54",
+                "src/click/types.py:54-228",
+                "tests/test_arguments.py:181-198"
+              ]
+            }
+          ]
+        },
+        "rerank": {
+          "overall": {
+            "queries": 4,
+            "required_recall@5": 1.0,
+            "required_recall@5_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@5": 0.875,
+            "mrr@5_ci95": [
+              0.625,
+              1.0
+            ],
+            "graded_ndcg@5": 0.8552762110041676,
+            "graded_ndcg@5_ci95": [
+              0.7141824235077564,
+              0.9909851083291633
+            ],
+            "required_recall@10": 1.0,
+            "required_recall@10_ci95": [
+              1.0,
+              1.0
+            ],
+            "mrr@10": 0.875,
+            "mrr@10_ci95": [
+              0.625,
+              1.0
+            ],
+            "graded_ndcg@10": 0.8552762110041676,
+            "graded_ndcg@10_ci95": [
+              0.7141824235077564,
+              0.9819702166583266
+            ]
+          },
+          "by_category": {
+            "context": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.9639404333166532,
+              "graded_ndcg@5_ci95": [
+                0.9639404333166532,
+                0.9639404333166532
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.9639404333166532,
+              "graded_ndcg@10_ci95": [
+                0.9639404333166532,
+                0.9639404333166532
+              ]
+            },
+            "decorators": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 0.5,
+              "mrr@5_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@5": 0.6309297535714574,
+              "graded_ndcg@5_ci95": [
+                0.6309297535714574,
+                0.6309297535714574
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 0.5,
+              "mrr@10_ci95": [
+                0.5,
+                0.5
+              ],
+              "graded_ndcg@10": 0.6309297535714574,
+              "graded_ndcg@10_ci95": [
+                0.6309297535714574,
+                0.6309297535714574
+              ]
+            },
+            "errors": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 0.8262346571285599,
+              "graded_ndcg@5_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 0.8262346571285599,
+              "graded_ndcg@10_ci95": [
+                0.8262346571285599,
+                0.8262346571285599
+              ]
+            },
+            "formatting": {
+              "queries": 1,
+              "required_recall@5": 1.0,
+              "required_recall@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@5": 1.0,
+              "mrr@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@5": 1.0,
+              "graded_ndcg@5_ci95": [
+                1.0,
+                1.0
+              ],
+              "required_recall@10": 1.0,
+              "required_recall@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "mrr@10": 1.0,
+              "mrr@10_ci95": [
+                1.0,
+                1.0
+              ],
+              "graded_ndcg@10": 1.0,
+              "graded_ndcg@10_ci95": [
+                1.0,
+                1.0
+              ]
+            }
+          },
+          "latency_ms": {
+            "avg": 7017.487125005573,
+            "p50": 6775.289300014265,
+            "p95": 7759.11530002486,
+            "max": 7759.11530002486
+          },
+          "fallback_rate": 0.0,
+          "failures": [],
+          "per_query": [
+            {
+              "id": "EXT-C01",
+              "category": "context",
+              "query": "How does make_pass_decorator find or create the nearest typed context object?",
+              "latency_ms": 6775.289300014265,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.9639404333166532,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.9639404333166532,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/decorators.py:51-97",
+                "tests/test_context.py:85-107",
+                "src/click/decorators.py:39-48",
+                "src/click/decorators.py:100-130",
+                "src/click/decorators.py:28-36",
+                "tests/test_context.py:62-82",
+                "examples/repo/repo.py:44-57",
+                "src/click/globals.py:20-41",
+                "tests/test_context.py:17-36",
+                "tests/test_context.py:39-59"
+              ]
+            },
+            {
+              "id": "EXT-C02",
+              "category": "decorators",
+              "query": "How do argument and option decorators attach parameter instances to a command callback?",
+              "latency_ms": 7759.11530002486,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.6309297535714574,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 0.5,
+                  "graded_ndcg": 0.6309297535714574,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/decorators.py:168-255",
+                "src/click/decorators.py:352-377",
+                "src/click/decorators.py:324-349",
+                "src/click/decorators.py:380-401",
+                "src/click/decorators.py:561-600",
+                "src/click/decorators.py:603-627",
+                "src/click/core.py:2187-2855",
+                "src/click/exceptions.py:114-156",
+                "src/click/core.py:3663-3775",
+                "src/click/decorators.py:28-36"
+              ]
+            },
+            {
+              "id": "EXT-C03",
+              "category": "formatting",
+              "query": "How does wrap_text preserve paragraphs and raw blocks marked with a backspace line?",
+              "latency_ms": 7003.084099967964,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 1.0,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/formatting.py:31-107",
+                "src/click/_textwrap.py:38-188",
+                "src/click/testing.py:156-208",
+                "src/click/_compat.py:241-284",
+                "tests/test_options.py:982-1006",
+                "tests/test_formatting.py:487-503",
+                "src/click/_termui_impl.py:549-632",
+                "src/click/utils.py:252-346",
+                "tests/test_termui.py:1091-1105",
+                "src/click/_termui_impl.py:520-545"
+              ]
+            },
+            {
+              "id": "EXT-C04",
+              "category": "errors",
+              "query": "How does BadParameter choose a parameter hint and format its invalid value message?",
+              "latency_ms": 6532.459800015204,
+              "fallback": false,
+              "at_k": {
+                "5": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                },
+                "10": {
+                  "required_recall": 1.0,
+                  "mrr": 1.0,
+                  "graded_ndcg": 0.8262346571285599,
+                  "missing_required": []
+                }
+              },
+              "top_results": [
+                "src/click/exceptions.py:114-156",
+                "src/click/exceptions.py:159-229",
+                "tests/test_termui.py:1679-1728",
+                "tests/test_options.py:795-810",
+                "examples/validation/validation.py:34-48",
+                "tests/test_types.py:300-305",
+                "tests/test_types.py:64-73",
+                "examples/imagepipe/imagepipe.py:178-186",
+                "examples/imagepipe/imagepipe.py:165-175",
+                "examples/validation/validation.py:6-9"
+              ]
+            }
+          ]
+        }
+      },
+      "paired_vs_hybrid": {
+        "rerank": {
+          "required_recall@5": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 0,
+            "tied": 4
+          },
+          "mrr@5": {
+            "mean": 0.075,
+            "ci95": [
+              0.0,
+              0.22499999999999998
+            ],
+            "improved": 1,
+            "degraded": 0,
+            "tied": 3
+          },
+          "graded_ndcg@5": {
+            "mean": 0.09544568063125228,
+            "ci95": [
+              0.0,
+              0.19089136126250456
+            ],
+            "improved": 2,
+            "degraded": 0,
+            "tied": 2
+          },
+          "required_recall@10": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "improved": 0,
+            "degraded": 0,
+            "tied": 4
+          },
+          "mrr@10": {
+            "mean": 0.075,
+            "ci95": [
+              0.0,
+              0.22499999999999998
+            ],
+            "improved": 1,
+            "degraded": 0,
+            "tied": 3
+          },
+          "graded_ndcg@10": {
+            "mean": 0.09544568063125228,
+            "ci95": [
+              0.0,
+              0.21748415379971017
+            ],
+            "improved": 2,
+            "degraded": 0,
+            "tied": 2
+          }
+        }
+      }
+    }
+  }
+}
