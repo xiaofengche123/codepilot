@@ -523,9 +523,9 @@ UNLOADED → LOADING → READY
 
 ## M7：独立测试与重复评测
 
-状态：`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`
+状态：`DONE_WITH_GAP`
 
-实现进度：`M7-001/002/003`已完成。正式`qwen3.7-flash`三轮120/120项完成；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%，1,039/1,039回合计量完整，目录价1.207183 CNY。不同仓库的12题冻结集覆盖itsdangerous、MarkupSafe和Click；两模式Recall@10均为1.0，Rerank MRR@10较Hybrid低0.075且95% CI跨0，不能宣称稳定收益。`M7-004`最终报告草稿和固定25%盲审包已生成，只等待另一名开发者实际复核签字；在此之前M7不标记完成。
+实现进度：`M7-001/002/003`已完成，`M7-004`按用户决定以`DONE_WITH_GAP`关闭。正式`qwen3.7-flash`三轮120/120项完成；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%，1,039/1,039回合计量完整，目录价1.207183 CNY。不同仓库的12题冻结集覆盖itsdangerous、MarkupSafe和Click；两模式Recall@10均为1.0，Rerank MRR@10较Hybrid低0.075且95% CI跨0，不能宣称稳定收益。最终报告已完成；25%盲审包保留为可选后续，当前明确缺口是没有独立人工标签审计。
 
 依赖：M1–M6 中计划验证的阶段
 
@@ -538,7 +538,7 @@ UNLOADED → LOADING → READY
 - 现有20个 Agent 任务每个条件重复3次。
 - 固定模型、temperature、任务定义和 Git HEAD。
 - 报告 pass@1、pass@3、平均耗时和范围外修改率。
-- 由另一位开发者抽审至少20%的内部检索标注。
+- 可选：由另一位开发者抽审至少20%的内部检索标注；未执行时必须以`DONE_WITH_GAP`披露，不能宣称已完成人工独立验证。
 - 新增不同仓库的小型冻结集。
 - 如需修改标注，创建 `test-v2`，绝不修改 v1。
 

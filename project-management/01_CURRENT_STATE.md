@@ -205,4 +205,4 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 
 ## 7. 当前推荐的下一项实现
 
-M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M7的`M7-001/002/003`已完成：千问三轮120/120项，Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；三个外部仓库12题冻结集上两模式Recall@10均为1.0，Rerank MRR@10点估计低0.075且CI跨0。最终报告和25%盲审包已就绪；`M7-004`仅等待另一名开发者实际复核签字，因此M7状态为`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`。
+M2 STATE-001～008、M3 TRACE-001～006、`ROUTE-001`～`ROUTE-008`、`ROUTE-RUNTIME-001`、`GRAPH-001`～`GRAPH-007` 与 `MODEL-001`～`MODEL-007` 已完成，M6标记`DONE`。M5仍为`DONE_WITH_GAP`；图路径未接入Retriever。M7的`M7-001/002/003`已完成，`M7-004`按用户决定取消独立人工审计硬要求并以`DONE_WITH_GAP`关闭：千问三轮120/120项，Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%；三个外部仓库12题冻结集上两模式Recall@10均为1.0，Rerank MRR@10点估计低0.075且CI跨0。最终报告已完成，25%盲审包保留为可选后续；不能宣称结果已通过独立人工标签验证。

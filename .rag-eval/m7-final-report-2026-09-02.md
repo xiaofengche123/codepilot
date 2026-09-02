@@ -1,12 +1,12 @@
 # M7 repeated and independent evaluation report
 
-Status: `DRAFT_AWAITING_INDEPENDENT_LABEL_AUDIT`
+Status: `FINAL_DONE_WITH_GAP`
 
 ## Conclusion
 
 The three-run Qwen Agent evaluation does not establish a stable Hybrid-versus-Rerank winner. On the new 12-query, three-repository frozen retrieval set, both modes reach required Recall@10 of 1.0, while Rerank has lower MRR@10 and much higher latency. The paired confidence intervals cross zero, so no Rerank quality gain is claimed.
 
-M7-003 is complete. M7-004 remains open only for the acceptance criterion requiring another developer to audit at least 20% of the internally created labels. A fixed 25% blind packet is ready in `external-repo-v1-audit.md`.
+M7-003 is complete. M7-004 and M7 are closed as `DONE_WITH_GAP` following the user's 2026-09-02 decision not to require independent human label audit. A fixed 25% blind packet remains available in `external-repo-v1-audit.md`, but it was not performed and no independent validation is claimed.
 
 ## Repeated Agent evaluation
 
@@ -46,6 +46,6 @@ Per-repository Recall@10 is 1.0 for both modes. Hybrid/Rerank MRR@10 is 0.875/0.
 - Rerank has no Recall@10 advantage here, its MRR and nDCG point estimates are lower, and its latency is about 42.7 times Hybrid on average.
 - Only the repeated pass rates and the explicitly limited external-set observations are suitable for project reporting. No causal or universal superiority claim is supported.
 
-## Remaining acceptance action
+## Accepted gap
 
-An independent developer must complete and sign `external-repo-v1-audit.md`. If corrections are required, create v2 instead of modifying v1, rerun the frozen evaluation, and update this report. Until then M7-004 and M7 overall remain `IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`.
+The labels were not audited by an independent developer. The user explicitly accepted this gap on 2026-09-02, so no further action is required to close M7. The project must not claim independent human label validation. If the optional audit is performed later and corrections are required, create v2 instead of modifying v1, rerun the frozen evaluation, and update this report.

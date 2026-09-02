@@ -1,8 +1,8 @@
 # External repository label audit packet
 
-Status: `AWAITING_INDEPENDENT_DEVELOPER`
+Status: `OPTIONAL_NOT_PERFORMED`
 
-This packet fixes a blind 3-of-12 (25%) sample, one item per repository. The reviewer should inspect the pinned source revisions and labels without reading `external-repo-v1-results-2026-09-02.json` or the statistical conclusions first.
+This packet fixes an optional blind 3-of-12 (25%) sample, one item per repository. Independent human audit is not a completion requirement after the 2026-09-02 acceptance adjustment, so M7 is `DONE_WITH_GAP`. If a review is performed later, the reviewer should inspect the pinned source revisions and labels without reading `external-repo-v1-results-2026-09-02.json` or the statistical conclusions first.
 
 ## Reviewer declaration
 

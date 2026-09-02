@@ -104,7 +104,7 @@ M7-001只冻结重复评测协议，不运行Agent。协议固定M6完成提交`
 
 2026-09-02固定itsdangerous、MarkupSafe、Click精确commit与corpus SHA，建立12题独立检索集。离线结果为Hybrid/Rerank Recall@10均1.0，MRR@10 0.8083/0.7333，graded nDCG@10 0.7660/0.7400，平均延迟159.0/6783.0ms。Rerank-Hybrid的MRR@10均值差-0.075，95% bootstrap CI [-0.325, 0.150]；nDCG@10差-0.026，CI [-0.1911, 0.1241]。小样本与跨零区间不支持稳定收益结论。
 
-固定3/12（25%）标注已形成盲审包，但尚未由另一名开发者签署；最终报告保持草稿状态。审计前不得修改v1标签，修订必须新建v2。
+固定3/12（25%）标注已形成可选盲审包，但未由另一名开发者签署。用户于2026-09-02取消独立人工审计硬要求，最终报告已定稿，M7以`DONE_WITH_GAP`关闭；缺口是没有独立人工标签验证。v1标签和结果继续冻结，修订必须新建v2。
 
 2026-08-31获得10 CNY上限授权并完成千问正式r1的40/40。Hybrid成功5/20、Rerank成功3/20，成对结果为both success 2、Hybrid-only 3、Rerank-only 1、both failed 14；只有一次重复，不能报告pass@3或稳定收益。352/352实际模型回合usage完整，输入1,692,644、输出71,182 Token，目录价估算0.395474 CNY，无Agent API或清理失败。A06两条件因冻结mutation旧文本在目标文件出现2次而在模型调用前worker failure，导致每条件19/20报告含usage及汇总`complete=false`，但未计量模型回合为0。首次FreeTierOnly中断批次独立归档且不入正式统计；r2/r3未执行。
 

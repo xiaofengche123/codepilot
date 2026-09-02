@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "frozen_evaluated_awaiting_external_audit",
+  "status": "done_with_gap_no_independent_human_audit",
   "frozen_at": "2026-09-02",
   "dataset": "external-repo-v1.json",
   "dataset_sha256": "752c15d724abd825b996c827d5adc6209146a77ba681e0cafbb0795115e878e8",
@@ -41,6 +41,6 @@
     "ids": ["EXT-I02", "EXT-M03", "EXT-C04"],
     "count": 3,
     "fraction": 0.25,
-    "review_status": "awaiting_independent_developer"
+    "review_status": "optional_not_performed"
   }
 }

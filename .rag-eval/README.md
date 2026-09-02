@@ -82,4 +82,4 @@ GLM四项预跑已于2026-08-31完成，详见`glm-preflight-2026-08-31.md`及`r
 
 `external-repo-v1.json`固定itsdangerous、MarkupSafe和Click各4题；`external-repo-v1.manifest.json`固定三个仓库commit、corpus SHA、数据SHA、代码基线和评测参数。`external-repo-v1-results-2026-09-02.json`是在本地索引、离线模型缓存下生成的原始结果。不要修改或覆盖v1数据和结果；标签修订必须创建v2。
 
-`external-repo-v1-audit.md`是固定3/12（25%）盲审包，必须由没有创建这些标签的另一名开发者填写和签署。签署前不要向审核者展示结果文件或`m7-final-report-2026-09-02.md`中的结论。当前M7状态为`IN_PROGRESS_AWAITING_EXTERNAL_REVIEW`。
+`external-repo-v1-audit.md`是固定3/12（25%）可选盲审包。用户于2026-09-02决定不把独立人工审计作为硬验收项，因此M7以`DONE_WITH_GAP`关闭；缺口是标签没有经过另一名开发者复核，不能宣称已完成人工独立验证。若以后执行审计，审核者应先看盲审包和固定源码，不应先看结果结论。
