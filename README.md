@@ -252,13 +252,13 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
-M7 重复 Agent 评测的当前v2协议已冻结但尚未获得费用授权。正式模型固定为`qwen3.7-flash`；`glm-4.7-flash`只用于最多4次免费兼容预跑，结果不得计入正式统计。以下命令只校验120次正式运行矩阵、任务/协议哈希、评测Git树、结果目录和独立授权文件，不会运行 Agent：
+M7 重复 Agent 评测已经完成：正式模型固定为`qwen3.7-flash`，20个任务在Hybrid/Rerank两种条件下各重复3次，共120/120项；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%。正式目录的1,039/1,039个实际模型回合均有usage，目录价估算1.207183 CNY。`glm-4.7-flash`预跑和免费额度中断批次不计入正式统计。M7以`DONE_WITH_GAP`关闭，缺口是外部冻结集标签未经过独立人工审计，不能宣称已完成人工独立验证。以下命令校验冻结矩阵、任务/协议哈希、评测Git树和正式授权，不会运行 Agent：
 
 ```powershell
-.\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
+.\venv\Scripts\python.exe -m rag.agent_repeat_protocol --require-authorization
 ```
 
-v2协议提出10 CNY硬上限并要求每40次暂停复核；冻结协议和选择模型本身都不构成API执行或付费授权。DeepSeek v1协议保留为历史证据，不得原地修改或复用结果目录。
+v2协议的10 CNY硬上限、每40次暂停点和独立授权均已执行；三轮正式结果禁止覆盖。DeepSeek v1协议保留为历史证据，不得原地修改或复用结果目录。完整统计见`.rag-eval/qwen-r3-final-2026-09-01.md`和`.rag-eval/m7-final-report-2026-09-02.md`。
 
 ### 离线评估
 

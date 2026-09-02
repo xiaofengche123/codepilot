@@ -295,7 +295,9 @@ def test_rerank_uses_rrf_top_30_then_truncates_to_requested_k(monkeypatch):
         return hits[:limit]
 
     monkeypatch.setattr(retriever, "_hybrid_candidates", fake_candidates)
-    monkeypatch.setattr("rag.reranker.rerank", fake_rerank)
+    # Patch the public worker boundary so this contract test never loads a
+    # Cross-Encoder or depends on a machine-local model cache.
+    monkeypatch.setattr("rag.reranker.rerank_via_worker", fake_rerank)
     hits = retriever.retrieve("query", ".", n=10, mode="rerank")
     assert len(hits) == 10
     assert observed == {
