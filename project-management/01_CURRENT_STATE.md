@@ -58,7 +58,7 @@ CodePilot 是一个本地代码智能体与 Agent 工程平台，当前已覆盖
 - 删除源文件后清理 Chroma 残留。
 - 索引 Schema v2 增加 `content_type=code|document`。
 - 旧 Schema 会触发完整重建，避免默认 code 过滤返回空结果。
-- `.rag-eval`、`.codepilot`、`agent面试`、`venv.broken-*` 等目录不会进入索引。
+- `.rag-eval`、`.codepilot`、本地非源码资料、`venv.broken-*` 等目录不会进入索引。
 
 ### 2.5 RAG 查询
 
@@ -199,7 +199,7 @@ Rerank 相对 Hybrid 的 Required Recall@10 平均提升0.0853，95% bootstrap C
 - 不把 CodeSearchNet judged-pool 描述成官方全库排行榜。
 - 不立即增加 Multi-Query。
 - 不立即建设完整 Knowledge Graph RAG。
-- 不为了简历数字修改任务 Oracle 或放宽成功条件。
+- 不为改善表面指标而修改任务 Oracle 或放宽成功条件。
 - 不清理当前未提交工作区。
 - 不触碰用户已有的 `install.py`。
 

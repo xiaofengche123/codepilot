@@ -12,6 +12,7 @@ venv.broken-*/
 # CodePilot 本地数据
 .codepilot/
 .rag-eval/external-data/
+.rag-eval/results/
 .rag-eval/tmp/
 .rag-eval/worktrees/
 

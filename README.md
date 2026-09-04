@@ -252,13 +252,7 @@ Agent: [调用 search_semantic("用户登录校验逻辑")]
 模式时可设置 `rag.reranker.enabled=true` 并在服务 readiness 前预热；默认保留低延迟的
 BM25 + Vector + RRF 链路。在线查询不隐式下载模型，避免首个请求长时间阻塞。
 
-M7 重复 Agent 评测已经完成：正式模型固定为`qwen3.7-flash`，20个任务在Hybrid/Rerank两种条件下各重复3次，共120/120项；Hybrid pass@1/pass@3为21.67%/30%，Rerank为16.67%/35%。正式目录的1,039/1,039个实际模型回合均有usage，目录价估算1.207183 CNY。`glm-4.7-flash`预跑和免费额度中断批次不计入正式统计。以下命令校验冻结矩阵、任务/协议哈希、评测Git树和正式授权，不会运行 Agent：
-
-```powershell
-.\venv\Scripts\python.exe -m rag.agent_repeat_protocol --require-authorization
-```
-
-v2协议的10 CNY硬上限、每40次暂停点和独立授权均已执行；三轮正式结果禁止覆盖。DeepSeek v1协议保留为历史证据，不得原地修改或复用结果目录。完整统计见`.rag-eval/qwen-r3-final-2026-09-01.md`和`.rag-eval/m7-final-report-2026-09-02.md`。
+M7 重复 Agent 评测已完成。公开仓库保留冻结协议、清单中的数据集哈希、汇总报告和少量脱敏失败案例；原始执行轨迹不纳入版本控制。相关文件见 `.rag-eval/agent-repeat-v2.protocol.json`、`.rag-eval/agent-repeat-v2.manifest.json`、`.rag-eval/m7-final-report-2026-09-02.md` 与 `.rag-eval/sanitized-failure-examples.md`。
 
 ### 离线评估
 
@@ -346,11 +340,11 @@ pip install pytest
 pytest tests/ -v
 ```
 
-当前测试基线（Python 3.11/3.12 均纳入 GitHub Actions）：
+当前基线：819 tests collected，815 passed，4 skipped。Python 3.11/3.12 与 Docker 构建已通过 GitHub Actions。
 
 ```text
-578 tests collected
-574 passed, 4 skipped
+819 tests collected
+815 passed, 4 skipped
 ```
 
 测试覆盖声明式工具注册、MCP 标准初始化及 stdio 异构端到端链路、Git

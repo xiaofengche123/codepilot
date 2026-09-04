@@ -37,7 +37,7 @@
 - [x] `IDX-001` `DONE`：索引 metadata 增加 `content_type`。
 - [x] `IDX-002` `DONE`：Schema v2 自动重建旧索引。
 - [x] `IDX-003` `DONE`：默认 code 过滤，`include_docs=true` 可包含文档。
-- [x] `IDX-004` `DONE`：排除评测、缓存、面试资料和损坏虚拟环境。
+- [x] `IDX-004` `DONE`：排除评测、缓存、本地非源码资料和损坏虚拟环境。
 - [x] `IDX-005` `DONE`：Windows/POSIX Chunk ID 统一。
 
 ### 评测

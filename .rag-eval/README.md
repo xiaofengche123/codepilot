@@ -37,7 +37,7 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 
 命令会校验数量、分类、重复问题、与开发集的精确重复、标注是否能映射到当前 Chunk，并把数据集 SHA-256、语料 SHA-256 与 Git HEAD 写入 manifest。冻结后只允许修订到新版本（例如 test-v2），不得根据 test-v1 结果修改问题或答案。
 
-正式内部评测只运行一次：
+正式内部评测只运行一次。下面的输出目录仅用于本地或非公开评测存储，不纳入公开仓库：
 
 ```powershell
 .\venv\Scripts\python.exe -m rag.evaluate .rag-eval\codepilot-test-v1.json --project . --ks 5 10 --output .rag-eval\results\codepilot-test-v1-2026-08-14.json
@@ -74,9 +74,9 @@ GRAPH-007 已完成唯一一次离线比较：固定Hybrid与固定Hybrid+图的
 .\venv\Scripts\python.exe -m rag.agent_repeat_protocol --check-pristine
 ```
 
-用户已于2026-08-31授权不高于10 CNY的正式千问评测。正式r1/r2/r3共120/120项已完成：Hybrid pass@1 13/60、pass@3 6/20；Rerank pass@1 10/60、pass@3 7/20。1,039/1,039个实际模型回合usage完整，目录价估算1.207183 CNY。每轮A06两条件都因冻结mutation文本出现两次而在调用模型前形成2个worker failure；没有清理或Agent API失败。详见`qwen-r3-final-2026-09-01.md`及三个results目录。三轮结果禁止覆盖，也不得解释为外部泛化收益。
+正式重复评测已完成，汇总结论见 `m7-final-report-2026-09-02.md`。公开仓库不保存逐任务模型输出和工具轨迹；脱敏后的典型失败模式见 `sanitized-failure-examples.md`。原始结果在非公开评测存储中保持只读，不得覆盖，也不得解释为外部泛化收益。
 
-GLM四项预跑已于2026-08-31完成，详见`glm-preflight-2026-08-31.md`及`results/m7-agent-repeat-v2-glm-preflight/`。结果为1/4 Oracle成功，28/28模型轮次usage完整；同时发现429限流、400消息兼容错误和迭代预算耗尽。该目录不是正式结果目录，不得并入三轮千问统计。千问首次因免费额度用完即停而中断的25项也已独立归档为`results/m7-qwen-aborted-free-tier-2026-08-31/`，不得并入正式统计。
+GLM 预跑摘要见 `glm-preflight-2026-08-31.md`。预跑和中断批次的原始轨迹仅保存在非公开评测存储中，不并入正式统计。
 
 ### M7 独立仓库冻结集与盲审
 
